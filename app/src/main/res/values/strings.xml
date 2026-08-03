@@ -13,7 +13,7 @@
     <string name="states_subtitle">Galería temporal de imágenes detectadas en la carpeta autorizada.</string>
     <string name="states_action_refresh">Actualizar</string>
     <string name="states_loading_title">Leyendo carpeta</string>
-    <string name="states_loading_body">Buscando imágenes compatibles…</string>
+    <string name="states_loading_body">Buscando imágenes compatibles...</string>
     <string name="states_empty_title">Sin imágenes compatibles</string>
     <string name="states_empty_body">No se encontraron imágenes JPEG, PNG o WebP válidas en la carpeta seleccionada.</string>
     <string name="states_no_folder_title">No hay carpeta seleccionada</string>
@@ -38,7 +38,7 @@
     <string name="settings_placeholder_title">Opciones pendientes</string>
     <string name="settings_placeholder_body">Los ajustes persistentes se agregarán cuando se incorpore almacenamiento local.</string>
     <string name="settings_folder_title">Carpeta seleccionada</string>
-    <string name="folder_status_loading">Revisando carpeta seleccionada…</string>
+    <string name="folder_status_loading">Revisando carpeta seleccionada...</string>
     <string name="folder_status_not_selected">No hay carpeta seleccionada.</string>
     <string name="folder_status_permission_lost">La carpeta guardada perdió el permiso de acceso.</string>
     <string name="folder_status_selected">Hay una carpeta seleccionada y autorizada.</string>
