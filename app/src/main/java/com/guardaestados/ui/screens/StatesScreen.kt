@@ -2,6 +2,7 @@ package com.guardaestados.ui.screens
 
 import androidx.annotation.StringRes
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -51,6 +52,7 @@ private const val ThumbnailPixelSize = 360
 fun StatesScreen(
     statusGalleryState: StatusGalleryState,
     onRefresh: () -> Unit,
+    onImageSelected: (StatusImage) -> Unit,
     modifier: Modifier = Modifier
 ) {
     Surface(
@@ -122,7 +124,10 @@ fun StatesScreen(
                         items = statusGalleryState.images,
                         key = { image -> image.uri.toString() }
                     ) { image ->
-                        StatusImageGridCard(image = image)
+                        StatusImageGridCard(
+                            image = image,
+                            onImageSelected = onImageSelected
+                        )
                     }
                 }
             }
@@ -173,7 +178,8 @@ private fun GalleryMessageCard(
 
 @Composable
 private fun StatusImageGridCard(
-    image: StatusImage
+    image: StatusImage,
+    onImageSelected: (StatusImage) -> Unit
 ) {
     val context = LocalContext.current
     val formatter = remember { StatusImagePresentationFormatter() }
@@ -185,6 +191,7 @@ private fun StatusImageGridCard(
     var failedToLoad by remember(image.uri) { mutableStateOf(false) }
 
     Card(
+        modifier = Modifier.clickable { onImageSelected(image) },
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
         )
