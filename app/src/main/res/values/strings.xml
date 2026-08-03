@@ -1,3 +1,20 @@
 <resources>
     <string name="app_name">Guarda Estados</string>
+    <string name="nav_home">Inicio</string>
+    <string name="nav_states">Estados</string>
+    <string name="nav_settings">Configuración</string>
+    <string name="home_title">Guarda Estados</string>
+    <string name="home_subtitle">Organizá estados guardados en un espacio simple y privado.</string>
+    <string name="home_summary_title">Resumen</string>
+    <string name="home_summary_empty">Todavía no hay estados listados.</string>
+    <string name="home_primary_action">Ver estados</string>
+    <string name="home_placeholder_note">Esta etapa deja lista la estructura visual y la navegación. El acceso a archivos se implementará más adelante.</string>
+    <string name="states_title">Estados</string>
+    <string name="states_subtitle">Acá aparecerán los estados disponibles cuando exista una fuente de datos.</string>
+    <string name="states_empty_title">Sin contenido por ahora</string>
+    <string name="states_empty_body">La pantalla queda preparada para mostrar tarjetas o una grilla en una etapa posterior.</string>
+    <string name="settings_title">Configuración</string>
+    <string name="settings_subtitle">Preferencias generales de la aplicación.</string>
+    <string name="settings_placeholder_title">Opciones pendientes</string>
+    <string name="settings_placeholder_body">Los ajustes persistentes se agregarán cuando se incorpore almacenamiento local.</string>
 </resources>
