@@ -14,17 +14,21 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavDestination.Companion.hierarchy
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import com.guardaestados.data.folder.FolderSelectionState
 import com.guardaestados.domain.status.StatusGalleryState
 import com.guardaestados.ui.screens.HomeScreen
+import com.guardaestados.ui.screens.ImagePreviewScreen
 import com.guardaestados.ui.screens.SettingsScreen
 import com.guardaestados.ui.screens.StatesScreen
 import com.guardaestados.ui.status.StatusGalleryViewModel
 import com.guardaestados.ui.status.StatusGalleryViewModelFactory
+import com.guardaestados.ui.status.StatusImagePreviewResolver
 
 @Composable
 fun AppNavigation(
@@ -42,6 +46,7 @@ fun AppNavigation(
     val routes = listOf(AppRoute.Home, AppRoute.States, AppRoute.Settings)
     val currentBackStackEntry = navController.currentBackStackEntryAsState().value
     val currentDestination = currentBackStackEntry?.destination
+    val previewResolver = remember { StatusImagePreviewResolver() }
 
     Scaffold(
         bottomBar = {
@@ -81,13 +86,30 @@ fun AppNavigation(
             composable(AppRoute.States.route) {
                 StatesScreen(
                     statusGalleryState = statusGalleryState,
-                    onRefresh = statusGalleryViewModel::refresh
+                    onRefresh = statusGalleryViewModel::refresh,
+                    onImageSelected = { image ->
+                        navController.navigate(AppRoute.ImagePreview.createRoute(image.uri.toString()))
+                    }
                 )
             }
             composable(AppRoute.Settings.route) {
                 SettingsScreen(
                     folderSelectionState = folderSelectionState,
                     onSelectFolder = onSelectFolder
+                )
+            }
+            composable(
+                route = AppRoute.ImagePreview.route,
+                arguments = listOf(
+                    navArgument(AppRoute.ImagePreview.ImageUriArgument) {
+                        type = NavType.StringType
+                    }
+                )
+            ) { backStackEntry ->
+                val imageUri = backStackEntry.arguments?.getString(AppRoute.ImagePreview.ImageUriArgument)
+                ImagePreviewScreen(
+                    previewState = previewResolver.resolve(statusGalleryState, imageUri),
+                    onBack = { navController.popBackStack() }
                 )
             }
         }

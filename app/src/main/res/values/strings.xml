@@ -33,6 +33,14 @@
     <string name="status_image_value_unavailable">No disponible</string>
     <string name="status_image_thumbnail_error">No se pudo cargar</string>
     <string name="status_image_thumbnail_description">Miniatura de %1$s</string>
+    <string name="preview_title">Vista previa</string>
+    <string name="preview_action_back">Volver</string>
+    <string name="preview_loading_title">Preparando imagen</string>
+    <string name="preview_loading_body">Buscando la imagen seleccionada...</string>
+    <string name="preview_unavailable_title">Imagen no disponible</string>
+    <string name="preview_unavailable_body">La imagen ya no está disponible, cambió la carpeta o se perdió el acceso.</string>
+    <string name="preview_load_error_body">No se pudo cargar esta imagen.</string>
+    <string name="preview_image_description">Imagen ampliada de %1$s</string>
     <string name="settings_title">Configuración</string>
     <string name="settings_subtitle">Administrá la carpeta autorizada por Android.</string>
     <string name="settings_placeholder_title">Opciones pendientes</string>
