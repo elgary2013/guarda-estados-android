@@ -26,6 +26,8 @@ import com.guardaestados.data.folder.FolderSelectionState
 import com.guardaestados.domain.status.StatusGalleryState
 import com.guardaestados.ui.save.SaveStatusImageViewModel
 import com.guardaestados.ui.save.SaveStatusImageViewModelFactory
+import com.guardaestados.ui.share.ShareStatusImageViewModel
+import com.guardaestados.ui.share.ShareStatusImageViewModelFactory
 import com.guardaestados.ui.screens.HomeScreen
 import com.guardaestados.ui.screens.ImagePreviewScreen
 import com.guardaestados.ui.screens.SettingsScreen
@@ -46,10 +48,14 @@ fun AppNavigation(
     val saveStatusImageViewModel: SaveStatusImageViewModel = viewModel(
         factory = remember(context) { SaveStatusImageViewModelFactory(context) }
     )
+    val shareStatusImageViewModel: ShareStatusImageViewModel = viewModel(
+        factory = remember(context) { ShareStatusImageViewModelFactory(context) }
+    )
     val statusGalleryState by statusGalleryViewModel.uiState.collectAsState(
         initial = StatusGalleryState.Loading
     )
     val saveStatusImageState by saveStatusImageViewModel.uiState.collectAsState()
+    val shareStatusImageState by shareStatusImageViewModel.uiState.collectAsState()
     val navController = rememberNavController()
     val routes = listOf(AppRoute.Home, AppRoute.States, AppRoute.Settings)
     val currentBackStackEntry = navController.currentBackStackEntryAsState().value
@@ -125,7 +131,9 @@ fun AppNavigation(
                 ImagePreviewScreen(
                     previewState = previewResolver.resolve(statusGalleryState, imageUri),
                     saveState = saveStatusImageState,
+                    shareState = shareStatusImageState,
                     onSaveImage = saveStatusImageViewModel::save,
+                    onShareImage = shareStatusImageViewModel::share,
                     onBack = { navController.popBackStack() }
                 )
             }

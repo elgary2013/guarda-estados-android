@@ -5,9 +5,9 @@ import android.content.ContentValues
 import android.content.Context
 import android.net.Uri
 import android.os.Build
-import android.provider.DocumentsContract
 import android.provider.MediaStore
 import android.util.Log
+import com.guardaestados.data.uri.PersistedUriPermissionChecker
 import com.guardaestados.domain.save.SafeImageFileNameGenerator
 import com.guardaestados.domain.save.SaveStatusImageResult
 import com.guardaestados.domain.save.StatusImageSaverRepository
@@ -17,6 +17,7 @@ import kotlinx.coroutines.withContext
 
 class MediaStoreStatusImageSaverRepository(
     context: Context,
+    private val permissionChecker: PersistedUriPermissionChecker = PersistedUriPermissionChecker(context),
     private val fileNameGenerator: SafeImageFileNameGenerator = SafeImageFileNameGenerator(),
     private val clock: () -> Long = System::currentTimeMillis
 ) : StatusImageSaverRepository {
@@ -27,7 +28,7 @@ class MediaStoreStatusImageSaverRepository(
         val displayName = fileNameGenerator.generate(image.name, image.mimeType, clock())
         var destinationUri: Uri? = null
         try {
-            if (!contentResolver.hasPersistedReadPermissionFor(image.uri)) {
+            if (!permissionChecker.hasPersistedReadPermissionFor(image.uri)) {
                 Log.w(TAG, "Save rejected: source URI is outside persisted tree permissions")
                 return@withContext SaveStatusImageResult.Error
             }
@@ -78,23 +79,6 @@ class MediaStoreStatusImageSaverRepository(
             Log.e(TAG, "Save failed while copying image to MediaStore", exception)
             SaveStatusImageResult.Error
         }
-    }
-
-    private fun ContentResolver.hasPersistedReadPermissionFor(uri: Uri): Boolean {
-        return persistedUriPermissions.any { permission ->
-            permission.isReadPermission && (permission.uri == uri || permission.uri.containsDocument(uri))
-        }
-    }
-
-    private fun Uri.containsDocument(documentUri: Uri): Boolean {
-        return runCatching {
-            authority == documentUri.authority &&
-                DocumentsContract.isTreeUri(this) &&
-                DocumentsContract.isDocumentUri(appContext, documentUri) &&
-                DocumentsContract.getDocumentId(documentUri).startsWith(
-                    DocumentsContract.getTreeDocumentId(this)
-                )
-        }.getOrDefault(false)
     }
 
     private companion object {

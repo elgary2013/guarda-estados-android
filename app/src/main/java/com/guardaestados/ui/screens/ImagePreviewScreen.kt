@@ -35,6 +35,7 @@ import coil3.request.ImageRequest
 import com.guardaestados.R
 import com.guardaestados.domain.status.StatusImage
 import com.guardaestados.ui.save.SaveStatusImageUiState
+import com.guardaestados.ui.share.ShareStatusImageUiState
 import com.guardaestados.ui.status.StatusImagePresentationFormatter
 import com.guardaestados.ui.status.StatusImagePreviewState
 import java.text.DateFormat
@@ -44,7 +45,9 @@ import java.util.Date
 fun ImagePreviewScreen(
     previewState: StatusImagePreviewState,
     saveState: SaveStatusImageUiState,
+    shareState: ShareStatusImageUiState,
     onSaveImage: (StatusImage) -> Unit,
+    onShareImage: (StatusImage) -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -93,7 +96,9 @@ fun ImagePreviewScreen(
                 is StatusImagePreviewState.Content -> PreviewContent(
                     image = previewState.image,
                     saveState = saveState,
-                    onSaveImage = onSaveImage
+                    shareState = shareState,
+                    onSaveImage = onSaveImage,
+                    onShareImage = onShareImage
                 )
             }
         }
@@ -104,7 +109,9 @@ fun ImagePreviewScreen(
 private fun PreviewContent(
     image: StatusImage,
     saveState: SaveStatusImageUiState,
-    onSaveImage: (StatusImage) -> Unit
+    shareState: ShareStatusImageUiState,
+    onSaveImage: (StatusImage) -> Unit,
+    onShareImage: (StatusImage) -> Unit
 ) {
     var failedToLoad by remember(image.uri) { mutableStateOf(false) }
 
@@ -156,7 +163,15 @@ private fun PreviewContent(
                 Text(text = stringResource(R.string.preview_action_save_image))
             }
 
+            Button(
+                onClick = { onShareImage(image) },
+                enabled = shareState != ShareStatusImageUiState.Sharing
+            ) {
+                Text(text = stringResource(R.string.preview_action_share_image))
+            }
+
             SaveStatusMessage(saveState = saveState)
+            ShareStatusMessage(shareState = shareState)
             ImageInfoCard(image = image)
         }
     }
@@ -186,6 +201,35 @@ private fun SaveStatusMessage(saveState: SaveStatusImageUiState) {
     }
 }
 
+@Composable
+private fun ShareStatusMessage(shareState: ShareStatusImageUiState) {
+    when (shareState) {
+        ShareStatusImageUiState.Idle -> Unit
+        ShareStatusImageUiState.Sharing -> Text(
+            text = stringResource(R.string.share_status_opening),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+
+        ShareStatusImageUiState.ChooserOpened -> Text(
+            text = stringResource(R.string.share_status_chooser_opened),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.primary
+        )
+
+        ShareStatusImageUiState.NoCompatibleApp -> Text(
+            text = stringResource(R.string.share_status_no_app),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.error
+        )
+
+        ShareStatusImageUiState.Error -> Text(
+            text = stringResource(R.string.share_status_error),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.error
+        )
+    }
+}
 @Composable
 private fun ImageInfoCard(image: StatusImage) {
     val unavailable = stringResource(R.string.status_image_value_unavailable)
