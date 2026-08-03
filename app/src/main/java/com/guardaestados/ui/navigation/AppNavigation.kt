@@ -26,10 +26,15 @@ import com.guardaestados.data.folder.FolderSelectionState
 import com.guardaestados.domain.status.StatusGalleryState
 import com.guardaestados.ui.save.SaveStatusImageViewModel
 import com.guardaestados.ui.save.SaveStatusImageViewModelFactory
+import com.guardaestados.ui.saved.SavedImagePreviewResolver
+import com.guardaestados.ui.saved.SavedImagesViewModel
+import com.guardaestados.ui.saved.SavedImagesViewModelFactory
 import com.guardaestados.ui.share.ShareStatusImageViewModel
 import com.guardaestados.ui.share.ShareStatusImageViewModelFactory
 import com.guardaestados.ui.screens.HomeScreen
 import com.guardaestados.ui.screens.ImagePreviewScreen
+import com.guardaestados.ui.screens.SavedImagePreviewScreen
+import com.guardaestados.ui.screens.SavedImagesScreen
 import com.guardaestados.ui.screens.SettingsScreen
 import com.guardaestados.ui.screens.StatesScreen
 import com.guardaestados.ui.status.StatusGalleryViewModel
@@ -51,16 +56,21 @@ fun AppNavigation(
     val shareStatusImageViewModel: ShareStatusImageViewModel = viewModel(
         factory = remember(context) { ShareStatusImageViewModelFactory(context) }
     )
+    val savedImagesViewModel: SavedImagesViewModel = viewModel(
+        factory = remember(context) { SavedImagesViewModelFactory(context) }
+    )
     val statusGalleryState by statusGalleryViewModel.uiState.collectAsState(
         initial = StatusGalleryState.Loading
     )
     val saveStatusImageState by saveStatusImageViewModel.uiState.collectAsState()
     val shareStatusImageState by shareStatusImageViewModel.uiState.collectAsState()
+    val savedImagesState by savedImagesViewModel.uiState.collectAsState()
     val navController = rememberNavController()
-    val routes = listOf(AppRoute.Home, AppRoute.States, AppRoute.Settings)
+    val routes = listOf(AppRoute.Home, AppRoute.States, AppRoute.Saved, AppRoute.Settings)
     val currentBackStackEntry = navController.currentBackStackEntryAsState().value
     val currentDestination = currentBackStackEntry?.destination
     val previewResolver = remember { StatusImagePreviewResolver() }
+    val savedPreviewResolver = remember { SavedImagePreviewResolver() }
 
     Scaffold(
         bottomBar = {
@@ -113,6 +123,15 @@ fun AppNavigation(
                     }
                 )
             }
+            composable(AppRoute.Saved.route) {
+                SavedImagesScreen(
+                    savedImagesState = savedImagesState,
+                    onRefresh = savedImagesViewModel::refresh,
+                    onImageSelected = { image ->
+                        navController.navigate(AppRoute.SavedImagePreview.createRoute(image.uri.toString()))
+                    }
+                )
+            }
             composable(AppRoute.Settings.route) {
                 SettingsScreen(
                     folderSelectionState = folderSelectionState,
@@ -134,6 +153,22 @@ fun AppNavigation(
                     shareState = shareStatusImageState,
                     onSaveImage = saveStatusImageViewModel::save,
                     onShareImage = shareStatusImageViewModel::share,
+                    onBack = { navController.popBackStack() }
+                )
+            }
+            composable(
+                route = AppRoute.SavedImagePreview.route,
+                arguments = listOf(
+                    navArgument(AppRoute.SavedImagePreview.SavedImageUriArgument) {
+                        type = NavType.StringType
+                    }
+                )
+            ) { backStackEntry ->
+                val imageUri = backStackEntry.arguments?.getString(
+                    AppRoute.SavedImagePreview.SavedImageUriArgument
+                )
+                SavedImagePreviewScreen(
+                    previewState = savedPreviewResolver.resolve(savedImagesState, imageUri),
                     onBack = { navController.popBackStack() }
                 )
             }
