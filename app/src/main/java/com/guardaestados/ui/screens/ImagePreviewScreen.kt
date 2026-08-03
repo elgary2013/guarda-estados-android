@@ -34,6 +34,7 @@ import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
 import com.guardaestados.R
 import com.guardaestados.domain.status.StatusImage
+import com.guardaestados.ui.save.SaveStatusImageUiState
 import com.guardaestados.ui.status.StatusImagePresentationFormatter
 import com.guardaestados.ui.status.StatusImagePreviewState
 import java.text.DateFormat
@@ -42,6 +43,8 @@ import java.util.Date
 @Composable
 fun ImagePreviewScreen(
     previewState: StatusImagePreviewState,
+    saveState: SaveStatusImageUiState,
+    onSaveImage: (StatusImage) -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -88,7 +91,9 @@ fun ImagePreviewScreen(
                 )
 
                 is StatusImagePreviewState.Content -> PreviewContent(
-                    image = previewState.image
+                    image = previewState.image,
+                    saveState = saveState,
+                    onSaveImage = onSaveImage
                 )
             }
         }
@@ -96,7 +101,11 @@ fun ImagePreviewScreen(
 }
 
 @Composable
-private fun PreviewContent(image: StatusImage) {
+private fun PreviewContent(
+    image: StatusImage,
+    saveState: SaveStatusImageUiState,
+    onSaveImage: (StatusImage) -> Unit
+) {
     var failedToLoad by remember(image.uri) { mutableStateOf(false) }
 
     Card(
@@ -140,8 +149,40 @@ private fun PreviewContent(image: StatusImage) {
                 }
             }
 
+            Button(
+                onClick = { onSaveImage(image) },
+                enabled = saveState != SaveStatusImageUiState.Saving
+            ) {
+                Text(text = stringResource(R.string.preview_action_save_image))
+            }
+
+            SaveStatusMessage(saveState = saveState)
             ImageInfoCard(image = image)
         }
+    }
+}
+
+@Composable
+private fun SaveStatusMessage(saveState: SaveStatusImageUiState) {
+    when (saveState) {
+        SaveStatusImageUiState.Idle -> Unit
+        SaveStatusImageUiState.Saving -> Text(
+            text = stringResource(R.string.save_status_saving),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+
+        SaveStatusImageUiState.Error -> Text(
+            text = stringResource(R.string.save_status_error),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.error
+        )
+
+        is SaveStatusImageUiState.Success -> Text(
+            text = stringResource(R.string.save_status_success, saveState.displayName),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.primary
+        )
     }
 }
 
