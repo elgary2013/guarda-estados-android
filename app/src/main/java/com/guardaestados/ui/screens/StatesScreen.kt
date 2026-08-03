@@ -16,9 +16,11 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.guardaestados.R
+import com.guardaestados.data.folder.FolderSelectionState
 
 @Composable
 fun StatesScreen(
+    folderSelectionState: FolderSelectionState,
     modifier: Modifier = Modifier
 ) {
     Surface(
@@ -58,12 +60,22 @@ fun StatesScreen(
                         fontWeight = FontWeight.SemiBold
                     )
                     Text(
-                        text = stringResource(R.string.states_empty_body),
+                        text = statesBodyText(folderSelectionState),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun statesBodyText(folderSelectionState: FolderSelectionState): String {
+    return when (folderSelectionState) {
+        FolderSelectionState.Loading -> stringResource(R.string.folder_status_loading)
+        FolderSelectionState.NotSelected -> stringResource(R.string.states_no_folder_body)
+        is FolderSelectionState.PermissionLost -> stringResource(R.string.states_permission_lost_body)
+        is FolderSelectionState.Selected -> stringResource(R.string.states_ready_body)
     }
 }

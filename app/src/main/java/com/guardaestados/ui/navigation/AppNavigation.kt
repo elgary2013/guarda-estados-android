@@ -13,12 +13,16 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.guardaestados.data.folder.FolderSelectionState
 import com.guardaestados.ui.screens.HomeScreen
 import com.guardaestados.ui.screens.SettingsScreen
 import com.guardaestados.ui.screens.StatesScreen
 
 @Composable
-fun AppNavigation() {
+fun AppNavigation(
+    folderSelectionState: FolderSelectionState,
+    onSelectFolder: () -> Unit
+) {
     val navController = rememberNavController()
     val routes = listOf(AppRoute.Home, AppRoute.States, AppRoute.Settings)
     val currentBackStackEntry = navController.currentBackStackEntryAsState().value
@@ -54,14 +58,19 @@ fun AppNavigation() {
         ) {
             composable(AppRoute.Home.route) {
                 HomeScreen(
+                    folderSelectionState = folderSelectionState,
+                    onSelectFolder = onSelectFolder,
                     onOpenStates = { navController.navigate(AppRoute.States.route) }
                 )
             }
             composable(AppRoute.States.route) {
-                StatesScreen()
+                StatesScreen(folderSelectionState = folderSelectionState)
             }
             composable(AppRoute.Settings.route) {
-                SettingsScreen()
+                SettingsScreen(
+                    folderSelectionState = folderSelectionState,
+                    onSelectFolder = onSelectFolder
+                )
             }
         }
     }

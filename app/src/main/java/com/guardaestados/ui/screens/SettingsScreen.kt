@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
@@ -16,9 +17,12 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.guardaestados.R
+import com.guardaestados.data.folder.FolderSelectionState
 
 @Composable
 fun SettingsScreen(
+    folderSelectionState: FolderSelectionState,
+    onSelectFolder: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Surface(
@@ -50,20 +54,43 @@ fun SettingsScreen(
             ) {
                 Column(
                     modifier = Modifier.padding(20.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     Text(
-                        text = stringResource(R.string.settings_placeholder_title),
+                        text = stringResource(R.string.settings_folder_title),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.SemiBold
                     )
                     Text(
-                        text = stringResource(R.string.settings_placeholder_body),
+                        text = folderStatusText(folderSelectionState),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
+                    if (folderSelectionState is FolderSelectionState.Selected) {
+                        Text(
+                            text = stringResource(
+                                R.string.folder_selected_uri,
+                                folderSelectionState.uriString
+                            ),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    Button(onClick = onSelectFolder) {
+                        Text(text = stringResource(R.string.folder_action_change))
+                    }
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun folderStatusText(folderSelectionState: FolderSelectionState): String {
+    return when (folderSelectionState) {
+        FolderSelectionState.Loading -> stringResource(R.string.folder_status_loading)
+        FolderSelectionState.NotSelected -> stringResource(R.string.folder_status_not_selected)
+        is FolderSelectionState.PermissionLost -> stringResource(R.string.folder_status_permission_lost)
+        is FolderSelectionState.Selected -> stringResource(R.string.folder_status_selected)
     }
 }
