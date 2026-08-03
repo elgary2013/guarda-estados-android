@@ -1,6 +1,7 @@
 package com.guardaestados.ui.navigation
 
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
@@ -11,6 +12,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavDestination.Companion.hierarchy
@@ -22,6 +24,8 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.guardaestados.data.folder.FolderSelectionState
 import com.guardaestados.domain.status.StatusGalleryState
+import com.guardaestados.ui.save.SaveStatusImageViewModel
+import com.guardaestados.ui.save.SaveStatusImageViewModelFactory
 import com.guardaestados.ui.screens.HomeScreen
 import com.guardaestados.ui.screens.ImagePreviewScreen
 import com.guardaestados.ui.screens.SettingsScreen
@@ -39,9 +43,13 @@ fun AppNavigation(
     val statusGalleryViewModel: StatusGalleryViewModel = viewModel(
         factory = remember(context) { StatusGalleryViewModelFactory(context) }
     )
+    val saveStatusImageViewModel: SaveStatusImageViewModel = viewModel(
+        factory = remember(context) { SaveStatusImageViewModelFactory(context) }
+    )
     val statusGalleryState by statusGalleryViewModel.uiState.collectAsState(
         initial = StatusGalleryState.Loading
     )
+    val saveStatusImageState by saveStatusImageViewModel.uiState.collectAsState()
     val navController = rememberNavController()
     val routes = listOf(AppRoute.Home, AppRoute.States, AppRoute.Settings)
     val currentBackStackEntry = navController.currentBackStackEntryAsState().value
@@ -65,7 +73,14 @@ fun AppNavigation(
                             }
                         },
                         label = { Text(text = stringResource(route.labelRes)) },
-                        icon = { Text(text = stringResource(route.labelRes).take(1)) }
+                        icon = {
+                            route.iconRes?.let { iconRes ->
+                                Icon(
+                                    painter = painterResource(iconRes),
+                                    contentDescription = stringResource(route.labelRes)
+                                )
+                            }
+                        }
                     )
                 }
             }
@@ -109,6 +124,8 @@ fun AppNavigation(
                 val imageUri = backStackEntry.arguments?.getString(AppRoute.ImagePreview.ImageUriArgument)
                 ImagePreviewScreen(
                     previewState = previewResolver.resolve(statusGalleryState, imageUri),
+                    saveState = saveStatusImageState,
+                    onSaveImage = saveStatusImageViewModel::save,
                     onBack = { navController.popBackStack() }
                 )
             }
