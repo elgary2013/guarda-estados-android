@@ -72,6 +72,7 @@ fun AppNavigation(
     val shareStatusImageState by shareStatusImageViewModel.uiState.collectAsState()
     val savedImagesState by savedImagesViewModel.uiState.collectAsState()
     val deleteSavedImageState by savedImagesViewModel.deleteState.collectAsState()
+    val shareSavedImageState by savedImagesViewModel.shareState.collectAsState()
     val navController = rememberNavController()
     val routes = listOf(AppRoute.Home, AppRoute.States, AppRoute.Saved, AppRoute.Settings)
     val currentBackStackEntry = navController.currentBackStackEntryAsState().value
@@ -197,7 +198,10 @@ fun AppNavigation(
                 SavedImagePreviewScreen(
                     previewState = savedPreviewResolver.resolve(savedImagesState, imageUri),
                     deleteState = deleteSavedImageState,
+                    shareState = shareSavedImageState,
                     onDeleteImage = savedImagesViewModel::delete,
+                    onShareImage = savedImagesViewModel::share,
+                    onShareMessageDismissed = savedImagesViewModel::clearShareMessage,
                     onBack = { navController.popBackStack() }
                 )
             }

@@ -1,4 +1,4 @@
-﻿<resources>
+<resources>
     <string name="app_name">Guarda Estados</string>
     <string name="nav_home">Inicio</string>
     <string name="nav_states">Estados</string>
@@ -81,6 +81,13 @@
     <string name="saved_delete_status_invalid">No se eliminó la imagen porque no pertenece a Pictures/GuardaEstados o no es una imagen guardada válida.</string>
     <string name="saved_delete_status_error">No se pudo eliminar la copia guardada. Probá de nuevo.</string>
     <string name="saved_delete_system_confirmation">Android necesita confirmar esta eliminación.</string>
+    <string name="saved_action_share_image">Compartir imagen</string>
+    <string name="saved_share_status_opening">Abriendo opciones para compartir la copia guardada...</string>
+    <string name="saved_share_status_chooser_opened">Elegí una aplicación para compartir la copia guardada.</string>
+    <string name="saved_share_status_missing">La copia guardada ya no existe.</string>
+    <string name="saved_share_status_invalid">No se compartió la imagen porque no pertenece a Pictures/GuardaEstados o no es una imagen guardada válida.</string>
+    <string name="saved_share_status_no_app">No hay una aplicación compatible para compartir esta imagen guardada.</string>
+    <string name="saved_share_status_error">No se pudo compartir la copia guardada. Probá de nuevo.</string>
     <string name="settings_title">Configuración</string>
     <string name="settings_subtitle">Administrá la carpeta autorizada por Android.</string>
     <string name="settings_placeholder_title">Opciones pendientes</string>
