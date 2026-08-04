@@ -1,4 +1,4 @@
-package com.guardaestados.ui.screens
+﻿package com.guardaestados.ui.screens
 
 import androidx.annotation.StringRes
 import androidx.compose.foundation.background
@@ -11,17 +11,23 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -32,6 +38,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -42,6 +49,7 @@ import coil3.size.Size
 import com.guardaestados.R
 import com.guardaestados.domain.saved.SavedImage
 import com.guardaestados.domain.saved.SavedImagesState
+import com.guardaestados.ui.saved.SavedImageDeleteState
 import com.guardaestados.ui.status.StatusImagePresentationFormatter
 import java.text.DateFormat
 import java.util.Date
@@ -51,8 +59,11 @@ private const val ThumbnailPixelSize = 360
 @Composable
 fun SavedImagesScreen(
     savedImagesState: SavedImagesState,
+    deleteState: SavedImageDeleteState,
     onRefresh: () -> Unit,
     onImageSelected: (SavedImage) -> Unit,
+    onDeleteImage: (SavedImage) -> Unit,
+    onDeleteMessageDismissed: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Surface(
@@ -81,6 +92,16 @@ fun SavedImagesScreen(
                     Button(onClick = onRefresh) {
                         Text(text = stringResource(R.string.saved_action_refresh))
                     }
+                }
+            }
+
+            deleteState.statusMessageRes()?.let { messageRes ->
+                item(span = { GridItemSpan(maxLineSpan) }) {
+                    SavedDeleteStatusCard(
+                        message = stringResource(messageRes),
+                        canDismiss = deleteState.canDismiss(),
+                        onDismiss = onDeleteMessageDismissed
+                    )
                 }
             }
 
@@ -116,7 +137,9 @@ fun SavedImagesScreen(
                     ) { image ->
                         SavedImageGridCard(
                             image = image,
-                            onImageSelected = onImageSelected
+                            onImageSelected = onImageSelected,
+                            onDeleteImage = onDeleteImage,
+                            deleting = deleteState == SavedImageDeleteState.Deleting
                         )
                     }
                 }
@@ -134,6 +157,36 @@ private fun androidx.compose.foundation.lazy.grid.LazyGridScope.fullWidthSavedMe
             title = stringResource(titleRes),
             body = stringResource(bodyRes)
         )
+    }
+}
+
+@Composable
+private fun SavedDeleteStatusCard(
+    message: String,
+    canDismiss: Boolean,
+    onDismiss: () -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.secondaryContainer
+        )
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Text(
+                text = message,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSecondaryContainer
+            )
+            if (canDismiss) {
+                TextButton(onClick = onDismiss) {
+                    Text(text = stringResource(R.string.saved_delete_dialog_cancel))
+                }
+            }
+        }
     }
 }
 
@@ -169,7 +222,9 @@ private fun SavedMessageCard(
 @Composable
 private fun SavedImageGridCard(
     image: SavedImage,
-    onImageSelected: (SavedImage) -> Unit
+    onImageSelected: (SavedImage) -> Unit,
+    onDeleteImage: (SavedImage) -> Unit,
+    deleting: Boolean
 ) {
     val context = LocalContext.current
     val formatter = remember { StatusImagePresentationFormatter() }
@@ -178,9 +233,20 @@ private fun SavedImageGridCard(
     val title = formatter.title(image.name, formattedDate)
     val displayTitle = if (title.isBlank()) unavailable else title
     var failedToLoad by remember(image.uri) { mutableStateOf(false) }
+    var showDeleteDialog by remember(image.uri) { mutableStateOf(false) }
+
+    if (showDeleteDialog) {
+        ConfirmSavedImageDeleteDialog(
+            onDismiss = { showDeleteDialog = false },
+            onConfirm = {
+                showDeleteDialog = false
+                onDeleteImage(image)
+            }
+        )
+    }
 
     Card(
-        modifier = Modifier.clickable { onImageSelected(image) },
+        modifier = Modifier.clickable(enabled = !deleting) { onImageSelected(image) },
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
         )
@@ -217,6 +283,28 @@ private fun SavedImageGridCard(
                         onError = { failedToLoad = true }
                     )
                 }
+
+                IconButton(
+                    onClick = { showDeleteDialog = true },
+                    enabled = !deleting,
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(4.dp)
+                        .size(40.dp)
+                        .background(
+                            color = MaterialTheme.colorScheme.errorContainer,
+                            shape = RoundedCornerShape(20.dp)
+                        )
+                ) {
+                    Icon(
+                        painter = painterResource(R.drawable.ic_delete),
+                        contentDescription = stringResource(
+                            R.string.saved_delete_description,
+                            displayTitle
+                        ),
+                        tint = MaterialTheme.colorScheme.onErrorContainer
+                    )
+                }
             }
 
             Column(
@@ -242,6 +330,50 @@ private fun SavedImageGridCard(
             }
         }
     }
+}
+
+@Composable
+fun ConfirmSavedImageDeleteDialog(
+    onDismiss: () -> Unit,
+    onConfirm: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(text = stringResource(R.string.saved_delete_dialog_title)) },
+        text = { Text(text = stringResource(R.string.saved_delete_dialog_body)) },
+        confirmButton = {
+            Button(
+                onClick = onConfirm,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.error,
+                    contentColor = MaterialTheme.colorScheme.onError
+                )
+            ) {
+                Text(text = stringResource(R.string.saved_delete_dialog_confirm))
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(text = stringResource(R.string.saved_delete_dialog_cancel))
+            }
+        }
+    )
+}
+
+private fun SavedImageDeleteState.statusMessageRes(): Int? {
+    return when (this) {
+        SavedImageDeleteState.Idle -> null
+        SavedImageDeleteState.Deleting -> R.string.saved_delete_status_deleting
+        SavedImageDeleteState.Success -> R.string.saved_delete_status_success
+        SavedImageDeleteState.AlreadyMissing -> R.string.saved_delete_status_missing
+        SavedImageDeleteState.InvalidTarget -> R.string.saved_delete_status_invalid
+        SavedImageDeleteState.Error -> R.string.saved_delete_status_error
+        is SavedImageDeleteState.NeedsSystemConfirmation -> R.string.saved_delete_system_confirmation
+    }
+}
+
+private fun SavedImageDeleteState.canDismiss(): Boolean {
+    return this != SavedImageDeleteState.Deleting && this !is SavedImageDeleteState.NeedsSystemConfirmation
 }
 
 private fun Long.formatDate(): String {
