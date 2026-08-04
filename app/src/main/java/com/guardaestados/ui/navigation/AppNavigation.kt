@@ -1,12 +1,17 @@
 package com.guardaestados.ui.navigation
 
+import android.app.Activity
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.IntentSenderRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -26,6 +31,7 @@ import com.guardaestados.data.folder.FolderSelectionState
 import com.guardaestados.domain.status.StatusGalleryState
 import com.guardaestados.ui.save.SaveStatusImageViewModel
 import com.guardaestados.ui.save.SaveStatusImageViewModelFactory
+import com.guardaestados.ui.saved.SavedImageDeleteState
 import com.guardaestados.ui.saved.SavedImagePreviewResolver
 import com.guardaestados.ui.saved.SavedImagesViewModel
 import com.guardaestados.ui.saved.SavedImagesViewModelFactory
@@ -65,13 +71,31 @@ fun AppNavigation(
     val saveStatusImageState by saveStatusImageViewModel.uiState.collectAsState()
     val shareStatusImageState by shareStatusImageViewModel.uiState.collectAsState()
     val savedImagesState by savedImagesViewModel.uiState.collectAsState()
+    val deleteSavedImageState by savedImagesViewModel.deleteState.collectAsState()
     val navController = rememberNavController()
     val routes = listOf(AppRoute.Home, AppRoute.States, AppRoute.Saved, AppRoute.Settings)
     val currentBackStackEntry = navController.currentBackStackEntryAsState().value
     val currentDestination = currentBackStackEntry?.destination
     val previewResolver = remember { StatusImagePreviewResolver() }
     val savedPreviewResolver = remember { SavedImagePreviewResolver() }
+    val deleteConfirmationLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartIntentSenderForResult()
+    ) { result ->
+        savedImagesViewModel.onSystemDeleteConfirmationResult(result.resultCode == Activity.RESULT_OK)
+    }
 
+    LaunchedEffect(deleteSavedImageState) {
+        val confirmationState = deleteSavedImageState as? SavedImageDeleteState.NeedsSystemConfirmation
+            ?: return@LaunchedEffect
+        try {
+            deleteConfirmationLauncher.launch(
+                IntentSenderRequest.Builder(confirmationState.intentSender).build()
+            )
+            savedImagesViewModel.onSystemDeleteConfirmationLaunched()
+        } catch (exception: Exception) {
+            savedImagesViewModel.onSystemDeleteConfirmationResult(confirmed = false)
+        }
+    }
     Scaffold(
         bottomBar = {
             NavigationBar {
@@ -126,10 +150,13 @@ fun AppNavigation(
             composable(AppRoute.Saved.route) {
                 SavedImagesScreen(
                     savedImagesState = savedImagesState,
+                    deleteState = deleteSavedImageState,
                     onRefresh = savedImagesViewModel::refresh,
                     onImageSelected = { image ->
                         navController.navigate(AppRoute.SavedImagePreview.createRoute(image.uri.toString()))
-                    }
+                    },
+                    onDeleteImage = savedImagesViewModel::delete,
+                    onDeleteMessageDismissed = savedImagesViewModel::clearDeleteMessage
                 )
             }
             composable(AppRoute.Settings.route) {
@@ -169,6 +196,8 @@ fun AppNavigation(
                 )
                 SavedImagePreviewScreen(
                     previewState = savedPreviewResolver.resolve(savedImagesState, imageUri),
+                    deleteState = deleteSavedImageState,
+                    onDeleteImage = savedImagesViewModel::delete,
                     onBack = { navController.popBackStack() }
                 )
             }

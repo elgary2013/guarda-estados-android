@@ -1,4 +1,4 @@
-<resources>
+﻿<resources>
     <string name="app_name">Guarda Estados</string>
     <string name="nav_home">Inicio</string>
     <string name="nav_states">Estados</string>
@@ -69,6 +69,18 @@
     <string name="saved_preview_unavailable_title">Imagen guardada no disponible</string>
     <string name="saved_preview_unavailable_body">La imagen guardada ya no está disponible o MediaStore no la devolvió.</string>
     <string name="saved_preview_image_description">Imagen guardada ampliada de %1$s</string>
+    <string name="saved_action_delete">Eliminar</string>
+    <string name="saved_delete_description">Eliminar copia guardada de %1$s</string>
+    <string name="saved_delete_dialog_title">Eliminar imagen guardada</string>
+    <string name="saved_delete_dialog_body">Se eliminará solamente la copia guardada por Guarda Estados en Pictures/GuardaEstados. No se borrará ningún archivo de la carpeta original de estados.</string>
+    <string name="saved_delete_dialog_cancel">Cancelar</string>
+    <string name="saved_delete_dialog_confirm">Eliminar</string>
+    <string name="saved_delete_status_deleting">Eliminando copia guardada...</string>
+    <string name="saved_delete_status_success">Copia guardada eliminada.</string>
+    <string name="saved_delete_status_missing">La copia guardada ya no existe.</string>
+    <string name="saved_delete_status_invalid">No se eliminó la imagen porque no pertenece a Pictures/GuardaEstados o no es una imagen guardada válida.</string>
+    <string name="saved_delete_status_error">No se pudo eliminar la copia guardada. Probá de nuevo.</string>
+    <string name="saved_delete_system_confirmation">Android necesita confirmar esta eliminación.</string>
     <string name="settings_title">Configuración</string>
     <string name="settings_subtitle">Administrá la carpeta autorizada por Android.</string>
     <string name="settings_placeholder_title">Opciones pendientes</string>
