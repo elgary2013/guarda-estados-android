@@ -1,4 +1,4 @@
-﻿package com.guardaestados.ui.navigation
+package com.guardaestados.ui.navigation
 
 import android.app.Activity
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -31,6 +31,7 @@ import com.guardaestados.data.folder.FolderSelectionState
 import com.guardaestados.data.settings.AppThemePreference
 import com.guardaestados.domain.status.StatusGalleryState
 import com.guardaestados.ui.save.SaveStatusImageViewModel
+import com.guardaestados.ui.settings.SettingsResetState
 import com.guardaestados.ui.save.SaveStatusImageViewModelFactory
 import com.guardaestados.ui.saved.SavedImageDeleteState
 import com.guardaestados.ui.saved.SavedImagePreviewResolver
@@ -54,7 +55,10 @@ fun AppNavigation(
     themePreference: AppThemePreference,
     appVersion: String,
     onSelectFolder: () -> Unit,
-    onThemePreferenceSelected: (AppThemePreference) -> Unit
+    onThemePreferenceSelected: (AppThemePreference) -> Unit,
+    resetState: SettingsResetState,
+    onResetSettings: () -> Unit,
+    onResetMessageDismissed: () -> Unit
 ) {
     val context = LocalContext.current
     val statusGalleryViewModel: StatusGalleryViewModel = viewModel(
@@ -170,7 +174,10 @@ fun AppNavigation(
                     themePreference = themePreference,
                     appVersion = appVersion,
                     onSelectFolder = onSelectFolder,
-                    onThemePreferenceSelected = onThemePreferenceSelected
+                    onThemePreferenceSelected = onThemePreferenceSelected,
+                    resetState = resetState,
+                    onResetSettings = onResetSettings,
+                    onResetMessageDismissed = onResetMessageDismissed
                 )
             }
             composable(

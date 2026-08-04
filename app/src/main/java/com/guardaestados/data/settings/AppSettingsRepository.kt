@@ -1,4 +1,4 @@
-﻿package com.guardaestados.data.settings
+package com.guardaestados.data.settings
 
 import android.content.Context
 import androidx.datastore.preferences.core.edit
@@ -22,6 +22,12 @@ class AppSettingsRepository(context: Context) {
     suspend fun saveThemePreference(themePreference: AppThemePreference) {
         appContext.appSettingsDataStore.edit { preferences ->
             preferences[THEME_PREFERENCE] = themePreference.storageKey
+        }
+    }
+
+    suspend fun resetThemePreference() {
+        appContext.appSettingsDataStore.edit { preferences ->
+            preferences.remove(THEME_PREFERENCE)
         }
     }
 

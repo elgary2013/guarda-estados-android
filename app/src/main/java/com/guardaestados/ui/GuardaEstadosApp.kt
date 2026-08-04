@@ -1,4 +1,4 @@
-﻿package com.guardaestados.ui
+package com.guardaestados.ui
 
 import android.content.Context
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -32,6 +32,7 @@ fun GuardaEstadosApp() {
         initial = FolderSelectionState.Loading
     )
     val themePreference by settingsViewModel.themePreference.collectAsState()
+    val resetState by settingsViewModel.resetState.collectAsState()
     val coroutineScope = rememberCoroutineScope()
     val folderPicker = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocumentTree()
@@ -56,7 +57,10 @@ fun GuardaEstadosApp() {
             themePreference = themePreference,
             appVersion = appVersion,
             onSelectFolder = { folderPicker.launch(null) },
-            onThemePreferenceSelected = settingsViewModel::selectTheme
+            onThemePreferenceSelected = settingsViewModel::selectTheme,
+            resetState = resetState,
+            onResetSettings = settingsViewModel::resetSettings,
+            onResetMessageDismissed = settingsViewModel::clearResetMessage
         )
     }
 }

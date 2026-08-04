@@ -10,14 +10,21 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -27,6 +34,7 @@ import androidx.compose.ui.unit.dp
 import com.guardaestados.R
 import com.guardaestados.data.folder.FolderSelectionState
 import com.guardaestados.data.settings.AppThemePreference
+import com.guardaestados.ui.settings.SettingsResetState
 
 @Composable
 fun SettingsScreen(
@@ -35,8 +43,13 @@ fun SettingsScreen(
     appVersion: String,
     onSelectFolder: () -> Unit,
     onThemePreferenceSelected: (AppThemePreference) -> Unit,
+    resetState: SettingsResetState,
+    onResetSettings: () -> Unit,
+    onResetMessageDismissed: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    var showResetDialog by remember { mutableStateOf(false) }
+
     Surface(
         modifier = modifier.fillMaxSize(),
         color = MaterialTheme.colorScheme.background
@@ -124,6 +137,27 @@ fun SettingsScreen(
                 )
             }
 
+            SettingsSection(title = stringResource(R.string.settings_reset_title)) {
+                Text(
+                    text = stringResource(R.string.settings_reset_body),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Button(
+                    onClick = { showResetDialog = true },
+                    enabled = resetState != SettingsResetState.Resetting,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.error,
+                        contentColor = MaterialTheme.colorScheme.onError
+                    )
+                ) {
+                    Text(text = stringResource(R.string.settings_reset_action))
+                }
+                if (resetState == SettingsResetState.Success) {
+                    ResetSuccessMessage(onDismiss = onResetMessageDismissed)
+                }
+            }
+
             SettingsSection(title = stringResource(R.string.settings_about_title)) {
                 Text(
                     text = stringResource(R.string.settings_about_app_name),
@@ -136,6 +170,17 @@ fun SettingsScreen(
                 )
             }
         }
+    }
+
+    if (showResetDialog) {
+        ResetSettingsDialog(
+            isResetting = resetState == SettingsResetState.Resetting,
+            onDismiss = { showResetDialog = false },
+            onConfirm = {
+                showResetDialog = false
+                onResetSettings()
+            }
+        )
     }
 }
 
@@ -160,6 +205,67 @@ private fun SettingsSection(
                 fontWeight = FontWeight.SemiBold
             )
             content()
+        }
+    }
+}
+
+@Composable
+private fun ResetSettingsDialog(
+    isResetting: Boolean,
+    onDismiss: () -> Unit,
+    onConfirm: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(text = stringResource(R.string.settings_reset_dialog_title)) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(text = stringResource(R.string.settings_reset_dialog_body))
+                Text(text = stringResource(R.string.settings_reset_dialog_keep_copies))
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = onConfirm,
+                enabled = !isResetting,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.error,
+                    contentColor = MaterialTheme.colorScheme.onError
+                )
+            ) {
+                Text(text = stringResource(R.string.settings_reset_dialog_confirm))
+            }
+        },
+        dismissButton = {
+            TextButton(
+                onClick = onDismiss,
+                enabled = !isResetting
+            ) {
+                Text(text = stringResource(R.string.settings_reset_dialog_cancel))
+            }
+        }
+    )
+}
+
+@Composable
+private fun ResetSuccessMessage(onDismiss: () -> Unit) {
+    Card(
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.primaryContainer,
+            contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+        )
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Text(
+                text = stringResource(R.string.settings_reset_success),
+                style = MaterialTheme.typography.bodyMedium
+            )
+            TextButton(onClick = onDismiss) {
+                Text(text = stringResource(R.string.settings_reset_success_dismiss))
+            }
         }
     }
 }
