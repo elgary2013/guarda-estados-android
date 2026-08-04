@@ -1,15 +1,15 @@
-package com.guardaestados.ui.navigation
+﻿package com.guardaestados.ui.navigation
 
 import android.app.Activity
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.IntentSenderRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.IntentSenderRequest
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -28,6 +28,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.guardaestados.data.folder.FolderSelectionState
+import com.guardaestados.data.settings.AppThemePreference
 import com.guardaestados.domain.status.StatusGalleryState
 import com.guardaestados.ui.save.SaveStatusImageViewModel
 import com.guardaestados.ui.save.SaveStatusImageViewModelFactory
@@ -50,7 +51,10 @@ import com.guardaestados.ui.status.StatusImagePreviewResolver
 @Composable
 fun AppNavigation(
     folderSelectionState: FolderSelectionState,
-    onSelectFolder: () -> Unit
+    themePreference: AppThemePreference,
+    appVersion: String,
+    onSelectFolder: () -> Unit,
+    onThemePreferenceSelected: (AppThemePreference) -> Unit
 ) {
     val context = LocalContext.current
     val statusGalleryViewModel: StatusGalleryViewModel = viewModel(
@@ -163,7 +167,10 @@ fun AppNavigation(
             composable(AppRoute.Settings.route) {
                 SettingsScreen(
                     folderSelectionState = folderSelectionState,
-                    onSelectFolder = onSelectFolder
+                    themePreference = themePreference,
+                    appVersion = appVersion,
+                    onSelectFolder = onSelectFolder,
+                    onThemePreferenceSelected = onThemePreferenceSelected
                 )
             }
             composable(
