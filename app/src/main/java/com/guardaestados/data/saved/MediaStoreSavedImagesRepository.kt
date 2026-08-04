@@ -1,23 +1,30 @@
-﻿package com.guardaestados.data.saved
+package com.guardaestados.data.saved
 
 import android.app.RecoverableSecurityException
+import android.content.ActivityNotFoundException
+import android.content.ClipData
 import android.content.ContentResolver
 import android.content.ContentUris
 import android.content.Context
+import android.content.Intent
 import android.net.Uri
 import android.os.Build
 import android.provider.MediaStore
 import android.util.Log
+import com.guardaestados.R
 import com.guardaestados.domain.saved.DeleteSavedImageResult
 import com.guardaestados.domain.saved.SavedImage
 import com.guardaestados.domain.saved.SavedImageDeleteTargetValidator
 import com.guardaestados.domain.saved.SavedImagesRepository
+import com.guardaestados.domain.saved.ShareSavedImageResult
+import com.guardaestados.domain.share.ShareImageMimeTypeResolver
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
 class MediaStoreSavedImagesRepository(
     context: Context,
-    private val deleteTargetValidator: SavedImageDeleteTargetValidator = SavedImageDeleteTargetValidator()
+    private val deleteTargetValidator: SavedImageDeleteTargetValidator = SavedImageDeleteTargetValidator(),
+    private val mimeTypeResolver: ShareImageMimeTypeResolver = ShareImageMimeTypeResolver()
 ) : SavedImagesRepository {
     private val appContext = context.applicationContext
     private val contentResolver: ContentResolver = appContext.contentResolver
@@ -82,7 +89,7 @@ class MediaStoreSavedImagesRepository(
         }
 
         when (validateSavedImageTarget(uri)) {
-            SavedImageTargetValidation.Valid -> Unit
+            is SavedImageTargetValidation.Valid -> Unit
             SavedImageTargetValidation.Missing -> return@withContext DeleteSavedImageResult.AlreadyMissing
             SavedImageTargetValidation.Invalid -> {
                 Log.w(TAG, "Delete rejected: URI is not a saved Guarda Estados image")
@@ -112,7 +119,66 @@ class MediaStoreSavedImagesRepository(
         }
     }
 
+    override suspend fun shareImage(image: SavedImage): ShareSavedImageResult = withContext(Dispatchers.IO) {
+        val validation = validateSavedImageTarget(image.uri)
+        when (validation) {
+            is SavedImageTargetValidation.Valid -> Unit
+            SavedImageTargetValidation.Missing -> return@withContext ShareSavedImageResult.AlreadyMissing
+            SavedImageTargetValidation.Invalid -> {
+                Log.w(TAG, "Share rejected: URI is not a saved Guarda Estados image")
+                return@withContext ShareSavedImageResult.InvalidTarget
+            }
+            SavedImageTargetValidation.Error -> return@withContext ShareSavedImageResult.Error
+        }
+
+        try {
+            contentResolver.openInputStream(image.uri)?.use {
+                // Opening the stream verifies that the MediaStore item still exists and is readable.
+            } ?: return@withContext ShareSavedImageResult.Error.also {
+                Log.w(TAG, "Share rejected: saved image could not be opened")
+            }
+
+            val mimeType = mimeTypeResolver.resolve(validation.mimeType)
+            val sendIntent = Intent(Intent.ACTION_SEND).apply {
+                type = mimeType
+                putExtra(Intent.EXTRA_STREAM, image.uri)
+                clipData = ClipData.newUri(contentResolver, image.name, image.uri)
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            }
+            if (sendIntent.resolveActivity(appContext.packageManager) == null) {
+                Log.w(TAG, "Share rejected: no compatible app found")
+                return@withContext ShareSavedImageResult.NoCompatibleApp
+            }
+
+            val chooser = Intent.createChooser(
+                sendIntent,
+                appContext.getString(R.string.share_chooser_title)
+            ).apply {
+                clipData = sendIntent.clipData
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            }
+
+            withContext(Dispatchers.Main) {
+                appContext.startActivity(chooser)
+            }
+            ShareSavedImageResult.ChooserOpened
+        } catch (exception: ActivityNotFoundException) {
+            Log.w(TAG, "Share rejected: no compatible app found", exception)
+            ShareSavedImageResult.NoCompatibleApp
+        } catch (exception: SecurityException) {
+            Log.e(TAG, "Share failed because saved image read permission was denied", exception)
+            ShareSavedImageResult.Error
+        } catch (exception: Exception) {
+            Log.e(TAG, "Share failed while opening Android chooser", exception)
+            ShareSavedImageResult.Error
+        }
+    }
+
     private fun validateSavedImageTarget(uri: Uri): SavedImageTargetValidation {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
+            return SavedImageTargetValidation.Invalid
+        }
         if (uri.scheme != ContentResolver.SCHEME_CONTENT || uri.authority != MEDIA_AUTHORITY) {
             return SavedImageTargetValidation.Invalid
         }
@@ -128,12 +194,13 @@ class MediaStoreSavedImagesRepository(
                 }
                 val relativePathColumn = cursor.getColumnIndexOrThrow(MediaStore.Images.Media.RELATIVE_PATH)
                 val mimeTypeColumn = cursor.getColumnIndexOrThrow(MediaStore.Images.Media.MIME_TYPE)
+                val mimeType = cursor.getString(mimeTypeColumn)
                 if (deleteTargetValidator.isValid(
                         relativePath = cursor.getString(relativePathColumn),
-                        mimeType = cursor.getString(mimeTypeColumn)
+                        mimeType = mimeType
                     )
                 ) {
-                    SavedImageTargetValidation.Valid
+                    SavedImageTargetValidation.Valid(mimeType.orEmpty())
                 } else {
                     SavedImageTargetValidation.Invalid
                 }
@@ -148,11 +215,11 @@ class MediaStoreSavedImagesRepository(
         return if (isNull(columnIndex)) null else getLong(columnIndex).takeIf { it > 0L }
     }
 
-    private enum class SavedImageTargetValidation {
-        Valid,
-        Missing,
-        Invalid,
-        Error
+    private sealed interface SavedImageTargetValidation {
+        data class Valid(val mimeType: String) : SavedImageTargetValidation
+        data object Missing : SavedImageTargetValidation
+        data object Invalid : SavedImageTargetValidation
+        data object Error : SavedImageTargetValidation
     }
 
     private companion object {

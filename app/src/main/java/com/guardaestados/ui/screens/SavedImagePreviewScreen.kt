@@ -1,10 +1,9 @@
-﻿package com.guardaestados.ui.screens
+package com.guardaestados.ui.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
@@ -20,6 +19,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -41,6 +41,7 @@ import com.guardaestados.R
 import com.guardaestados.domain.saved.SavedImage
 import com.guardaestados.ui.saved.SavedImageDeleteState
 import com.guardaestados.ui.saved.SavedImagePreviewState
+import com.guardaestados.ui.saved.SavedImageShareState
 import com.guardaestados.ui.status.StatusImagePresentationFormatter
 import java.text.DateFormat
 import java.util.Date
@@ -49,7 +50,10 @@ import java.util.Date
 fun SavedImagePreviewScreen(
     previewState: SavedImagePreviewState,
     deleteState: SavedImageDeleteState,
+    shareState: SavedImageShareState,
     onDeleteImage: (SavedImage) -> Unit,
+    onShareImage: (SavedImage) -> Unit,
+    onShareMessageDismissed: () -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -87,6 +91,14 @@ fun SavedImagePreviewScreen(
                 )
             }
 
+            shareState.statusMessageRes()?.let { messageRes ->
+                SavedPreviewStatusCard(
+                    message = stringResource(messageRes),
+                    canDismiss = shareState.canDismiss(),
+                    onDismiss = onShareMessageDismissed
+                )
+            }
+
             when (previewState) {
                 SavedImagePreviewState.Loading -> SavedPreviewMessageCard(
                     title = stringResource(R.string.saved_loading_title),
@@ -100,9 +112,10 @@ fun SavedImagePreviewScreen(
 
                 is SavedImagePreviewState.Content -> SavedPreviewContent(
                     image = previewState.image,
+                    deleteState = deleteState,
+                    shareState = shareState,
                     onDeleteImage = onDeleteImage,
-                    deleting = deleteState == SavedImageDeleteState.Deleting ||
-                        deleteState is SavedImageDeleteState.NeedsSystemConfirmation
+                    onShareImage = onShareImage
                 )
             }
         }
@@ -112,11 +125,16 @@ fun SavedImagePreviewScreen(
 @Composable
 private fun SavedPreviewContent(
     image: SavedImage,
+    deleteState: SavedImageDeleteState,
+    shareState: SavedImageShareState,
     onDeleteImage: (SavedImage) -> Unit,
-    deleting: Boolean
+    onShareImage: (SavedImage) -> Unit
 ) {
     var failedToLoad by remember(image.uri) { mutableStateOf(false) }
     var showDeleteDialog by remember(image.uri) { mutableStateOf(false) }
+    val deleting = deleteState == SavedImageDeleteState.Deleting ||
+        deleteState is SavedImageDeleteState.NeedsSystemConfirmation
+    val sharing = shareState == SavedImageShareState.Sharing
 
     if (showDeleteDialog) {
         ConfirmSavedImageDeleteDialog(
@@ -169,13 +187,29 @@ private fun SavedPreviewContent(
                 }
             }
 
-            Row(
+            Column(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.End
+                verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 Button(
+                    onClick = { onShareImage(image) },
+                    enabled = !deleting && !sharing,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Icon(
+                        painter = painterResource(R.drawable.ic_share),
+                        contentDescription = null
+                    )
+                    Text(
+                        modifier = Modifier.padding(start = 8.dp),
+                        text = stringResource(R.string.saved_action_share_image)
+                    )
+                }
+
+                Button(
                     onClick = { showDeleteDialog = true },
-                    enabled = !deleting,
+                    enabled = !deleting && !sharing,
+                    modifier = Modifier.fillMaxWidth(),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = MaterialTheme.colorScheme.error,
                         contentColor = MaterialTheme.colorScheme.onError
@@ -258,6 +292,36 @@ private fun SavedPreviewMessageCard(
     }
 }
 
+@Composable
+private fun SavedPreviewStatusCard(
+    message: String,
+    canDismiss: Boolean,
+    onDismiss: () -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.secondaryContainer
+        )
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Text(
+                text = message,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSecondaryContainer
+            )
+            if (canDismiss) {
+                TextButton(onClick = onDismiss) {
+                    Text(text = stringResource(R.string.saved_delete_dialog_cancel))
+                }
+            }
+        }
+    }
+}
+
 private fun SavedImageDeleteState.statusMessageRes(): Int? {
     return when (this) {
         SavedImageDeleteState.Idle -> null
@@ -268,6 +332,22 @@ private fun SavedImageDeleteState.statusMessageRes(): Int? {
         SavedImageDeleteState.Error -> R.string.saved_delete_status_error
         is SavedImageDeleteState.NeedsSystemConfirmation -> R.string.saved_delete_system_confirmation
     }
+}
+
+private fun SavedImageShareState.statusMessageRes(): Int? {
+    return when (this) {
+        SavedImageShareState.Idle -> null
+        SavedImageShareState.Sharing -> R.string.saved_share_status_opening
+        SavedImageShareState.ChooserOpened -> R.string.saved_share_status_chooser_opened
+        SavedImageShareState.AlreadyMissing -> R.string.saved_share_status_missing
+        SavedImageShareState.InvalidTarget -> R.string.saved_share_status_invalid
+        SavedImageShareState.NoCompatibleApp -> R.string.saved_share_status_no_app
+        SavedImageShareState.Error -> R.string.saved_share_status_error
+    }
+}
+
+private fun SavedImageShareState.canDismiss(): Boolean {
+    return this != SavedImageShareState.Sharing
 }
 
 private fun SavedImage.displayTitle(): String {

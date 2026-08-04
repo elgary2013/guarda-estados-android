@@ -1,4 +1,4 @@
-﻿package com.guardaestados.ui.saved
+package com.guardaestados.ui.saved
 
 import android.content.Context
 import android.content.IntentSender
@@ -11,6 +11,8 @@ import com.guardaestados.domain.saved.DeleteSavedImageUseCase
 import com.guardaestados.domain.saved.LoadSavedImagesUseCase
 import com.guardaestados.domain.saved.SavedImage
 import com.guardaestados.domain.saved.SavedImagesState
+import com.guardaestados.domain.saved.ShareSavedImageResult
+import com.guardaestados.domain.saved.ShareSavedImageUseCase
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -19,13 +21,17 @@ import kotlinx.coroutines.launch
 
 class SavedImagesViewModel(
     private val loadSavedImages: LoadSavedImagesUseCase,
-    private val deleteSavedImage: DeleteSavedImageUseCase
+    private val deleteSavedImage: DeleteSavedImageUseCase,
+    private val shareSavedImage: ShareSavedImageUseCase
 ) : ViewModel() {
     private val _uiState = MutableStateFlow<SavedImagesState>(SavedImagesState.Loading)
     val uiState: StateFlow<SavedImagesState> = _uiState.asStateFlow()
 
     private val _deleteState = MutableStateFlow<SavedImageDeleteState>(SavedImageDeleteState.Idle)
     val deleteState: StateFlow<SavedImageDeleteState> = _deleteState.asStateFlow()
+
+    private val _shareState = MutableStateFlow<SavedImageShareState>(SavedImageShareState.Idle)
+    val shareState: StateFlow<SavedImageShareState> = _shareState.asStateFlow()
 
     private var pendingSystemConfirmationImage: SavedImage? = null
     private var nextSystemConfirmationRequestId = 0L
@@ -48,6 +54,24 @@ class SavedImagesViewModel(
         }
     }
 
+    fun share(image: SavedImage) {
+        if (_shareState.value == SavedImageShareState.Sharing) return
+
+        viewModelScope.launch(Dispatchers.IO) {
+            _shareState.value = SavedImageShareState.Sharing
+            _shareState.value = when (shareSavedImage.execute(image)) {
+                ShareSavedImageResult.ChooserOpened -> SavedImageShareState.ChooserOpened
+                ShareSavedImageResult.AlreadyMissing -> SavedImageShareState.AlreadyMissing
+                ShareSavedImageResult.InvalidTarget -> SavedImageShareState.InvalidTarget
+                ShareSavedImageResult.NoCompatibleApp -> SavedImageShareState.NoCompatibleApp
+                ShareSavedImageResult.Error -> SavedImageShareState.Error
+            }
+            if (_shareState.value == SavedImageShareState.AlreadyMissing) {
+                refreshSavedImagesAfterDelete()
+            }
+        }
+    }
+
     fun onSystemDeleteConfirmationLaunched() {
         _deleteState.value = SavedImageDeleteState.Deleting
     }
@@ -64,6 +88,10 @@ class SavedImagesViewModel(
 
     fun clearDeleteMessage() {
         _deleteState.value = SavedImageDeleteState.Idle
+    }
+
+    fun clearShareMessage() {
+        _shareState.value = SavedImageShareState.Idle
     }
 
     private suspend fun handleDeleteResult(
@@ -111,6 +139,16 @@ sealed interface SavedImageDeleteState {
     ) : SavedImageDeleteState
 }
 
+sealed interface SavedImageShareState {
+    data object Idle : SavedImageShareState
+    data object Sharing : SavedImageShareState
+    data object ChooserOpened : SavedImageShareState
+    data object AlreadyMissing : SavedImageShareState
+    data object InvalidTarget : SavedImageShareState
+    data object NoCompatibleApp : SavedImageShareState
+    data object Error : SavedImageShareState
+}
+
 class SavedImagesViewModelFactory(
     context: Context
 ) : ViewModelProvider.Factory {
@@ -122,7 +160,8 @@ class SavedImagesViewModelFactory(
             val repository = MediaStoreSavedImagesRepository(appContext)
             val loadUseCase = LoadSavedImagesUseCase(repository)
             val deleteUseCase = DeleteSavedImageUseCase(repository)
-            return SavedImagesViewModel(loadUseCase, deleteUseCase) as T
+            val shareUseCase = ShareSavedImageUseCase(repository)
+            return SavedImagesViewModel(loadUseCase, deleteUseCase, shareUseCase) as T
         }
         throw IllegalArgumentException("Unknown ViewModel class")
     }

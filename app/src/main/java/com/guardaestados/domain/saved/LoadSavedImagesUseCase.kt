@@ -27,9 +27,18 @@ class DeleteSavedImageUseCase(
     }
 }
 
+class ShareSavedImageUseCase(
+    private val repository: SavedImagesRepository
+) {
+    suspend fun execute(image: SavedImage): ShareSavedImageResult {
+        return repository.shareImage(image)
+    }
+}
+
 interface SavedImagesRepository {
     fun loadImages(): Result<List<SavedImage>>
     suspend fun deleteImage(uri: Uri): DeleteSavedImageResult
+    suspend fun shareImage(image: SavedImage): ShareSavedImageResult
 }
 
 sealed interface SavedImagesState {
@@ -48,4 +57,12 @@ sealed interface DeleteSavedImageResult {
         val uri: Uri,
         val intentSender: IntentSender
     ) : DeleteSavedImageResult
+}
+
+sealed interface ShareSavedImageResult {
+    data object ChooserOpened : ShareSavedImageResult
+    data object AlreadyMissing : ShareSavedImageResult
+    data object InvalidTarget : ShareSavedImageResult
+    data object NoCompatibleApp : ShareSavedImageResult
+    data object Error : ShareSavedImageResult
 }
