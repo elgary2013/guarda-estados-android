@@ -1,4 +1,4 @@
-<resources>
+﻿<resources>
     <string name="app_name">Guarda Estados</string>
     <string name="nav_home">Inicio</string>
     <string name="nav_states">Estados</string>
@@ -89,16 +89,30 @@
     <string name="saved_share_status_no_app">No hay una aplicación compatible para compartir esta imagen guardada.</string>
     <string name="saved_share_status_error">No se pudo compartir la copia guardada. Probá de nuevo.</string>
     <string name="settings_title">Configuración</string>
-    <string name="settings_subtitle">Administrá la carpeta autorizada por Android.</string>
-    <string name="settings_placeholder_title">Opciones pendientes</string>
-    <string name="settings_placeholder_body">Los ajustes persistentes se agregarán cuando se incorpore almacenamiento local.</string>
+    <string name="settings_subtitle">Administrá la carpeta autorizada, el tema y la información de la aplicación.</string>
     <string name="settings_folder_title">Carpeta seleccionada</string>
+    <string name="settings_storage_title">Copias guardadas</string>
+    <string name="settings_storage_images">Imágenes: Pictures/GuardaEstados</string>
+    <string name="settings_storage_videos">Videos: Movies/GuardaEstados</string>
+    <string name="settings_storage_note">Son copias locales. Los archivos originales no se modifican.</string>
+    <string name="settings_theme_title">Tema</string>
+    <string name="settings_theme_system">Usar tema del sistema</string>
+    <string name="settings_theme_light">Tema claro</string>
+    <string name="settings_theme_dark">Tema oscuro</string>
+    <string name="settings_privacy_title">Privacidad y aviso legal</string>
+    <string name="settings_privacy_local">La aplicación funciona localmente.</string>
+    <string name="settings_privacy_folder_access">Solo accede a la carpeta que el usuario autoriza.</string>
+    <string name="settings_legal_affiliation">No está afiliada a WhatsApp LLC, Meta Platforms, Inc. ni otras aplicaciones compatibles.</string>
+    <string name="settings_legal_user_responsibility">El usuario debe guardar o compartir contenido únicamente con autorización de su creador.</string>
+    <string name="settings_about_title">Acerca de</string>
+    <string name="settings_about_app_name">Guarda Estados</string>
+    <string name="settings_about_version">Versión instalada: %1$s</string>
     <string name="folder_status_loading">Revisando carpeta seleccionada...</string>
-    <string name="folder_status_not_selected">No hay carpeta seleccionada.</string>
+    <string name="folder_status_not_selected">Todavía no se seleccionó una carpeta.</string>
     <string name="folder_status_permission_lost">La carpeta guardada perdió el permiso de acceso.</string>
-    <string name="folder_status_selected">Hay una carpeta seleccionada y autorizada.</string>
+    <string name="folder_status_selected">Carpeta seleccionada y autorizada.</string>
     <string name="folder_action_select">Seleccionar carpeta</string>
-    <string name="folder_action_select_again">Seleccionar de nuevo</string>
+    <string name="folder_action_select_again">Volver a seleccionar carpeta</string>
     <string name="folder_action_change">Cambiar carpeta</string>
     <string name="folder_selected_uri">URI: %1$s</string>
 </resources>
