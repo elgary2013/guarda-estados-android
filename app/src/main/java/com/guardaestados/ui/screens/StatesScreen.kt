@@ -33,6 +33,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -191,7 +192,11 @@ private fun StatusImageGridCard(
     var failedToLoad by remember(image.uri) { mutableStateOf(false) }
 
     Card(
-        modifier = Modifier.clickable { onImageSelected(image) },
+        modifier = Modifier.clickable(
+            onClickLabel = stringResource(R.string.status_image_open_action, displayTitle),
+            role = Role.Button,
+            onClick = { onImageSelected(image) }
+        ),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
         )

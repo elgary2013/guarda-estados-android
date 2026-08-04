@@ -1,4 +1,4 @@
-﻿package com.guardaestados.ui.screens
+package com.guardaestados.ui.screens
 
 import androidx.annotation.StringRes
 import androidx.compose.foundation.background
@@ -40,6 +40,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -246,7 +247,12 @@ private fun SavedImageGridCard(
     }
 
     Card(
-        modifier = Modifier.clickable(enabled = !deleting) { onImageSelected(image) },
+        modifier = Modifier.clickable(
+            enabled = !deleting,
+            onClickLabel = stringResource(R.string.saved_image_open_action, displayTitle),
+            role = Role.Button,
+            onClick = { onImageSelected(image) }
+        ),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
         )
