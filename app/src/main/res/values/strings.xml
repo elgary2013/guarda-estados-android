@@ -1,4 +1,4 @@
-﻿<resources>
+<resources>
     <string name="app_name">Guarda Estados</string>
     <string name="nav_home">Inicio</string>
     <string name="nav_states">Estados</string>
@@ -104,6 +104,16 @@
     <string name="settings_privacy_folder_access">Solo accede a la carpeta que el usuario autoriza.</string>
     <string name="settings_legal_affiliation">No está afiliada a WhatsApp LLC, Meta Platforms, Inc. ni otras aplicaciones compatibles.</string>
     <string name="settings_legal_user_responsibility">El usuario debe guardar o compartir contenido únicamente con autorización de su creador.</string>
+    <string name="settings_reset_title">Restablecer configuración</string>
+    <string name="settings_reset_body">Eliminá la carpeta autorizada y volvé al tema del sistema sin borrar tus copias guardadas.</string>
+    <string name="settings_reset_action">Restablecer configuración</string>
+    <string name="settings_reset_dialog_title">Restablecer configuración</string>
+    <string name="settings_reset_dialog_body">Se eliminarán la carpeta seleccionada y su autorización guardada, junto con la preferencia de tema.</string>
+    <string name="settings_reset_dialog_keep_copies">No se borrarán imágenes ni videos de Pictures/GuardaEstados ni Movies/GuardaEstados.</string>
+    <string name="settings_reset_dialog_cancel">Cancelar</string>
+    <string name="settings_reset_dialog_confirm">Restablecer</string>
+    <string name="settings_reset_success">Configuración restablecida. No hay carpeta seleccionada y se usa el tema del sistema.</string>
+    <string name="settings_reset_success_dismiss">Entendido</string>
     <string name="settings_about_title">Acerca de</string>
     <string name="settings_about_app_name">Guarda Estados</string>
     <string name="settings_about_version">Versión instalada: %1$s</string>

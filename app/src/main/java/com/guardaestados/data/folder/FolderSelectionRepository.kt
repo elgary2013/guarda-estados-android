@@ -34,6 +34,17 @@ class FolderSelectionRepository(context: Context) {
         }
     }
 
+    suspend fun forgetSelectedFolder() {
+        var selectedUri: Uri? = null
+        appContext.folderSelectionDataStore.edit { preferences ->
+            preferences[SELECTED_FOLDER_URI]?.let { uriString ->
+                selectedUri = Uri.parse(uriString)
+            }
+            preferences.remove(SELECTED_FOLDER_URI)
+        }
+        selectedUri?.let(appContext::releasePersistedFolderPermission)
+    }
+
     private fun Context.hasPersistedReadWritePermission(uri: Uri): Boolean {
         return contentResolver.persistedUriPermissions.any { permission ->
             permission.uri == uri && permission.isReadPermission && permission.isWritePermission
@@ -67,6 +78,17 @@ private fun Context.releaseOtherPersistedTreePermissions(selectedUri: Uri) {
                 contentResolver.releasePersistableUriPermission(permission.uri, flags)
             }
         }
+}
+
+private fun Context.releasePersistedFolderPermission(uri: Uri) {
+    val permission = contentResolver.persistedUriPermissions.firstOrNull { permission ->
+        permission.uri == uri
+    } ?: return
+    val flags = permission.releaseFlags()
+    if (flags == 0) return
+    runCatching {
+        contentResolver.releasePersistableUriPermission(uri, flags)
+    }
 }
 
 private fun android.content.UriPermission.releaseFlags(): Int {
