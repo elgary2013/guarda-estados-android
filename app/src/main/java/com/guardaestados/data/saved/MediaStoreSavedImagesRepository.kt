@@ -1,4 +1,4 @@
-﻿package com.guardaestados.data.saved
+package com.guardaestados.data.saved
 
 import android.app.RecoverableSecurityException
 import android.content.ActivityNotFoundException
@@ -11,13 +11,17 @@ import android.net.Uri
 import android.os.Build
 import android.provider.MediaStore
 import android.util.Log
+import androidx.documentfile.provider.DocumentFile
 import com.guardaestados.R
+import com.guardaestados.data.settings.AppSettingsRepository
+import com.guardaestados.data.settings.SaveDestinationState
+import com.guardaestados.data.uri.PersistedUriPermissionChecker
 import com.guardaestados.domain.saved.DeleteSavedImageResult
-import com.guardaestados.domain.saved.SavedImage
-import com.guardaestados.domain.saved.SavedMediaOrigin
-import com.guardaestados.domain.saved.SavedImageDeleteTargetValidator
 import com.guardaestados.domain.saved.OpenSavedImageResult
+import com.guardaestados.domain.saved.SavedImage
+import com.guardaestados.domain.saved.SavedImageDeleteTargetValidator
 import com.guardaestados.domain.saved.SavedImagesRepository
+import com.guardaestados.domain.saved.SavedMediaOrigin
 import com.guardaestados.domain.saved.ShareSavedImageResult
 import com.guardaestados.domain.share.ShareImageMimeTypeResolver
 import kotlinx.coroutines.Dispatchers
@@ -26,13 +30,15 @@ import kotlinx.coroutines.withContext
 class MediaStoreSavedImagesRepository(
     context: Context,
     private val deleteTargetValidator: SavedImageDeleteTargetValidator = SavedImageDeleteTargetValidator(),
-    private val mimeTypeResolver: ShareImageMimeTypeResolver = ShareImageMimeTypeResolver()
+    private val mimeTypeResolver: ShareImageMimeTypeResolver = ShareImageMimeTypeResolver(),
+    private val settingsRepository: AppSettingsRepository = AppSettingsRepository(context),
+    private val permissionChecker: PersistedUriPermissionChecker = PersistedUriPermissionChecker(context)
 ) : SavedImagesRepository {
     private val appContext = context.applicationContext
     private val contentResolver: ContentResolver = appContext.contentResolver
 
-    override fun loadImages(): Result<List<SavedImage>> {
-        return runCatching {
+    override suspend fun loadImages(): Result<List<SavedImage>> = withContext(Dispatchers.IO) {
+        runCatching {
             if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
                 return@runCatching emptyList()
             }
@@ -52,7 +58,7 @@ class MediaStoreSavedImagesRepository(
                 relativePath = VIDEO_PARTS_RELATIVE_PATH,
                 expectedMimePrefix = VIDEO_MIME_PREFIX,
                 origin = SavedMediaOrigin.VideoPart
-            )
+            ) + loadCustomDestinationMedia()
         }.onFailure { exception ->
             Log.e(TAG, "Saved media query failed", exception)
         }
@@ -67,18 +73,20 @@ class MediaStoreSavedImagesRepository(
             is SavedImageTargetValidation.Valid -> Unit
             SavedImageTargetValidation.Missing -> return@withContext DeleteSavedImageResult.AlreadyMissing
             SavedImageTargetValidation.Invalid -> {
-                Log.w(TAG, "Delete rejected: URI is not a saved Guarda Estados media item")
+                Log.w(TAG, "Delete rejected: URI is not a saved SocialSaverFull media item")
                 return@withContext DeleteSavedImageResult.InvalidTarget
             }
             SavedImageTargetValidation.Error -> return@withContext DeleteSavedImageResult.Error
         }
 
         try {
-            val deletedRows = contentResolver.delete(uri, null, null)
-            if (deletedRows > 0) {
-                DeleteSavedImageResult.Deleted
+            if (uri.authority == MEDIA_AUTHORITY) {
+                val deletedRows = contentResolver.delete(uri, null, null)
+                if (deletedRows > 0) DeleteSavedImageResult.Deleted else DeleteSavedImageResult.AlreadyMissing
             } else {
-                DeleteSavedImageResult.AlreadyMissing
+                val document = DocumentFile.fromSingleUri(appContext, uri)
+                    ?: return@withContext DeleteSavedImageResult.AlreadyMissing
+                if (document.delete()) DeleteSavedImageResult.Deleted else DeleteSavedImageResult.Error
             }
         } catch (exception: RecoverableSecurityException) {
             DeleteSavedImageResult.NeedsSystemConfirmation(
@@ -100,7 +108,7 @@ class MediaStoreSavedImagesRepository(
             is SavedImageTargetValidation.Valid -> Unit
             SavedImageTargetValidation.Missing -> return@withContext ShareSavedImageResult.AlreadyMissing
             SavedImageTargetValidation.Invalid -> {
-                Log.w(TAG, "Share rejected: URI is not a saved Guarda Estados media item")
+                Log.w(TAG, "Share rejected: URI is not a saved SocialSaverFull media item")
                 return@withContext ShareSavedImageResult.InvalidTarget
             }
             SavedImageTargetValidation.Error -> return@withContext ShareSavedImageResult.Error
@@ -108,7 +116,7 @@ class MediaStoreSavedImagesRepository(
 
         try {
             contentResolver.openInputStream(image.uri)?.use {
-                // Opening the stream verifies that the MediaStore item still exists and is readable.
+                // Opening the stream verifies that the saved media still exists and is readable.
             } ?: return@withContext ShareSavedImageResult.Error.also {
                 Log.w(TAG, "Share rejected: saved media could not be opened")
             }
@@ -150,7 +158,6 @@ class MediaStoreSavedImagesRepository(
         }
     }
 
-
     override suspend fun openImage(image: SavedImage): OpenSavedImageResult = withContext(Dispatchers.IO) {
         val validation = validateSavedImageTarget(image.uri)
         when (validation) {
@@ -162,7 +169,7 @@ class MediaStoreSavedImagesRepository(
 
         try {
             contentResolver.openInputStream(image.uri)?.use {
-                // Verifies that the MediaStore item is still readable before handing it to another app.
+                // Verifies that the saved media still exists and is readable before handing it to another app.
             } ?: return@withContext OpenSavedImageResult.Error
 
             val mimeType = mimeTypeResolver.resolve(validation.mimeType)
@@ -193,6 +200,7 @@ class MediaStoreSavedImagesRepository(
             OpenSavedImageResult.Error
         }
     }
+
     private fun loadSavedMedia(
         collection: Uri,
         relativePath: String,
@@ -236,12 +244,55 @@ class MediaStoreSavedImagesRepository(
         }.orEmpty()
     }
 
-    private fun validateSavedImageTarget(uri: Uri): SavedImageTargetValidation {
+    private suspend fun loadCustomDestinationMedia(): List<SavedImage> {
+        val destinationState = settingsRepository.currentSaveDestinationState() as? SaveDestinationState.Custom
+            ?: return emptyList()
+        val rootFolder = DocumentFile.fromTreeUri(appContext, Uri.parse(destinationState.uriString))
+            ?: return emptyList()
+        if (!rootFolder.exists() || !rootFolder.isDirectory || !rootFolder.canRead()) return emptyList()
+
+        val appFolder = rootFolder.findFile(APP_DESTINATION_FOLDER)?.takeIf { it.isDirectory }
+            ?: return emptyList()
+        return loadCustomSavedMedia(appFolder, IMAGE_DESTINATION_FOLDER, IMAGE_MIME_PREFIX) +
+            loadCustomSavedMedia(appFolder, VIDEO_DESTINATION_FOLDER, VIDEO_MIME_PREFIX)
+    }
+
+    private fun loadCustomSavedMedia(
+        appFolder: DocumentFile,
+        folderName: String,
+        expectedMimePrefix: String
+    ): List<SavedImage> {
+        val mediaFolder = appFolder.findFile(folderName)?.takeIf { it.isDirectory }
+            ?: return emptyList()
+        return mediaFolder.listFiles()
+            .asSequence()
+            .filter { file -> file.isFile }
+            .mapNotNull { file -> file.toSavedImage(expectedMimePrefix) }
+            .toList()
+    }
+
+    private fun DocumentFile.toSavedImage(expectedMimePrefix: String): SavedImage? {
+        val mimeType = type ?: contentResolver.getType(uri) ?: return null
+        if (!mimeType.startsWith(expectedMimePrefix)) return null
+        return SavedImage(
+            uri = uri,
+            name = name.orEmpty(),
+            mimeType = mimeType,
+            dateAddedMillis = lastModified().takeIf { it > 0L },
+            sizeBytes = length().takeIf { it > 0L },
+            origin = SavedMediaOrigin.SavedStatus
+        )
+    }
+
+    private suspend fun validateSavedImageTarget(uri: Uri): SavedImageTargetValidation {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
             return SavedImageTargetValidation.Invalid
         }
-        if (uri.scheme != ContentResolver.SCHEME_CONTENT || uri.authority != MEDIA_AUTHORITY) {
+        if (uri.scheme != ContentResolver.SCHEME_CONTENT) {
             return SavedImageTargetValidation.Invalid
+        }
+        if (uri.authority != MEDIA_AUTHORITY) {
+            return validateCustomSavedImageTarget(uri)
         }
 
         val projection = arrayOf(
@@ -272,6 +323,41 @@ class MediaStoreSavedImagesRepository(
         }
     }
 
+    private suspend fun validateCustomSavedImageTarget(uri: Uri): SavedImageTargetValidation {
+        if (!permissionChecker.hasPersistedReadPermissionFor(uri)) {
+            return SavedImageTargetValidation.Invalid
+        }
+        val savedDocument = findCustomSavedDocument(uri) ?: return SavedImageTargetValidation.Invalid
+        return try {
+            if (!savedDocument.exists() || !savedDocument.isFile) {
+                return SavedImageTargetValidation.Missing
+            }
+            val mimeType = savedDocument.type ?: contentResolver.getType(uri).orEmpty()
+            if (mimeType.startsWith(IMAGE_MIME_PREFIX) || mimeType.startsWith(VIDEO_MIME_PREFIX)) {
+                SavedImageTargetValidation.Valid(mimeType)
+            } else {
+                SavedImageTargetValidation.Invalid
+            }
+        } catch (exception: Exception) {
+            Log.e(TAG, "Custom saved media validation failed", exception)
+            SavedImageTargetValidation.Error
+        }
+    }
+
+    private suspend fun findCustomSavedDocument(uri: Uri): DocumentFile? {
+        val destinationState = settingsRepository.currentSaveDestinationState() as? SaveDestinationState.Custom
+            ?: return null
+        val rootFolder = DocumentFile.fromTreeUri(appContext, Uri.parse(destinationState.uriString))
+            ?: return null
+        val appFolder = rootFolder.findFile(APP_DESTINATION_FOLDER)?.takeIf { it.isDirectory }
+            ?: return null
+        return listOf(IMAGE_DESTINATION_FOLDER, VIDEO_DESTINATION_FOLDER)
+            .asSequence()
+            .mapNotNull { folderName -> appFolder.findFile(folderName)?.takeIf { it.isDirectory } }
+            .flatMap { folder -> folder.listFiles().asSequence() }
+            .firstOrNull { file -> file.uri == uri }
+    }
+
     private fun android.database.Cursor.getLongOrNull(columnIndex: Int): Long? {
         return if (isNull(columnIndex)) null else getLong(columnIndex).takeIf { it > 0L }
     }
@@ -292,5 +378,8 @@ class MediaStoreSavedImagesRepository(
         const val VIDEO_MIME_PREFIX = "video/"
         const val MEDIA_AUTHORITY = "media"
         const val MILLIS_PER_SECOND = 1000L
+        const val APP_DESTINATION_FOLDER = "SocialSaverFull"
+        const val IMAGE_DESTINATION_FOLDER = "Im\u00E1genes"
+        const val VIDEO_DESTINATION_FOLDER = "Videos"
     }
 }

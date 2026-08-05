@@ -12,6 +12,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.guardaestados.data.folder.FolderSelectionRepository
 import com.guardaestados.data.folder.FolderSelectionState
+import com.guardaestados.data.folder.takeSaveDestinationFolderPermission
 import com.guardaestados.data.folder.takeSelectedFolderPermission
 import com.guardaestados.ui.navigation.AppNavigation
 import com.guardaestados.ui.settings.SettingsViewModel
@@ -31,6 +32,7 @@ fun GuardaEstadosApp() {
     )
     val themePreference by settingsViewModel.themePreference.collectAsState()
     val resetState by settingsViewModel.resetState.collectAsState()
+    val saveDestinationState by settingsViewModel.saveDestinationState.collectAsState()
     val coroutineScope = rememberCoroutineScope()
     val folderPicker = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocumentTree()
@@ -42,13 +44,24 @@ fun GuardaEstadosApp() {
             }
         }
     }
+    val saveDestinationPicker = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocumentTree()
+    ) { uri ->
+        if (uri != null) {
+            context.takeSaveDestinationFolderPermission(uri)
+            settingsViewModel.selectSaveDestination(uri)
+        }
+    }
     val appVersion = remember(context) { context.installedVersionName() }
     GuardaEstadosTheme(themeMode = themePreference.toThemeMode()) {
         AppNavigation(
             folderSelectionState = folderSelectionState,
             themePreference = themePreference,
+            saveDestinationState = saveDestinationState,
             appVersion = appVersion,
             onSelectFolder = { folderPicker.launch(null) },
+            onSelectSaveDestination = { saveDestinationPicker.launch(null) },
+            onUseDefaultSaveDestination = settingsViewModel::useDefaultSaveDestination,
             onThemePreferenceSelected = settingsViewModel::selectTheme,
             resetState = resetState,
             onResetSettings = settingsViewModel::resetSettings,

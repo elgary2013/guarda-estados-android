@@ -1,4 +1,4 @@
-﻿package com.guardaestados.ui.screens
+package com.guardaestados.ui.screens
 
 import androidx.annotation.StringRes
 import androidx.compose.foundation.BorderStroke
@@ -235,21 +235,28 @@ private fun StatesCountCard(
         shape = RoundedCornerShape(8.dp)
     ) {
         Row(
-            modifier = Modifier.padding(16.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
                 text = stringResource(
                     if (selectedMediaType == StatusMediaType.Video) R.string.states_found_videos_title else R.string.states_found_title
                 ),
+                modifier = Modifier.weight(1f),
                 style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold
+                fontWeight = FontWeight.SemiBold,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis
             )
             Text(
                 text = stringResource(R.string.states_count_badge, itemCount),
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
             )
         }
     }

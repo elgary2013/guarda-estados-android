@@ -1,4 +1,4 @@
-﻿package com.guardaestados.ui.screens
+package com.guardaestados.ui.screens
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -214,6 +214,16 @@ private fun SaveStatusMessage(saveState: SaveStatusImageUiState) {
             color = MaterialTheme.colorScheme.primary
         )
 
+        SaveStatusImageUiState.DestinationPermissionLost -> Text(
+            text = stringResource(R.string.save_status_destination_permission_lost),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.error
+        )
+        SaveStatusImageUiState.DestinationUnavailable -> Text(
+            text = stringResource(R.string.save_status_destination_error),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.error
+        )
         SaveStatusImageUiState.Error -> Text(
             text = stringResource(R.string.save_status_error),
             style = MaterialTheme.typography.bodyMedium,

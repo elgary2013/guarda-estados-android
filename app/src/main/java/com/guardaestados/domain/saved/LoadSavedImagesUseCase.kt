@@ -1,4 +1,4 @@
-﻿package com.guardaestados.domain.saved
+package com.guardaestados.domain.saved
 
 import android.content.IntentSender
 import android.net.Uri
@@ -7,7 +7,7 @@ class LoadSavedImagesUseCase(
     private val repository: SavedImagesRepository,
     private val sorter: SavedImagesSorter = SavedImagesSorter()
 ) {
-    fun execute(): SavedImagesState {
+    suspend fun execute(): SavedImagesState {
         return repository.loadImages()
             .fold(
                 onSuccess = { images ->
@@ -44,7 +44,7 @@ class OpenSavedImageUseCase(
 }
 
 interface SavedImagesRepository {
-    fun loadImages(): Result<List<SavedImage>>
+    suspend fun loadImages(): Result<List<SavedImage>>
     suspend fun deleteImage(uri: Uri): DeleteSavedImageResult
     suspend fun shareImage(image: SavedImage): ShareSavedImageResult
     suspend fun openImage(image: SavedImage): OpenSavedImageResult

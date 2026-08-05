@@ -1,4 +1,4 @@
-﻿package com.guardaestados.ui.saved
+package com.guardaestados.ui.saved
 
 import android.content.Context
 import android.content.IntentSender
@@ -149,7 +149,7 @@ class SavedImagesViewModel(
         }
     }
 
-    private fun refreshSavedImagesAfterDelete() {
+    private suspend fun refreshSavedImagesAfterDelete() {
         _uiState.value = loadSavedImages.execute()
     }
 }

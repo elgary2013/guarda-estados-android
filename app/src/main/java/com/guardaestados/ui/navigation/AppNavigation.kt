@@ -1,4 +1,4 @@
-﻿package com.guardaestados.ui.navigation
+package com.guardaestados.ui.navigation
 
 import android.app.Activity
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -29,6 +29,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.guardaestados.data.folder.FolderSelectionState
 import com.guardaestados.data.settings.AppThemePreference
+import com.guardaestados.data.settings.SaveDestinationState
 import com.guardaestados.domain.status.StatusGalleryState
 import com.guardaestados.ui.save.SaveStatusImageViewModel
 import com.guardaestados.ui.settings.SettingsResetState
@@ -56,8 +57,11 @@ import com.guardaestados.ui.video.VideoSplitterViewModelFactory
 fun AppNavigation(
     folderSelectionState: FolderSelectionState,
     themePreference: AppThemePreference,
+    saveDestinationState: SaveDestinationState,
     appVersion: String,
     onSelectFolder: () -> Unit,
+    onSelectSaveDestination: () -> Unit,
+    onUseDefaultSaveDestination: () -> Unit,
     onThemePreferenceSelected: (AppThemePreference) -> Unit,
     resetState: SettingsResetState,
     onResetSettings: () -> Unit,
@@ -204,8 +208,11 @@ fun AppNavigation(
                 SettingsScreen(
                     folderSelectionState = folderSelectionState,
                     themePreference = themePreference,
+                    saveDestinationState = saveDestinationState,
                     appVersion = appVersion,
                     onSelectFolder = onSelectFolder,
+                    onSelectSaveDestination = onSelectSaveDestination,
+                    onUseDefaultSaveDestination = onUseDefaultSaveDestination,
                     onThemePreferenceSelected = onThemePreferenceSelected,
                     resetState = resetState,
                     onResetSettings = onResetSettings,

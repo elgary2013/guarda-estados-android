@@ -1,5 +1,6 @@
-﻿package com.guardaestados.ui.screens
+package com.guardaestados.ui.screens
 
+import android.net.Uri
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -152,7 +153,10 @@ private fun FolderStatusCard(
                     text = stringResource(R.string.folder_status_selected),
                     actionText = stringResource(R.string.home_primary_action),
                     onClick = onOpenStates,
-                    secondaryText = folderSelectionState.uriString
+                    secondaryText = stringResource(
+                        R.string.settings_folder_name,
+                        folderSelectionState.uriString.friendlyFolderName()
+                    )
                 )
             }
         }
@@ -184,10 +188,19 @@ private fun FolderActionRow(
         }
         if (secondaryText != null) {
             Text(
-                text = stringResource(R.string.folder_selected_uri, secondaryText),
+                text = secondaryText,
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
     }
+}
+
+private fun String.friendlyFolderName(): String {
+    val decoded = Uri.decode(this)
+    return decoded
+        .substringBefore('?')
+        .substringAfterLast(':')
+        .substringAfterLast('/')
+        .ifBlank { this }
 }

@@ -66,19 +66,13 @@ sealed interface FolderSelectionState {
 fun Context.takeSelectedFolderPermission(uri: Uri) {
     val flags = Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION
     contentResolver.takePersistableUriPermission(uri, flags)
-    releaseOtherPersistedTreePermissions(uri)
 }
 
-private fun Context.releaseOtherPersistedTreePermissions(selectedUri: Uri) {
-    contentResolver.persistedUriPermissions
-        .filterNot { permission -> permission.uri == selectedUri }
-        .forEach { permission ->
-            val flags = permission.releaseFlags()
-            if (flags != 0) {
-                contentResolver.releasePersistableUriPermission(permission.uri, flags)
-            }
-        }
+fun Context.takeSaveDestinationFolderPermission(uri: Uri) {
+    val flags = Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION
+    contentResolver.takePersistableUriPermission(uri, flags)
 }
+
 
 private fun Context.releasePersistedFolderPermission(uri: Uri) {
     val permission = contentResolver.persistedUriPermissions.firstOrNull { permission ->

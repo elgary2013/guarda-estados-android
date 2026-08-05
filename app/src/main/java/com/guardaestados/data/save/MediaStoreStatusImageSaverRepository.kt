@@ -1,4 +1,4 @@
-﻿package com.guardaestados.data.save
+package com.guardaestados.data.save
 
 import android.content.ContentResolver
 import android.content.ContentValues
@@ -7,11 +7,15 @@ import android.net.Uri
 import android.os.Build
 import android.provider.MediaStore
 import android.util.Log
+import androidx.documentfile.provider.DocumentFile
+import com.guardaestados.data.settings.AppSettingsRepository
+import com.guardaestados.data.settings.SaveDestinationState
 import com.guardaestados.data.uri.PersistedUriPermissionChecker
 import com.guardaestados.domain.save.SafeImageFileNameGenerator
 import com.guardaestados.domain.save.SafeVideoFileNameGenerator
 import com.guardaestados.domain.save.SaveStatusImageResult
 import com.guardaestados.domain.save.StatusImageSaverRepository
+import com.guardaestados.domain.save.UniqueFileNameGenerator
 import com.guardaestados.domain.status.StatusImage
 import com.guardaestados.domain.status.StatusMediaType
 import kotlinx.coroutines.Dispatchers
@@ -19,16 +23,17 @@ import kotlinx.coroutines.withContext
 
 class MediaStoreStatusImageSaverRepository(
     context: Context,
+    private val settingsRepository: AppSettingsRepository = AppSettingsRepository(context),
     private val permissionChecker: PersistedUriPermissionChecker = PersistedUriPermissionChecker(context),
     private val imageFileNameGenerator: SafeImageFileNameGenerator = SafeImageFileNameGenerator(),
     private val videoFileNameGenerator: SafeVideoFileNameGenerator = SafeVideoFileNameGenerator(),
+    private val uniqueFileNameGenerator: UniqueFileNameGenerator = UniqueFileNameGenerator(),
     private val clock: () -> Long = System::currentTimeMillis
 ) : StatusImageSaverRepository {
     private val appContext = context.applicationContext
     private val contentResolver: ContentResolver = appContext.contentResolver
 
     override suspend fun save(image: StatusImage): SaveStatusImageResult = withContext(Dispatchers.IO) {
-        var destinationUri: Uri? = null
         try {
             if (!permissionChecker.hasPersistedReadPermissionFor(image.uri)) {
                 Log.w(TAG, "Save rejected: source URI is outside persisted tree permissions")
@@ -36,15 +41,34 @@ class MediaStoreStatusImageSaverRepository(
             }
 
             val sourceType = contentResolver.getType(image.uri) ?: image.mimeType
-            val inputStream = contentResolver.openInputStream(image.uri)
-                ?: return@withContext SaveStatusImageResult.Error.also {
+            val saveTarget = image.saveTarget(sourceType)
+            when (val destinationState = settingsRepository.currentSaveDestinationState()) {
+                SaveDestinationState.Default -> saveToMediaStore(image.uri, sourceType, saveTarget)
+                is SaveDestinationState.Custom -> saveToCustomDestination(image.uri, sourceType, saveTarget, destinationState)
+                is SaveDestinationState.PermissionLost -> SaveStatusImageResult.DestinationPermissionLost
+                is SaveDestinationState.Unavailable -> SaveStatusImageResult.DestinationUnavailable
+            }
+        } catch (exception: Exception) {
+            Log.e(TAG, "Save failed while preparing media copy", exception)
+            SaveStatusImageResult.Error
+        }
+    }
+
+    private fun saveToMediaStore(
+        sourceUri: Uri,
+        sourceType: String,
+        saveTarget: SaveTarget
+    ): SaveStatusImageResult {
+        var destinationUri: Uri? = null
+        try {
+            val inputStream = contentResolver.openInputStream(sourceUri)
+                ?: return SaveStatusImageResult.Error.also {
                     Log.w(TAG, "Save rejected: source media could not be opened")
                 }
 
-            val saveTarget = image.saveTarget(sourceType)
             if (saveTarget.mediaType == StatusMediaType.Video && isDuplicateVideo(saveTarget.displayName)) {
                 inputStream.close()
-                return@withContext SaveStatusImageResult.Duplicate
+                return SaveStatusImageResult.Duplicate
             }
 
             inputStream.use { source ->
@@ -58,12 +82,12 @@ class MediaStoreStatusImageSaverRepository(
                 }
 
                 destinationUri = contentResolver.insert(saveTarget.collectionUri, values)
-                    ?: return@withContext SaveStatusImageResult.Error.also {
+                    ?: return SaveStatusImageResult.Error.also {
                         Log.w(TAG, "Save rejected: MediaStore insert returned null")
                     }
 
                 val outputStream = contentResolver.openOutputStream(destinationUri!!)
-                    ?: return@withContext SaveStatusImageResult.Error.also {
+                    ?: return SaveStatusImageResult.Error.also {
                         contentResolver.delete(destinationUri!!, null, null)
                         Log.w(TAG, "Save rejected: destination media could not be opened")
                     }
@@ -79,12 +103,66 @@ class MediaStoreStatusImageSaverRepository(
                     contentResolver.update(destinationUri!!, completedValues, null, null)
                 }
             }
-            SaveStatusImageResult.Success(saveTarget.displayName)
+            return SaveStatusImageResult.Success(saveTarget.displayName)
         } catch (exception: Exception) {
             destinationUri?.let { uri -> contentResolver.delete(uri, null, null) }
             Log.e(TAG, "Save failed while copying media to MediaStore", exception)
-            SaveStatusImageResult.Error
+            return SaveStatusImageResult.Error
         }
+    }
+
+    private fun saveToCustomDestination(
+        sourceUri: Uri,
+        sourceType: String,
+        saveTarget: SaveTarget,
+        destinationState: SaveDestinationState.Custom
+    ): SaveStatusImageResult {
+        val rootFolder = DocumentFile.fromTreeUri(appContext, Uri.parse(destinationState.uriString))
+            ?: return SaveStatusImageResult.DestinationUnavailable
+        if (!rootFolder.exists() || !rootFolder.isDirectory || !rootFolder.canWrite()) {
+            return SaveStatusImageResult.DestinationUnavailable
+        }
+
+        val appFolder = rootFolder.getOrCreateDirectory(APP_DESTINATION_FOLDER)
+            ?: return SaveStatusImageResult.DestinationUnavailable
+        val mediaFolderName = if (saveTarget.mediaType == StatusMediaType.Video) VIDEO_DESTINATION_FOLDER else IMAGE_DESTINATION_FOLDER
+        val mediaFolder = appFolder.getOrCreateDirectory(mediaFolderName)
+            ?: return SaveStatusImageResult.DestinationUnavailable
+
+        val displayName = uniqueFileNameGenerator.generate(saveTarget.displayName) { candidate ->
+            mediaFolder.findFile(candidate) != null
+        }
+        val destinationFile = mediaFolder.createFile(sourceType, displayName)
+            ?: return SaveStatusImageResult.DestinationUnavailable
+
+        return try {
+            val inputStream = contentResolver.openInputStream(sourceUri)
+                ?: return SaveStatusImageResult.Error.also { destinationFile.delete() }
+            val outputStream = contentResolver.openOutputStream(destinationFile.uri)
+                ?: return SaveStatusImageResult.DestinationUnavailable.also { destinationFile.delete() }
+
+            inputStream.use { source ->
+                outputStream.use { destination ->
+                    source.copyTo(destination)
+                }
+            }
+            SaveStatusImageResult.Success(displayName)
+        } catch (exception: SecurityException) {
+            destinationFile.delete()
+            Log.e(TAG, "Save failed because destination permission was lost", exception)
+            SaveStatusImageResult.DestinationPermissionLost
+        } catch (exception: Exception) {
+            destinationFile.delete()
+            Log.e(TAG, "Save failed while copying media to custom destination", exception)
+            SaveStatusImageResult.DestinationUnavailable
+        }
+    }
+
+    private fun DocumentFile.getOrCreateDirectory(name: String): DocumentFile? {
+        findFile(name)?.let { existing ->
+            return if (existing.isDirectory) existing else null
+        }
+        return createDirectory(name)
     }
 
     private fun StatusImage.saveTarget(sourceType: String): SaveTarget {
@@ -143,5 +221,8 @@ class MediaStoreStatusImageSaverRepository(
         const val IMAGE_SAVE_RELATIVE_PATH = "Pictures/GuardaEstados"
         const val VIDEO_SAVE_RELATIVE_PATH = "Movies/GuardaEstados/"
         const val VIDEO_MIME_PREFIX = "video/"
+        const val APP_DESTINATION_FOLDER = "SocialSaverFull"
+        const val IMAGE_DESTINATION_FOLDER = "Im\u00E1genes"
+        const val VIDEO_DESTINATION_FOLDER = "Videos"
     }
 }
