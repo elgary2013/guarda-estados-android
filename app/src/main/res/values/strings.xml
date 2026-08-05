@@ -61,6 +61,7 @@
     <string name="preview_title">Vista previa</string>
     <string name="preview_action_back">Volver</string>
     <string name="preview_action_save_image">Guardar imagen</string>
+    <string name="preview_action_save_short">Guardar</string>
     <string name="preview_action_save_video">Guardar video</string>
     <string name="preview_loading_title">Preparando imagen</string>
     <string name="preview_loading_body">Buscando la imagen seleccionada...</string>
@@ -68,12 +69,18 @@
     <string name="preview_unavailable_body">La imagen ya no está disponible, cambió la carpeta o se perdió el acceso.</string>
     <string name="preview_load_error_body">No se pudo cargar esta imagen.</string>
     <string name="preview_image_description">Imagen ampliada de %1$s</string>
+    <string name="preview_image_content_description">Imagen de estado</string>
+    <string name="preview_image_status_label">Imagen de estado</string>
+    <string name="preview_video_status_label">Video de estado</string>
+    <string name="preview_media_date">Fecha: %1$s</string>
+    <string name="preview_video_load_error_body">No se pudo reproducir este video.</string>
     <string name="save_status_saving">Guardando copia...</string>
     <string name="save_status_success">Copia guardada como %1$s.</string>
     <string name="save_status_error">No se pudo guardar la copia. Probá de nuevo.</string>
     <string name="save_status_destination_error">No se pudo escribir en la carpeta de destino. Revisá la carpeta en Configuración.</string>
     <string name="save_status_destination_permission_lost">Se perdió el permiso de la carpeta de destino. Seleccioná otra carpeta en Configuración.</string>
     <string name="preview_action_share_image">Compartir imagen</string>
+    <string name="preview_action_share_short">Compartir</string>
     <string name="preview_action_share_video">Compartir video</string>
     <string name="share_chooser_title">Compartir copia</string>
     <string name="share_status_opening">Abriendo opciones para compartir...</string>
