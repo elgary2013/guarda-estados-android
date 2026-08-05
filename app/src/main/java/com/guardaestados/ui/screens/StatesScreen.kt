@@ -20,14 +20,13 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Tab
-import androidx.compose.material3.TabRow
+import androidx.compose.material3.PrimaryTabRow
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -55,6 +54,8 @@ import com.guardaestados.domain.status.StatusGalleryState
 import com.guardaestados.domain.status.StatusImage
 import com.guardaestados.domain.status.StatusMediaType
 import com.guardaestados.ui.status.StatusImagePresentationFormatter
+import com.guardaestados.ui.theme.BrandGradientButton
+import com.guardaestados.ui.theme.brandGradientBorder
 import java.text.DateFormat
 import java.util.Date
 
@@ -165,6 +166,7 @@ private fun StatesHeader(
             containerColor = MaterialTheme.colorScheme.primaryContainer,
             contentColor = MaterialTheme.colorScheme.onPrimaryContainer
         ),
+        border = brandGradientBorder(highlight = true),
         shape = RoundedCornerShape(8.dp)
     ) {
         Column(
@@ -190,9 +192,10 @@ private fun StatesHeader(
                     style = MaterialTheme.typography.bodyMedium
                 )
             }
-            Button(onClick = onRefresh) {
-                Text(text = stringResource(R.string.states_action_refresh))
-            }
+            BrandGradientButton(
+                text = stringResource(R.string.states_action_refresh),
+                onClick = onRefresh
+            )
         }
     }
 }
@@ -204,7 +207,7 @@ private fun StatesMediaTabs(
     videoCount: Int,
     onTabSelected: (Int) -> Unit
 ) {
-    TabRow(selectedTabIndex = selectedTabIndex) {
+    PrimaryTabRow(selectedTabIndex = selectedTabIndex) {
         Tab(
             selected = selectedTabIndex == 0,
             onClick = { onTabSelected(0) },
@@ -228,7 +231,7 @@ private fun StatesCountCard(
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
         ),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+        border = brandGradientBorder(),
         shape = RoundedCornerShape(8.dp)
     ) {
         Row(
@@ -274,7 +277,7 @@ private fun GalleryMessageCard(
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
         ),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+        border = brandGradientBorder(),
         shape = RoundedCornerShape(8.dp)
     ) {
         Column(
@@ -322,7 +325,7 @@ private fun StatusImageGridCard(
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
         ),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+        border = brandGradientBorder(),
         shape = RoundedCornerShape(8.dp)
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {

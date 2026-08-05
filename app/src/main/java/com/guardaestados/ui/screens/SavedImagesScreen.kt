@@ -54,6 +54,8 @@ import com.guardaestados.domain.saved.SavedMediaType
 import com.guardaestados.domain.saved.SavedImagesState
 import com.guardaestados.ui.saved.SavedImageDeleteState
 import com.guardaestados.ui.status.StatusImagePresentationFormatter
+import com.guardaestados.ui.theme.BrandGradientButton
+import com.guardaestados.ui.theme.brandGradientBorder
 import java.text.DateFormat
 import java.util.Date
 
@@ -92,9 +94,10 @@ fun SavedImagesScreen(
                         style = MaterialTheme.typography.bodyLarge,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
-                    Button(onClick = onRefresh) {
-                        Text(text = stringResource(R.string.saved_action_refresh))
-                    }
+                    BrandGradientButton(
+                        text = stringResource(R.string.saved_action_refresh),
+                        onClick = onRefresh
+                    )
                 }
             }
 

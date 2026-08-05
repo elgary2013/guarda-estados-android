@@ -1,4 +1,4 @@
-package com.guardaestados.ui.screens
+﻿package com.guardaestados.ui.screens
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -35,6 +35,8 @@ import com.guardaestados.R
 import com.guardaestados.data.folder.FolderSelectionState
 import com.guardaestados.data.settings.AppThemePreference
 import com.guardaestados.ui.settings.SettingsResetState
+import com.guardaestados.ui.theme.BrandGradientButton
+import com.guardaestados.ui.theme.brandGradientBorder
 
 @Composable
 fun SettingsScreen(
@@ -79,9 +81,10 @@ fun SettingsScreen(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 FolderDetail(folderSelectionState = folderSelectionState)
-                Button(onClick = onSelectFolder) {
-                    Text(text = folderActionText(folderSelectionState))
-                }
+                BrandGradientButton(
+                    text = folderActionText(folderSelectionState),
+                    onClick = onSelectFolder
+                )
             }
 
             SettingsSection(title = stringResource(R.string.settings_storage_title)) {
@@ -193,7 +196,8 @@ private fun SettingsSection(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
-        )
+        ),
+        border = brandGradientBorder()
     ) {
         Column(
             modifier = Modifier.padding(20.dp),

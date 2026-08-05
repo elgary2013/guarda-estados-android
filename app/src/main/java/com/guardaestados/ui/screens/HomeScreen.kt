@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -22,6 +21,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.guardaestados.R
 import com.guardaestados.data.folder.FolderSelectionState
+import com.guardaestados.ui.theme.BrandGradientButton
+import com.guardaestados.ui.theme.brandGradientBorder
 
 @Composable
 fun HomeScreen(
@@ -80,7 +81,8 @@ private fun VideoSplitterEntryCard(
     Card(
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
-        )
+        ),
+        border = brandGradientBorder(highlight = true)
     ) {
         Column(
             modifier = Modifier.padding(20.dp),
@@ -96,9 +98,10 @@ private fun VideoSplitterEntryCard(
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-            OutlinedButton(onClick = onOpenVideoSplitter) {
-                Text(text = stringResource(R.string.home_video_splitter_action))
-            }
+            BrandGradientButton(
+                text = stringResource(R.string.home_video_splitter_action),
+                onClick = onOpenVideoSplitter
+            )
         }
     }
 }
@@ -115,7 +118,8 @@ private fun FolderStatusCard(
     }
 
     Card(
-        colors = CardDefaults.cardColors(containerColor = containerColor)
+        colors = CardDefaults.cardColors(containerColor = containerColor),
+        border = brandGradientBorder()
     ) {
         Column(
             modifier = Modifier.padding(20.dp),
@@ -173,9 +177,10 @@ private fun FolderActionRow(
                 modifier = Modifier.weight(1f),
                 style = MaterialTheme.typography.bodyMedium
             )
-            OutlinedButton(onClick = onClick) {
-                Text(text = actionText)
-            }
+            BrandGradientButton(
+                text = actionText,
+                onClick = onClick
+            )
         }
         if (secondaryText != null) {
             Text(
