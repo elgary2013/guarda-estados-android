@@ -21,6 +21,31 @@ class StatusImagePresentationFormatterTest {
     fun `size value ignores missing or invalid values`() {
         assertNull(formatter.sizeValue(null))
         assertNull(formatter.sizeValue(0L))
-        assertEquals("2048", formatter.sizeValue(2048L))
+    }
+
+    @Test
+    fun `size value formats kilobytes and megabytes`() {
+        assertEquals("2.0 KB", formatter.sizeValue(2048L))
+        assertEquals("1.5 MB", formatter.sizeValue(1572864L))
+    }
+
+    @Test
+    fun `format value maps common image mime types`() {
+        assertEquals("JPG", formatter.formatValue("image/jpeg"))
+        assertEquals("PNG", formatter.formatValue("image/png"))
+        assertEquals("WebP", formatter.formatValue("image/webp"))
+    }
+
+    @Test
+    fun `format value keeps unknown nonblank mime type`() {
+        assertEquals("image/gif", formatter.formatValue(" image/gif "))
+        assertNull(formatter.formatValue(" "))
+    }
+
+    @Test
+    fun `dimensions value requires positive width and height`() {
+        assertEquals("1080 x 1920 px", formatter.dimensionsValue(1080, 1920))
+        assertNull(formatter.dimensionsValue(null, 1920))
+        assertNull(formatter.dimensionsValue(1080, 0))
     }
 }

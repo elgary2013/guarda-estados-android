@@ -1,12 +1,14 @@
 package com.guardaestados.ui.screens
 
 import androidx.annotation.StringRes
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -47,7 +49,7 @@ import com.guardaestados.ui.status.StatusImagePresentationFormatter
 import java.text.DateFormat
 import java.util.Date
 
-private const val ThumbnailPixelSize = 360
+private const val ThumbnailPixelSize = 420
 
 @Composable
 fun StatesScreen(
@@ -61,28 +63,17 @@ fun StatesScreen(
         color = MaterialTheme.colorScheme.background
     ) {
         LazyVerticalGrid(
-            columns = GridCells.Adaptive(minSize = 148.dp),
+            columns = GridCells.Adaptive(minSize = 156.dp),
             modifier = modifier.fillMaxSize(),
-            contentPadding = PaddingValues(24.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            contentPadding = PaddingValues(20.dp),
+            horizontalArrangement = Arrangement.spacedBy(14.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             item(span = { GridItemSpan(maxLineSpan) }) {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(
-                        text = stringResource(R.string.states_title),
-                        style = MaterialTheme.typography.headlineMedium,
-                        color = MaterialTheme.colorScheme.onBackground
-                    )
-                    Text(
-                        text = stringResource(R.string.states_subtitle),
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Button(onClick = onRefresh) {
-                        Text(text = stringResource(R.string.states_action_refresh))
-                    }
-                }
+                StatesHeader(
+                    statusGalleryState = statusGalleryState,
+                    onRefresh = onRefresh
+                )
             }
 
             when (statusGalleryState) {
@@ -113,13 +104,7 @@ fun StatesScreen(
 
                 is StatusGalleryState.Content -> {
                     item(span = { GridItemSpan(maxLineSpan) }) {
-                        GalleryMessageCard(
-                            title = stringResource(R.string.states_found_title),
-                            body = stringResource(
-                                R.string.states_found_body,
-                                statusGalleryState.images.size
-                            )
-                        )
+                        StatesCountCard(imageCount = statusGalleryState.images.size)
                     }
                     items(
                         items = statusGalleryState.images,
@@ -132,6 +117,78 @@ fun StatesScreen(
                     }
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun StatesHeader(
+    statusGalleryState: StatusGalleryState,
+    onRefresh: () -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.primaryContainer,
+            contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+        ),
+        shape = RoundedCornerShape(8.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Text(
+                text = stringResource(R.string.states_header_badge),
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.SemiBold
+            )
+            Text(
+                text = stringResource(R.string.states_title),
+                style = MaterialTheme.typography.headlineMedium
+            )
+            Text(
+                text = stringResource(R.string.states_subtitle),
+                style = MaterialTheme.typography.bodyLarge
+            )
+            if (statusGalleryState is StatusGalleryState.Content) {
+                Text(
+                    text = stringResource(R.string.states_header_note),
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            }
+            Button(onClick = onRefresh) {
+                Text(text = stringResource(R.string.states_action_refresh))
+            }
+        }
+    }
+}
+
+@Composable
+private fun StatesCountCard(imageCount: Int) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
+        ),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+        shape = RoundedCornerShape(8.dp)
+    ) {
+        Row(
+            modifier = Modifier.padding(16.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = stringResource(R.string.states_found_title),
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold
+            )
+            Text(
+                text = stringResource(R.string.states_count_badge, imageCount),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
         }
     }
 }
@@ -157,7 +214,9 @@ private fun GalleryMessageCard(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
-        )
+        ),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+        shape = RoundedCornerShape(8.dp)
     ) {
         Column(
             modifier = Modifier.padding(20.dp),
@@ -189,6 +248,7 @@ private fun StatusImageGridCard(
     val title = formatter.title(image.name, formattedDate)
     val displayTitle = if (title.isBlank()) unavailable else title
     val sizeValue = formatter.sizeValue(image.sizeBytes)
+    val formatValue = formatter.formatValue(image.mimeType)
     var failedToLoad by remember(image.uri) { mutableStateOf(false) }
 
     Card(
@@ -199,13 +259,15 @@ private fun StatusImageGridCard(
         ),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
-        )
+        ),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+        shape = RoundedCornerShape(8.dp)
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .aspectRatio(1f)
+                    .aspectRatio(0.86f)
                     .padding(8.dp)
                     .clip(RoundedCornerShape(8.dp))
                     .background(MaterialTheme.colorScheme.surfaceVariant),
@@ -237,7 +299,7 @@ private fun StatusImageGridCard(
 
             Column(
                 modifier = Modifier.padding(start = 12.dp, end = 12.dp, bottom = 12.dp),
-                verticalArrangement = Arrangement.spacedBy(4.dp)
+                verticalArrangement = Arrangement.spacedBy(6.dp)
             ) {
                 Text(
                     text = displayTitle,
@@ -246,18 +308,15 @@ private fun StatusImageGridCard(
                     overflow = TextOverflow.Ellipsis
                 )
                 Text(
-                    text = stringResource(
-                        R.string.status_image_card_date,
-                        formattedDate ?: unavailable
-                    ),
+                    text = formattedDate ?: unavailable,
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
-                if (sizeValue != null) {
+                if (sizeValue != null || formatValue != null) {
                     Text(
-                        text = stringResource(R.string.status_image_size, sizeValue),
+                        text = listOfNotNull(formatValue, sizeValue).joinToString(" • "),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 1,

@@ -2,6 +2,7 @@ package com.guardaestados.data.status
 
 import android.content.ContentResolver
 import android.content.Context
+import android.graphics.BitmapFactory
 import android.net.Uri
 import androidx.documentfile.provider.DocumentFile
 import com.guardaestados.domain.status.StatusImage
@@ -47,12 +48,35 @@ class StatusImageRepository(
     private fun DocumentFile.toStatusImage(): StatusImage? {
         val normalizedMimeType = classifier.normalizeMimeType(type) ?: return null
         val resolvedType = contentResolver.getType(uri)?.let(classifier::normalizeMimeType)
+        val dimensions = contentResolver.readImageDimensions(uri)
         return StatusImage(
             uri = uri,
             name = name.orEmpty(),
             mimeType = resolvedType ?: normalizedMimeType,
             lastModifiedMillis = lastModified().takeIf { it > 0L },
-            sizeBytes = length().takeIf { it > 0L }
+            sizeBytes = length().takeIf { it > 0L },
+            widthPixels = dimensions?.widthPixels,
+            heightPixels = dimensions?.heightPixels
         )
     }
+
+    private fun ContentResolver.readImageDimensions(uri: Uri): ImageDimensions? {
+        return runCatching {
+            openInputStream(uri)?.use { stream ->
+                val options = BitmapFactory.Options().apply {
+                    inJustDecodeBounds = true
+                }
+                BitmapFactory.decodeStream(stream, null, options)
+                ImageDimensions(
+                    widthPixels = options.outWidth.takeIf { it > 0 },
+                    heightPixels = options.outHeight.takeIf { it > 0 }
+                ).takeIf { dimensions -> dimensions.widthPixels != null && dimensions.heightPixels != null }
+            }
+        }.getOrNull()
+    }
+
+    private data class ImageDimensions(
+        val widthPixels: Int?,
+        val heightPixels: Int?
+    )
 }
