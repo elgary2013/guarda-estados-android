@@ -1,4 +1,4 @@
-package com.guardaestados.ui.navigation
+﻿package com.guardaestados.ui.navigation
 
 import android.app.Activity
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -45,9 +45,12 @@ import com.guardaestados.ui.screens.SavedImagePreviewScreen
 import com.guardaestados.ui.screens.SavedImagesScreen
 import com.guardaestados.ui.screens.SettingsScreen
 import com.guardaestados.ui.screens.StatesScreen
+import com.guardaestados.ui.screens.VideoSplitterScreen
 import com.guardaestados.ui.status.StatusGalleryViewModel
 import com.guardaestados.ui.status.StatusGalleryViewModelFactory
 import com.guardaestados.ui.status.StatusImagePreviewResolver
+import com.guardaestados.ui.video.VideoSplitterViewModel
+import com.guardaestados.ui.video.VideoSplitterViewModelFactory
 
 @Composable
 fun AppNavigation(
@@ -73,6 +76,9 @@ fun AppNavigation(
     val savedImagesViewModel: SavedImagesViewModel = viewModel(
         factory = remember(context) { SavedImagesViewModelFactory(context) }
     )
+    val videoSplitterViewModel: VideoSplitterViewModel = viewModel(
+        factory = remember(context) { VideoSplitterViewModelFactory(context) }
+    )
     val statusGalleryState by statusGalleryViewModel.uiState.collectAsState(
         initial = StatusGalleryState.Loading
     )
@@ -81,12 +87,21 @@ fun AppNavigation(
     val savedImagesState by savedImagesViewModel.uiState.collectAsState()
     val deleteSavedImageState by savedImagesViewModel.deleteState.collectAsState()
     val shareSavedImageState by savedImagesViewModel.shareState.collectAsState()
+    val videoSplitterState by videoSplitterViewModel.uiState.collectAsState()
     val navController = rememberNavController()
     val routes = listOf(AppRoute.Home, AppRoute.States, AppRoute.Saved, AppRoute.Settings)
     val currentBackStackEntry = navController.currentBackStackEntryAsState().value
     val currentDestination = currentBackStackEntry?.destination
     val previewResolver = remember { StatusImagePreviewResolver() }
     val savedPreviewResolver = remember { SavedImagePreviewResolver() }
+    val videoPickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri ->
+        videoSplitterViewModel.onVideoSelected(uri)
+        if (uri != null) {
+            navController.navigate(AppRoute.VideoSplitter.route)
+        }
+    }
     val deleteConfirmationLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartIntentSenderForResult()
     ) { result ->
@@ -144,7 +159,8 @@ fun AppNavigation(
                 HomeScreen(
                     folderSelectionState = folderSelectionState,
                     onSelectFolder = onSelectFolder,
-                    onOpenStates = { navController.navigate(AppRoute.States.route) }
+                    onOpenStates = { navController.navigate(AppRoute.States.route) },
+                    onOpenVideoSplitter = { navController.navigate(AppRoute.VideoSplitter.route) }
                 )
             }
             composable(AppRoute.States.route) {
@@ -166,6 +182,21 @@ fun AppNavigation(
                     },
                     onDeleteImage = savedImagesViewModel::delete,
                     onDeleteMessageDismissed = savedImagesViewModel::clearDeleteMessage
+                )
+            }
+            composable(AppRoute.VideoSplitter.route) {
+                VideoSplitterScreen(
+                    uiState = videoSplitterState,
+                    onPickVideo = { videoPickerLauncher.launch("video/*") },
+                    onPartDurationSelected = videoSplitterViewModel::selectPartDuration,
+                    onCreateParts = videoSplitterViewModel::createParts,
+                    onCancelProcessing = videoSplitterViewModel::cancelProcessing,
+                    onPreviewOriginal = videoSplitterViewModel::previewOriginal,
+                    onPreviewPart = videoSplitterViewModel::previewPart,
+                    onSharePart = videoSplitterViewModel::sharePart,
+                    onShareAllParts = videoSplitterViewModel::shareAllParts,
+                    onClearMessage = videoSplitterViewModel::clearMessage,
+                    onBack = { navController.popBackStack() }
                 )
             }
             composable(AppRoute.Settings.route) {

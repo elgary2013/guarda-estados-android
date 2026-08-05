@@ -1,4 +1,4 @@
-package com.guardaestados.domain.share
+﻿package com.guardaestados.domain.share
 
 import org.junit.Assert.assertEquals
 import org.junit.Test
@@ -12,12 +12,17 @@ class ShareImageMimeTypeResolverTest {
     }
 
     @Test
+    fun keepsVideoMimeTypeWhenAvailable() {
+        assertEquals("video/mp4", resolver.resolve("video/mp4"))
+    }
+
+    @Test
     fun fallsBackWhenMimeTypeIsBlank() {
         assertEquals("image/*", resolver.resolve(""))
     }
 
     @Test
-    fun fallsBackWhenMimeTypeIsNotImage() {
+    fun fallsBackWhenMimeTypeIsNotSupported() {
         assertEquals("image/*", resolver.resolve("application/octet-stream"))
     }
 }

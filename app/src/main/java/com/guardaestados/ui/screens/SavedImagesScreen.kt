@@ -1,4 +1,4 @@
-package com.guardaestados.ui.screens
+﻿package com.guardaestados.ui.screens
 
 import androidx.annotation.StringRes
 import androidx.compose.foundation.background
@@ -49,6 +49,7 @@ import coil3.request.ImageRequest
 import coil3.size.Size
 import com.guardaestados.R
 import com.guardaestados.domain.saved.SavedImage
+import com.guardaestados.domain.saved.SavedMediaType
 import com.guardaestados.domain.saved.SavedImagesState
 import com.guardaestados.ui.saved.SavedImageDeleteState
 import com.guardaestados.ui.status.StatusImagePresentationFormatter
@@ -267,7 +268,14 @@ private fun SavedImageGridCard(
                     .background(MaterialTheme.colorScheme.surfaceVariant),
                 contentAlignment = Alignment.Center
             ) {
-                if (failedToLoad) {
+                if (image.mediaType == SavedMediaType.Video) {
+                    Text(
+                        text = stringResource(R.string.saved_video_thumbnail_label),
+                        modifier = Modifier.padding(12.dp),
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                } else if (failedToLoad) {
                     Text(
                         text = stringResource(R.string.status_image_thumbnail_error),
                         modifier = Modifier.padding(12.dp),
