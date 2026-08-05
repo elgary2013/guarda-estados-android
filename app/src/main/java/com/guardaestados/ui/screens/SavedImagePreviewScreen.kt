@@ -39,8 +39,10 @@ import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
 import com.guardaestados.R
 import com.guardaestados.domain.saved.SavedImage
+import com.guardaestados.domain.saved.SavedMediaOrigin
 import com.guardaestados.domain.saved.SavedMediaType
 import com.guardaestados.ui.saved.SavedImageDeleteState
+import com.guardaestados.ui.saved.SavedImageOpenState
 import com.guardaestados.ui.saved.SavedImagePreviewState
 import com.guardaestados.ui.saved.SavedImageShareState
 import com.guardaestados.ui.status.StatusImagePresentationFormatter
@@ -53,9 +55,12 @@ fun SavedImagePreviewScreen(
     previewState: SavedImagePreviewState,
     deleteState: SavedImageDeleteState,
     shareState: SavedImageShareState,
+    openState: SavedImageOpenState,
     onDeleteImage: (SavedImage) -> Unit,
     onShareImage: (SavedImage) -> Unit,
+    onOpenImage: (SavedImage) -> Unit,
     onShareMessageDismissed: () -> Unit,
+    onOpenMessageDismissed: () -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -101,6 +106,13 @@ fun SavedImagePreviewScreen(
                 )
             }
 
+            openState.statusMessageRes()?.let { messageRes ->
+                SavedPreviewStatusCard(
+                    message = stringResource(messageRes),
+                    canDismiss = openState.canDismiss(),
+                    onDismiss = onOpenMessageDismissed
+                )
+            }
             when (previewState) {
                 SavedImagePreviewState.Loading -> SavedPreviewMessageCard(
                     title = stringResource(R.string.saved_loading_title),
@@ -116,8 +128,10 @@ fun SavedImagePreviewScreen(
                     image = previewState.image,
                     deleteState = deleteState,
                     shareState = shareState,
+                    openState = openState,
                     onDeleteImage = onDeleteImage,
-                    onShareImage = onShareImage
+                    onShareImage = onShareImage,
+                    onOpenImage = onOpenImage
                 )
             }
         }
@@ -129,14 +143,17 @@ private fun SavedPreviewContent(
     image: SavedImage,
     deleteState: SavedImageDeleteState,
     shareState: SavedImageShareState,
+    openState: SavedImageOpenState,
     onDeleteImage: (SavedImage) -> Unit,
-    onShareImage: (SavedImage) -> Unit
+    onShareImage: (SavedImage) -> Unit,
+    onOpenImage: (SavedImage) -> Unit
 ) {
     var failedToLoad by remember(image.uri) { mutableStateOf(false) }
     var showDeleteDialog by remember(image.uri) { mutableStateOf(false) }
     val deleting = deleteState == SavedImageDeleteState.Deleting ||
         deleteState is SavedImageDeleteState.NeedsSystemConfirmation
     val sharing = shareState == SavedImageShareState.Sharing
+    val opening = openState == SavedImageOpenState.Opening
 
     if (showDeleteDialog) {
         ConfirmSavedImageDeleteDialog(
@@ -200,7 +217,7 @@ private fun SavedPreviewContent(
             ) {
                 Button(
                     onClick = { onShareImage(image) },
-                    enabled = !deleting && !sharing,
+                    enabled = !deleting && !sharing && !opening,
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Icon(
@@ -214,8 +231,16 @@ private fun SavedPreviewContent(
                 }
 
                 Button(
+                    onClick = { onOpenImage(image) },
+                    enabled = !deleting && !sharing && !opening,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(text = stringResource(R.string.saved_action_open_with))
+                }
+
+                Button(
                     onClick = { showDeleteDialog = true },
-                    enabled = !deleting && !sharing,
+                    enabled = !deleting && !sharing && !opening,
                     modifier = Modifier.fillMaxWidth(),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = MaterialTheme.colorScheme.error,
@@ -251,6 +276,11 @@ private fun SavedImageInfoCard(image: SavedImage) {
             text = title,
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.SemiBold
+        )
+        Text(
+            text = stringResource(R.string.saved_media_origin, stringResource(image.origin.labelRes())),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
         )
         Text(
             text = stringResource(R.string.status_image_mime_type, image.mimeType),
@@ -357,6 +387,28 @@ private fun SavedImageShareState.canDismiss(): Boolean {
     return this != SavedImageShareState.Sharing
 }
 
+private fun SavedImageOpenState.statusMessageRes(): Int? {
+    return when (this) {
+        SavedImageOpenState.Idle -> null
+        SavedImageOpenState.Opening -> R.string.saved_open_status_opening
+        SavedImageOpenState.ViewerOpened -> R.string.saved_open_status_viewer_opened
+        SavedImageOpenState.AlreadyMissing -> R.string.saved_share_status_missing
+        SavedImageOpenState.InvalidTarget -> R.string.saved_share_status_invalid
+        SavedImageOpenState.NoCompatibleApp -> R.string.saved_open_status_no_app
+        SavedImageOpenState.Error -> R.string.saved_open_status_error
+    }
+}
+
+private fun SavedImageOpenState.canDismiss(): Boolean {
+    return this != SavedImageOpenState.Opening
+}
+
+private fun SavedMediaOrigin.labelRes(): Int {
+    return when (this) {
+        SavedMediaOrigin.SavedStatus -> R.string.saved_origin_status_copy
+        SavedMediaOrigin.VideoPart -> R.string.saved_origin_video_part
+    }
+}
 private fun SavedImage.displayTitle(): String {
     return name.ifBlank { uri.toString() }
 }

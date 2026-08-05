@@ -1,4 +1,4 @@
-package com.guardaestados.ui.saved
+﻿package com.guardaestados.ui.saved
 
 import android.content.Context
 import android.content.IntentSender
@@ -9,6 +9,8 @@ import com.guardaestados.data.saved.MediaStoreSavedImagesRepository
 import com.guardaestados.domain.saved.DeleteSavedImageResult
 import com.guardaestados.domain.saved.DeleteSavedImageUseCase
 import com.guardaestados.domain.saved.LoadSavedImagesUseCase
+import com.guardaestados.domain.saved.OpenSavedImageResult
+import com.guardaestados.domain.saved.OpenSavedImageUseCase
 import com.guardaestados.domain.saved.SavedImage
 import com.guardaestados.domain.saved.SavedImagesState
 import com.guardaestados.domain.saved.ShareSavedImageResult
@@ -22,7 +24,8 @@ import kotlinx.coroutines.launch
 class SavedImagesViewModel(
     private val loadSavedImages: LoadSavedImagesUseCase,
     private val deleteSavedImage: DeleteSavedImageUseCase,
-    private val shareSavedImage: ShareSavedImageUseCase
+    private val shareSavedImage: ShareSavedImageUseCase,
+    private val openSavedImage: OpenSavedImageUseCase
 ) : ViewModel() {
     private val _uiState = MutableStateFlow<SavedImagesState>(SavedImagesState.Loading)
     val uiState: StateFlow<SavedImagesState> = _uiState.asStateFlow()
@@ -32,6 +35,9 @@ class SavedImagesViewModel(
 
     private val _shareState = MutableStateFlow<SavedImageShareState>(SavedImageShareState.Idle)
     val shareState: StateFlow<SavedImageShareState> = _shareState.asStateFlow()
+
+    private val _openState = MutableStateFlow<SavedImageOpenState>(SavedImageOpenState.Idle)
+    val openState: StateFlow<SavedImageOpenState> = _openState.asStateFlow()
 
     private var pendingSystemConfirmationImage: SavedImage? = null
     private var nextSystemConfirmationRequestId = 0L
@@ -72,6 +78,24 @@ class SavedImagesViewModel(
         }
     }
 
+    fun open(image: SavedImage) {
+        if (_openState.value == SavedImageOpenState.Opening) return
+
+        viewModelScope.launch(Dispatchers.IO) {
+            _openState.value = SavedImageOpenState.Opening
+            _openState.value = when (openSavedImage.execute(image)) {
+                OpenSavedImageResult.ViewerOpened -> SavedImageOpenState.ViewerOpened
+                OpenSavedImageResult.AlreadyMissing -> SavedImageOpenState.AlreadyMissing
+                OpenSavedImageResult.InvalidTarget -> SavedImageOpenState.InvalidTarget
+                OpenSavedImageResult.NoCompatibleApp -> SavedImageOpenState.NoCompatibleApp
+                OpenSavedImageResult.Error -> SavedImageOpenState.Error
+            }
+            if (_openState.value == SavedImageOpenState.AlreadyMissing) {
+                refreshSavedImagesAfterDelete()
+            }
+        }
+    }
+
     fun onSystemDeleteConfirmationLaunched() {
         _deleteState.value = SavedImageDeleteState.Deleting
     }
@@ -92,6 +116,10 @@ class SavedImagesViewModel(
 
     fun clearShareMessage() {
         _shareState.value = SavedImageShareState.Idle
+    }
+
+    fun clearOpenMessage() {
+        _openState.value = SavedImageOpenState.Idle
     }
 
     private suspend fun handleDeleteResult(
@@ -149,6 +177,16 @@ sealed interface SavedImageShareState {
     data object Error : SavedImageShareState
 }
 
+sealed interface SavedImageOpenState {
+    data object Idle : SavedImageOpenState
+    data object Opening : SavedImageOpenState
+    data object ViewerOpened : SavedImageOpenState
+    data object AlreadyMissing : SavedImageOpenState
+    data object InvalidTarget : SavedImageOpenState
+    data object NoCompatibleApp : SavedImageOpenState
+    data object Error : SavedImageOpenState
+}
+
 class SavedImagesViewModelFactory(
     context: Context
 ) : ViewModelProvider.Factory {
@@ -161,7 +199,8 @@ class SavedImagesViewModelFactory(
             val loadUseCase = LoadSavedImagesUseCase(repository)
             val deleteUseCase = DeleteSavedImageUseCase(repository)
             val shareUseCase = ShareSavedImageUseCase(repository)
-            return SavedImagesViewModel(loadUseCase, deleteUseCase, shareUseCase) as T
+            val openUseCase = OpenSavedImageUseCase(repository)
+            return SavedImagesViewModel(loadUseCase, deleteUseCase, shareUseCase, openUseCase) as T
         }
         throw IllegalArgumentException("Unknown ViewModel class")
     }

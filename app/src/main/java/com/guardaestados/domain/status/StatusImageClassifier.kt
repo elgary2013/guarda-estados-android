@@ -1,4 +1,4 @@
-package com.guardaestados.domain.status
+﻿package com.guardaestados.domain.status
 
 class StatusImageClassifier {
     fun isAccepted(candidate: StatusImageCandidate): Boolean {
@@ -14,6 +14,9 @@ class StatusImageClassifier {
             "image/jpeg", "image/jpg" -> "image/jpeg"
             "image/png" -> "image/png"
             "image/webp" -> "image/webp"
+            "video/mp4" -> "video/mp4"
+            "video/3gpp" -> "video/3gpp"
+            "video/webm" -> "video/webm"
             else -> null
         }
     }

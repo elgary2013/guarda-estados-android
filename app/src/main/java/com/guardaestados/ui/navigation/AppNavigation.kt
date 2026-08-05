@@ -87,6 +87,7 @@ fun AppNavigation(
     val savedImagesState by savedImagesViewModel.uiState.collectAsState()
     val deleteSavedImageState by savedImagesViewModel.deleteState.collectAsState()
     val shareSavedImageState by savedImagesViewModel.shareState.collectAsState()
+    val openSavedImageState by savedImagesViewModel.openState.collectAsState()
     val videoSplitterState by videoSplitterViewModel.uiState.collectAsState()
     val navController = rememberNavController()
     val routes = listOf(AppRoute.Home, AppRoute.States, AppRoute.Saved, AppRoute.Settings)
@@ -244,9 +245,12 @@ fun AppNavigation(
                     previewState = savedPreviewResolver.resolve(savedImagesState, imageUri),
                     deleteState = deleteSavedImageState,
                     shareState = shareSavedImageState,
+                    openState = openSavedImageState,
                     onDeleteImage = savedImagesViewModel::delete,
                     onShareImage = savedImagesViewModel::share,
+                    onOpenImage = savedImagesViewModel::open,
                     onShareMessageDismissed = savedImagesViewModel::clearShareMessage,
+                    onOpenMessageDismissed = savedImagesViewModel::clearOpenMessage,
                     onBack = { navController.popBackStack() }
                 )
             }

@@ -1,4 +1,4 @@
-package com.guardaestados.ui.screens
+﻿package com.guardaestados.ui.screens
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -37,10 +37,12 @@ import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
 import com.guardaestados.R
 import com.guardaestados.domain.status.StatusImage
+import com.guardaestados.domain.status.StatusMediaType
 import com.guardaestados.ui.save.SaveStatusImageUiState
 import com.guardaestados.ui.share.ShareStatusImageUiState
 import com.guardaestados.ui.status.StatusImagePresentationFormatter
 import com.guardaestados.ui.status.StatusImagePreviewState
+import com.guardaestados.ui.video.VideoPlayerPreview
 import java.text.DateFormat
 import java.util.Date
 
@@ -138,7 +140,12 @@ private fun PreviewContent(
                     .background(MaterialTheme.colorScheme.surfaceVariant),
                 contentAlignment = Alignment.Center
             ) {
-                if (failedToLoad) {
+                if (image.mediaType == StatusMediaType.Video) {
+                    VideoPlayerPreview(
+                        uri = image.uri,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                } else if (failedToLoad) {
                     Text(
                         text = stringResource(R.string.preview_load_error_body),
                         modifier = Modifier.padding(20.dp),
@@ -170,7 +177,7 @@ private fun PreviewContent(
                     enabled = saveState != SaveStatusImageUiState.Saving,
                     modifier = Modifier.weight(1f)
                 ) {
-                    Text(text = stringResource(R.string.preview_action_save_image))
+                    Text(text = stringResource(if (image.mediaType == StatusMediaType.Video) R.string.preview_action_save_video else R.string.preview_action_save_image))
                 }
 
                 Button(
@@ -178,7 +185,7 @@ private fun PreviewContent(
                     enabled = shareState != ShareStatusImageUiState.Sharing,
                     modifier = Modifier.weight(1f)
                 ) {
-                    Text(text = stringResource(R.string.preview_action_share_image))
+                    Text(text = stringResource(if (image.mediaType == StatusMediaType.Video) R.string.preview_action_share_video else R.string.preview_action_share_image))
                 }
             }
 
@@ -197,6 +204,12 @@ private fun SaveStatusMessage(saveState: SaveStatusImageUiState) {
             text = stringResource(R.string.save_status_saving),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+
+        SaveStatusImageUiState.Duplicate -> Text(
+            text = stringResource(R.string.save_status_duplicate_video),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.primary
         )
 
         SaveStatusImageUiState.Error -> Text(
@@ -278,7 +291,7 @@ private fun FileDetailsCard(image: StatusImage) {
                 fontWeight = FontWeight.SemiBold
             )
             Text(
-                text = stringResource(R.string.status_file_details_body),
+                text = stringResource(if (image.mediaType == StatusMediaType.Video) R.string.status_video_file_details_body else R.string.status_file_details_body),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )

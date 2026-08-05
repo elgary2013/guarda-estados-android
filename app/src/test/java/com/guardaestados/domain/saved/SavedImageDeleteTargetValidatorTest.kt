@@ -28,6 +28,16 @@ class SavedImageDeleteTargetValidatorTest {
     }
 
     @Test
+    fun `accepts saved status videos in app relative path`() {
+        assertTrue(
+            validator.isValid(
+                relativePath = "Movies/GuardaEstados/",
+                mimeType = "video/mp4"
+            )
+        )
+    }
+
+    @Test
     fun `accepts generated video parts in app relative path`() {
         assertTrue(
             validator.isValid(
@@ -54,11 +64,17 @@ class SavedImageDeleteTargetValidatorTest {
     }
 
     @Test
-    fun `rejects videos in image path and images in video parts path`() {
+    fun `rejects videos in image path and images in video paths`() {
         assertFalse(
             validator.isValid(
                 relativePath = "Pictures/GuardaEstados/",
                 mimeType = "video/mp4"
+            )
+        )
+        assertFalse(
+            validator.isValid(
+                relativePath = "Movies/GuardaEstados/",
+                mimeType = "image/jpeg"
             )
         )
         assertFalse(
