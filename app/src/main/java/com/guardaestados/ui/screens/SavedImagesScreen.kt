@@ -49,6 +49,7 @@ import coil3.request.ImageRequest
 import coil3.size.Size
 import com.guardaestados.R
 import com.guardaestados.domain.saved.SavedImage
+import com.guardaestados.domain.saved.SavedMediaOrigin
 import com.guardaestados.domain.saved.SavedMediaType
 import com.guardaestados.domain.saved.SavedImagesState
 import com.guardaestados.ui.saved.SavedImageDeleteState
@@ -270,7 +271,7 @@ private fun SavedImageGridCard(
             ) {
                 if (image.mediaType == SavedMediaType.Video) {
                     Text(
-                        text = stringResource(R.string.saved_video_thumbnail_label),
+                        text = stringResource(if (image.origin == SavedMediaOrigin.VideoPart) R.string.saved_video_part_thumbnail_label else R.string.saved_video_thumbnail_label),
                         modifier = Modifier.padding(12.dp),
                         style = MaterialTheme.typography.titleMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -328,6 +329,13 @@ private fun SavedImageGridCard(
                 Text(
                     text = displayTitle,
                     style = MaterialTheme.typography.titleMedium,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Text(
+                    text = stringResource(image.origin.labelRes()),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
@@ -390,6 +398,13 @@ private fun SavedImageDeleteState.canDismiss(): Boolean {
     return this != SavedImageDeleteState.Deleting && this !is SavedImageDeleteState.NeedsSystemConfirmation
 }
 
+
+private fun SavedMediaOrigin.labelRes(): Int {
+    return when (this) {
+        SavedMediaOrigin.SavedStatus -> R.string.saved_origin_status_copy
+        SavedMediaOrigin.VideoPart -> R.string.saved_origin_video_part
+    }
+}
 private fun Long.formatDate(): String {
     return DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.SHORT).format(Date(this))
 }

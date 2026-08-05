@@ -1,4 +1,4 @@
-package com.guardaestados.ui.save
+﻿package com.guardaestados.ui.save
 
 import android.content.Context
 import androidx.lifecycle.ViewModel
@@ -25,6 +25,7 @@ class SaveStatusImageViewModel(
         viewModelScope.launch {
             _uiState.value = SaveStatusImageUiState.Saving
             _uiState.value = when (val result = saveStatusImage.execute(image)) {
+                SaveStatusImageResult.Duplicate -> SaveStatusImageUiState.Duplicate
                 SaveStatusImageResult.Error -> SaveStatusImageUiState.Error
                 is SaveStatusImageResult.Success -> SaveStatusImageUiState.Success(result.displayName)
             }
@@ -35,6 +36,7 @@ class SaveStatusImageViewModel(
 sealed interface SaveStatusImageUiState {
     data object Idle : SaveStatusImageUiState
     data object Saving : SaveStatusImageUiState
+    data object Duplicate : SaveStatusImageUiState
     data class Success(val displayName: String) : SaveStatusImageUiState
     data object Error : SaveStatusImageUiState
 }

@@ -1,4 +1,4 @@
-package com.guardaestados.ui.screens
+﻿package com.guardaestados.ui.screens
 
 import androidx.annotation.StringRes
 import androidx.compose.foundation.BorderStroke
@@ -23,9 +23,12 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Tab
+import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -45,6 +48,7 @@ import coil3.size.Size
 import com.guardaestados.R
 import com.guardaestados.domain.status.StatusGalleryState
 import com.guardaestados.domain.status.StatusImage
+import com.guardaestados.domain.status.StatusMediaType
 import com.guardaestados.ui.status.StatusImagePresentationFormatter
 import java.text.DateFormat
 import java.util.Date
@@ -58,6 +62,9 @@ fun StatesScreen(
     onImageSelected: (StatusImage) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    var selectedTabIndex by remember { mutableIntStateOf(0) }
+    val selectedMediaType = if (selectedTabIndex == 0) StatusMediaType.Image else StatusMediaType.Video
+
     Surface(
         modifier = modifier.fillMaxSize(),
         color = MaterialTheme.colorScheme.background
@@ -103,17 +110,38 @@ fun StatesScreen(
                 )
 
                 is StatusGalleryState.Content -> {
+                    val images = statusGalleryState.images.filter { it.mediaType == StatusMediaType.Image }
+                    val videos = statusGalleryState.images.filter { it.mediaType == StatusMediaType.Video }
+                    val selectedItems = if (selectedMediaType == StatusMediaType.Image) images else videos
                     item(span = { GridItemSpan(maxLineSpan) }) {
-                        StatesCountCard(imageCount = statusGalleryState.images.size)
-                    }
-                    items(
-                        items = statusGalleryState.images,
-                        key = { image -> image.uri.toString() }
-                    ) { image ->
-                        StatusImageGridCard(
-                            image = image,
-                            onImageSelected = onImageSelected
+                        StatesMediaTabs(
+                            selectedTabIndex = selectedTabIndex,
+                            imageCount = images.size,
+                            videoCount = videos.size,
+                            onTabSelected = { selectedTabIndex = it }
                         )
+                    }
+                    item(span = { GridItemSpan(maxLineSpan) }) {
+                        StatesCountCard(
+                            itemCount = selectedItems.size,
+                            selectedMediaType = selectedMediaType
+                        )
+                    }
+                    if (selectedItems.isEmpty()) {
+                        fullWidthMessage(
+                            titleRes = if (selectedMediaType == StatusMediaType.Video) R.string.states_empty_videos_title else R.string.states_empty_images_title,
+                            bodyRes = if (selectedMediaType == StatusMediaType.Video) R.string.states_empty_videos_body else R.string.states_empty_images_body
+                        )
+                    } else {
+                        items(
+                            items = selectedItems,
+                            key = { image -> image.uri.toString() }
+                        ) { image ->
+                            StatusImageGridCard(
+                                image = image,
+                                onImageSelected = onImageSelected
+                            )
+                        }
                     }
                 }
             }
@@ -165,7 +193,31 @@ private fun StatesHeader(
 }
 
 @Composable
-private fun StatesCountCard(imageCount: Int) {
+private fun StatesMediaTabs(
+    selectedTabIndex: Int,
+    imageCount: Int,
+    videoCount: Int,
+    onTabSelected: (Int) -> Unit
+) {
+    TabRow(selectedTabIndex = selectedTabIndex) {
+        Tab(
+            selected = selectedTabIndex == 0,
+            onClick = { onTabSelected(0) },
+            text = { Text(text = stringResource(R.string.states_tab_images, imageCount)) }
+        )
+        Tab(
+            selected = selectedTabIndex == 1,
+            onClick = { onTabSelected(1) },
+            text = { Text(text = stringResource(R.string.states_tab_videos, videoCount)) }
+        )
+    }
+}
+
+@Composable
+private fun StatesCountCard(
+    itemCount: Int,
+    selectedMediaType: StatusMediaType
+) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
@@ -180,12 +232,14 @@ private fun StatesCountCard(imageCount: Int) {
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                text = stringResource(R.string.states_found_title),
+                text = stringResource(
+                    if (selectedMediaType == StatusMediaType.Video) R.string.states_found_videos_title else R.string.states_found_title
+                ),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold
             )
             Text(
-                text = stringResource(R.string.states_count_badge, imageCount),
+                text = stringResource(R.string.states_count_badge, itemCount),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -253,7 +307,10 @@ private fun StatusImageGridCard(
 
     Card(
         modifier = Modifier.clickable(
-            onClickLabel = stringResource(R.string.status_image_open_action, displayTitle),
+            onClickLabel = stringResource(
+                if (image.mediaType == StatusMediaType.Video) R.string.status_video_open_action else R.string.status_image_open_action,
+                displayTitle
+            ),
             role = Role.Button,
             onClick = { onImageSelected(image) }
         ),
@@ -273,7 +330,14 @@ private fun StatusImageGridCard(
                     .background(MaterialTheme.colorScheme.surfaceVariant),
                 contentAlignment = Alignment.Center
             ) {
-                if (failedToLoad) {
+                if (image.mediaType == StatusMediaType.Video) {
+                    Text(
+                        text = stringResource(R.string.saved_video_thumbnail_label),
+                        modifier = Modifier.padding(12.dp),
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                } else if (failedToLoad) {
                     Text(
                         text = stringResource(R.string.status_image_thumbnail_error),
                         modifier = Modifier.padding(12.dp),
@@ -316,7 +380,7 @@ private fun StatusImageGridCard(
                 )
                 if (sizeValue != null || formatValue != null) {
                     Text(
-                        text = listOfNotNull(formatValue, sizeValue).joinToString(" • "),
+                        text = listOfNotNull(formatValue, sizeValue).joinToString(" - "),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 1,

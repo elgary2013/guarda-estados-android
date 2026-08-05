@@ -8,7 +8,8 @@ data class SavedImage(
     val mimeType: String,
     val dateAddedMillis: Long?,
     val sizeBytes: Long?,
-    val mediaType: SavedMediaType = SavedMediaType.fromMimeType(mimeType)
+    val mediaType: SavedMediaType = SavedMediaType.fromMimeType(mimeType),
+    val origin: SavedMediaOrigin = SavedMediaOrigin.SavedStatus
 )
 
 enum class SavedMediaType {
@@ -20,4 +21,9 @@ enum class SavedMediaType {
             return if (mimeType?.startsWith("video/") == true) Video else Image
         }
     }
+}
+
+enum class SavedMediaOrigin {
+    SavedStatus,
+    VideoPart
 }

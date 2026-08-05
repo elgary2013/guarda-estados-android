@@ -1,4 +1,4 @@
-package com.guardaestados.data.status
+﻿package com.guardaestados.data.status
 
 import android.content.ContentResolver
 import android.content.Context
@@ -8,6 +8,7 @@ import androidx.documentfile.provider.DocumentFile
 import com.guardaestados.domain.status.StatusImage
 import com.guardaestados.domain.status.StatusImageCandidate
 import com.guardaestados.domain.status.StatusImageClassifier
+import com.guardaestados.domain.status.StatusMediaType
 
 class StatusImageRepository(
     context: Context,
@@ -28,14 +29,14 @@ class StatusImageRepository(
 
             folder.listFiles()
                 .asSequence()
-                .filter { document -> document.isAcceptedImage() }
+                .filter { document -> document.isAcceptedStatusMedia() }
                 .mapNotNull { document -> document.toStatusImage() }
                 .sortedWith(compareByDescending<StatusImage> { it.lastModifiedMillis ?: 0L }.thenBy { it.name })
                 .toList()
         }
     }
 
-    private fun DocumentFile.isAcceptedImage(): Boolean {
+    private fun DocumentFile.isAcceptedStatusMedia(): Boolean {
         val candidate = StatusImageCandidate(
             name = name,
             mimeType = type,
@@ -48,15 +49,18 @@ class StatusImageRepository(
     private fun DocumentFile.toStatusImage(): StatusImage? {
         val normalizedMimeType = classifier.normalizeMimeType(type) ?: return null
         val resolvedType = contentResolver.getType(uri)?.let(classifier::normalizeMimeType)
-        val dimensions = contentResolver.readImageDimensions(uri)
+        val mimeType = resolvedType ?: normalizedMimeType
+        val mediaType = StatusMediaType.fromMimeType(mimeType)
+        val dimensions = if (mediaType == StatusMediaType.Image) contentResolver.readImageDimensions(uri) else null
         return StatusImage(
             uri = uri,
             name = name.orEmpty(),
-            mimeType = resolvedType ?: normalizedMimeType,
+            mimeType = mimeType,
             lastModifiedMillis = lastModified().takeIf { it > 0L },
             sizeBytes = length().takeIf { it > 0L },
             widthPixels = dimensions?.widthPixels,
-            heightPixels = dimensions?.heightPixels
+            heightPixels = dimensions?.heightPixels,
+            mediaType = mediaType
         )
     }
 

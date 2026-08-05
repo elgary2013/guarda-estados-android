@@ -14,7 +14,9 @@ import android.util.Log
 import com.guardaestados.R
 import com.guardaestados.domain.saved.DeleteSavedImageResult
 import com.guardaestados.domain.saved.SavedImage
+import com.guardaestados.domain.saved.SavedMediaOrigin
 import com.guardaestados.domain.saved.SavedImageDeleteTargetValidator
+import com.guardaestados.domain.saved.OpenSavedImageResult
 import com.guardaestados.domain.saved.SavedImagesRepository
 import com.guardaestados.domain.saved.ShareSavedImageResult
 import com.guardaestados.domain.share.ShareImageMimeTypeResolver
@@ -38,11 +40,18 @@ class MediaStoreSavedImagesRepository(
             loadSavedMedia(
                 collection = MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
                 relativePath = IMAGE_SAVE_RELATIVE_PATH,
-                expectedMimePrefix = IMAGE_MIME_PREFIX
+                expectedMimePrefix = IMAGE_MIME_PREFIX,
+                origin = SavedMediaOrigin.SavedStatus
+            ) + loadSavedMedia(
+                collection = MediaStore.Video.Media.EXTERNAL_CONTENT_URI,
+                relativePath = VIDEO_SAVE_RELATIVE_PATH,
+                expectedMimePrefix = VIDEO_MIME_PREFIX,
+                origin = SavedMediaOrigin.SavedStatus
             ) + loadSavedMedia(
                 collection = MediaStore.Video.Media.EXTERNAL_CONTENT_URI,
                 relativePath = VIDEO_PARTS_RELATIVE_PATH,
-                expectedMimePrefix = VIDEO_MIME_PREFIX
+                expectedMimePrefix = VIDEO_MIME_PREFIX,
+                origin = SavedMediaOrigin.VideoPart
             )
         }.onFailure { exception ->
             Log.e(TAG, "Saved media query failed", exception)
@@ -141,10 +150,54 @@ class MediaStoreSavedImagesRepository(
         }
     }
 
+
+    override suspend fun openImage(image: SavedImage): OpenSavedImageResult = withContext(Dispatchers.IO) {
+        val validation = validateSavedImageTarget(image.uri)
+        when (validation) {
+            is SavedImageTargetValidation.Valid -> Unit
+            SavedImageTargetValidation.Missing -> return@withContext OpenSavedImageResult.AlreadyMissing
+            SavedImageTargetValidation.Invalid -> return@withContext OpenSavedImageResult.InvalidTarget
+            SavedImageTargetValidation.Error -> return@withContext OpenSavedImageResult.Error
+        }
+
+        try {
+            contentResolver.openInputStream(image.uri)?.use {
+                // Verifies that the MediaStore item is still readable before handing it to another app.
+            } ?: return@withContext OpenSavedImageResult.Error
+
+            val mimeType = mimeTypeResolver.resolve(validation.mimeType)
+            val viewIntent = Intent(Intent.ACTION_VIEW).apply {
+                setDataAndType(image.uri, mimeType)
+                clipData = ClipData.newUri(contentResolver, image.name, image.uri)
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            }
+            if (viewIntent.resolveActivity(appContext.packageManager) == null) {
+                return@withContext OpenSavedImageResult.NoCompatibleApp
+            }
+            val chooser = Intent.createChooser(
+                viewIntent,
+                appContext.getString(R.string.saved_open_chooser_title)
+            ).apply {
+                clipData = viewIntent.clipData
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            }
+            withContext(Dispatchers.Main) {
+                appContext.startActivity(chooser)
+            }
+            OpenSavedImageResult.ViewerOpened
+        } catch (exception: ActivityNotFoundException) {
+            OpenSavedImageResult.NoCompatibleApp
+        } catch (exception: Exception) {
+            Log.e(TAG, "Open saved media failed", exception)
+            OpenSavedImageResult.Error
+        }
+    }
     private fun loadSavedMedia(
         collection: Uri,
         relativePath: String,
-        expectedMimePrefix: String
+        expectedMimePrefix: String,
+        origin: SavedMediaOrigin
     ): List<SavedImage> {
         val projection = arrayOf(
             MediaStore.MediaColumns._ID,
@@ -174,7 +227,8 @@ class MediaStoreSavedImagesRepository(
                             name = cursor.getString(nameColumn).orEmpty(),
                             mimeType = mimeType,
                             dateAddedMillis = dateAddedSeconds?.times(MILLIS_PER_SECOND),
-                            sizeBytes = cursor.getLongOrNull(sizeColumn)
+                            sizeBytes = cursor.getLongOrNull(sizeColumn),
+                            origin = origin
                         )
                     )
                 }
@@ -232,6 +286,7 @@ class MediaStoreSavedImagesRepository(
     private companion object {
         const val TAG = "SavedMedia"
         const val IMAGE_SAVE_RELATIVE_PATH = "Pictures/GuardaEstados/"
+        const val VIDEO_SAVE_RELATIVE_PATH = "Movies/GuardaEstados/"
         const val VIDEO_PARTS_RELATIVE_PATH = "Movies/GuardaEstados/Partes/"
         const val IMAGE_MIME_PREFIX = "image/"
         const val VIDEO_MIME_PREFIX = "video/"
