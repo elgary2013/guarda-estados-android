@@ -1,9 +1,11 @@
 package com.guardaestados.ui.screens
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
@@ -29,6 +31,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
@@ -59,7 +62,7 @@ fun ImagePreviewScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
-                .padding(24.dp),
+                .padding(20.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             Button(onClick = onBack) {
@@ -119,16 +122,18 @@ private fun PreviewContent(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
-        )
+        ),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+        shape = RoundedCornerShape(8.dp)
     ) {
         Column(
             modifier = Modifier.padding(12.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+            verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .heightIn(min = 260.dp, max = 560.dp)
+                    .heightIn(min = 300.dp, max = 620.dp)
                     .clip(RoundedCornerShape(8.dp))
                     .background(MaterialTheme.colorScheme.surfaceVariant),
                 contentAlignment = Alignment.Center
@@ -156,23 +161,30 @@ private fun PreviewContent(
                 }
             }
 
-            Button(
-                onClick = { onSaveImage(image) },
-                enabled = saveState != SaveStatusImageUiState.Saving
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                Text(text = stringResource(R.string.preview_action_save_image))
-            }
+                Button(
+                    onClick = { onSaveImage(image) },
+                    enabled = saveState != SaveStatusImageUiState.Saving,
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text(text = stringResource(R.string.preview_action_save_image))
+                }
 
-            Button(
-                onClick = { onShareImage(image) },
-                enabled = shareState != ShareStatusImageUiState.Sharing
-            ) {
-                Text(text = stringResource(R.string.preview_action_share_image))
+                Button(
+                    onClick = { onShareImage(image) },
+                    enabled = shareState != ShareStatusImageUiState.Sharing,
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text(text = stringResource(R.string.preview_action_share_image))
+                }
             }
 
             SaveStatusMessage(saveState = saveState)
             ShareStatusMessage(shareState = shareState)
-            ImageInfoCard(image = image)
+            FileDetailsCard(image = image)
         }
     }
 }
@@ -230,34 +242,91 @@ private fun ShareStatusMessage(shareState: ShareStatusImageUiState) {
         )
     }
 }
-@Composable
-private fun ImageInfoCard(image: StatusImage) {
-    val unavailable = stringResource(R.string.status_image_value_unavailable)
-    val formattedDate = image.lastModifiedMillis?.formatDate()
-    val formatter = remember { StatusImagePresentationFormatter() }
-    val title = formatter.title(image.name, formattedDate).ifBlank { unavailable }
-    val size = formatter.sizeValue(image.sizeBytes) ?: unavailable
 
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+@Composable
+private fun FileDetailsCard(image: StatusImage) {
+    val formatter = remember { StatusImagePresentationFormatter() }
+    val formattedDate = image.lastModifiedMillis?.formatDate()
+    val size = formatter.sizeValue(image.sizeBytes)
+    val format = formatter.formatValue(image.mimeType)
+    val dimensions = formatter.dimensionsValue(image.widthPixels, image.heightPixels)
+    val rows = buildList {
+        image.name.trim().takeIf { it.isNotBlank() }?.let { name ->
+            add(R.string.status_file_name_label to name)
+        }
+        formattedDate?.let { date -> add(R.string.status_file_date_label to date) }
+        size?.let { value -> add(R.string.status_file_size_label to value) }
+        format?.let { value -> add(R.string.status_file_format_label to value) }
+        dimensions?.let { value -> add(R.string.status_file_dimensions_label to value) }
+    }
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        ),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+        shape = RoundedCornerShape(8.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Text(
+                text = stringResource(R.string.status_file_details_title),
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold
+            )
+            Text(
+                text = stringResource(R.string.status_file_details_body),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            if (rows.isEmpty()) {
+                Text(
+                    text = stringResource(R.string.status_file_unknown),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            } else {
+                rows.forEach { (labelRes, value) ->
+                    FileDetailRow(
+                        label = stringResource(labelRes),
+                        value = value
+                    )
+                }
+            }
+            Text(
+                text = stringResource(R.string.status_privacy_notice),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
+}
+
+@Composable
+private fun FileDetailRow(
+    label: String,
+    value: String
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalAlignment = Alignment.Top
+    ) {
         Text(
-            text = title,
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.SemiBold
-        )
-        Text(
-            text = stringResource(R.string.status_image_mime_type, image.mimeType),
+            text = label,
+            modifier = Modifier.weight(0.42f),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
         Text(
-            text = stringResource(R.string.status_image_size, size),
+            text = value,
+            modifier = Modifier.weight(0.58f),
             style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-        Text(
-            text = stringResource(R.string.status_image_date, formattedDate ?: unavailable),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis
         )
     }
 }
@@ -271,7 +340,9 @@ private fun PreviewMessageCard(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
-        )
+        ),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+        shape = RoundedCornerShape(8.dp)
     ) {
         Column(
             modifier = Modifier.padding(20.dp),

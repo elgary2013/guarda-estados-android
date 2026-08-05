@@ -12,6 +12,9 @@
     <string name="home_placeholder_note">La app solo lee imágenes dentro de la carpeta autorizada por Android.</string>
     <string name="states_title">Estados</string>
     <string name="states_subtitle">Galería temporal de imágenes detectadas en la carpeta autorizada.</string>
+    <string name="states_header_badge">Acceso local seguro</string>
+    <string name="states_header_note">Tocá una imagen para verla en detalle.</string>
+    <string name="states_count_badge">%1$d archivos</string>
     <string name="states_action_refresh">Actualizar</string>
     <string name="states_loading_title">Leyendo carpeta</string>
     <string name="states_loading_body">Buscando imágenes compatibles...</string>
@@ -29,6 +32,15 @@
     <string name="status_image_mime_type">Tipo: %1$s</string>
     <string name="status_image_size">Tamaño: %1$s bytes</string>
     <string name="status_image_date">Fecha: %1$s</string>
+    <string name="status_file_details_title">Detalles del archivo</string>
+    <string name="status_file_details_body">Datos locales entregados por Android para esta imagen.</string>
+    <string name="status_file_name_label">Nombre</string>
+    <string name="status_file_date_label">Fecha y hora</string>
+    <string name="status_file_size_label">Tamaño</string>
+    <string name="status_file_format_label">Formato</string>
+    <string name="status_file_dimensions_label">Dimensiones</string>
+    <string name="status_file_unknown">No disponible</string>
+    <string name="status_privacy_notice">Android no entrega datos sobre quién publicó este estado. La app no intenta obtener cuentas, contactos, conversaciones ni identidad de otras apps.</string>
     <string name="status_image_card_date">Fecha: %1$s</string>
     <string name="status_image_uri">URI: %1$s</string>
     <string name="status_image_value_unavailable">No disponible</string>

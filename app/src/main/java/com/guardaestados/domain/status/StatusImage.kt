@@ -7,5 +7,7 @@ data class StatusImage(
     val name: String,
     val mimeType: String,
     val lastModifiedMillis: Long?,
-    val sizeBytes: Long?
+    val sizeBytes: Long?,
+    val widthPixels: Int? = null,
+    val heightPixels: Int? = null
 )
