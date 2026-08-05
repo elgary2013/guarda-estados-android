@@ -1,4 +1,4 @@
-package com.guardaestados.ui.screens
+﻿package com.guardaestados.ui.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -39,10 +39,12 @@ import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
 import com.guardaestados.R
 import com.guardaestados.domain.saved.SavedImage
+import com.guardaestados.domain.saved.SavedMediaType
 import com.guardaestados.ui.saved.SavedImageDeleteState
 import com.guardaestados.ui.saved.SavedImagePreviewState
 import com.guardaestados.ui.saved.SavedImageShareState
 import com.guardaestados.ui.status.StatusImagePresentationFormatter
+import com.guardaestados.ui.video.VideoPlayerPreview
 import java.text.DateFormat
 import java.util.Date
 
@@ -164,7 +166,12 @@ private fun SavedPreviewContent(
                     .background(MaterialTheme.colorScheme.surfaceVariant),
                 contentAlignment = Alignment.Center
             ) {
-                if (failedToLoad) {
+                if (image.mediaType == SavedMediaType.Video) {
+                    VideoPlayerPreview(
+                        uri = image.uri,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                } else if (failedToLoad) {
                     Text(
                         text = stringResource(R.string.preview_load_error_body),
                         modifier = Modifier.padding(20.dp),
@@ -202,7 +209,7 @@ private fun SavedPreviewContent(
                     )
                     Text(
                         modifier = Modifier.padding(start = 8.dp),
-                        text = stringResource(R.string.saved_action_share_image)
+                        text = stringResource(R.string.saved_action_share_media)
                     )
                 }
 

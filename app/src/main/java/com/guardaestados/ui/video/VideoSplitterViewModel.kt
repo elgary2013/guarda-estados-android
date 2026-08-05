@@ -1,0 +1,225 @@
+﻿package com.guardaestados.ui.video
+
+import android.content.Context
+import android.net.Uri
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.viewModelScope
+import com.guardaestados.data.video.AndroidVideoPartSharerRepository
+import com.guardaestados.data.video.Media3VideoSplitterRepository
+import com.guardaestados.domain.video.GeneratedVideoPart
+import com.guardaestados.domain.video.SelectedVideo
+import com.guardaestados.domain.video.VideoMetadataResult
+import com.guardaestados.domain.video.VideoPartSharerRepository
+import com.guardaestados.domain.video.VideoShareResult
+import com.guardaestados.domain.video.VideoSplitPlanner
+import com.guardaestados.domain.video.VideoSplitProgress
+import com.guardaestados.domain.video.VideoSplitResult
+import com.guardaestados.domain.video.VideoSplitterRepository
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+
+class VideoSplitterViewModel(
+    private val splitterRepository: VideoSplitterRepository,
+    private val sharerRepository: VideoPartSharerRepository,
+    private val planner: VideoSplitPlanner = VideoSplitPlanner()
+) : ViewModel() {
+    private val _uiState = MutableStateFlow(VideoSplitterUiState())
+    val uiState: StateFlow<VideoSplitterUiState> = _uiState.asStateFlow()
+
+    private var processingJob: Job? = null
+
+    fun onVideoSelected(uri: Uri?) {
+        if (uri == null) return
+        processingJob?.cancel()
+        _uiState.value = VideoSplitterUiState(status = VideoSplitterStatus.LoadingVideo)
+        viewModelScope.launch(Dispatchers.IO) {
+            when (val result = splitterRepository.loadVideo(uri)) {
+                is VideoMetadataResult.Success -> {
+                    val selectedSeconds = DEFAULT_PART_SECONDS
+                    _uiState.value = VideoSplitterUiState(
+                        selectedVideo = result.video,
+                        previewUri = result.video.uri,
+                        selectedPartSeconds = selectedSeconds,
+                        estimatedParts = planner.estimatedPartCount(result.video.durationMs, selectedSeconds),
+                        status = VideoSplitterStatus.Ready
+                    )
+                }
+                VideoMetadataResult.EmptyOrUnknownDuration -> showMessage(VideoSplitterMessage.UnknownDuration)
+                VideoMetadataResult.FileUnavailable -> showMessage(VideoSplitterMessage.FileUnavailable)
+                VideoMetadataResult.Error -> showMessage(VideoSplitterMessage.LoadError)
+            }
+        }
+    }
+
+    fun selectPartDuration(seconds: Int) {
+        if (seconds !in PART_SECONDS_OPTIONS) return
+        _uiState.update { state ->
+            state.copy(
+                selectedPartSeconds = seconds,
+                estimatedParts = planner.estimatedPartCount(state.selectedVideo?.durationMs, seconds)
+            )
+        }
+    }
+
+    fun createParts() {
+        val video = _uiState.value.selectedVideo ?: return
+        if (processingJob?.isActive == true) return
+        processingJob = viewModelScope.launch(Dispatchers.IO) {
+            _uiState.update {
+                it.copy(
+                    status = VideoSplitterStatus.Processing,
+                    progress = VideoSplitProgress(currentPart = 0, totalParts = it.estimatedParts),
+                    message = null,
+                    generatedParts = emptyList()
+                )
+            }
+            val result = splitterRepository.splitVideo(
+                video = video,
+                partDurationSeconds = _uiState.value.selectedPartSeconds,
+                onProgress = { progress -> _uiState.update { it.copy(progress = progress) } }
+            )
+            when (result) {
+                is VideoSplitResult.Success -> _uiState.update {
+                    it.copy(
+                        generatedParts = result.parts.sortedBy { part -> part.index },
+                        previewUri = result.parts.firstOrNull()?.uri ?: it.previewUri,
+                        status = VideoSplitterStatus.Completed,
+                        progress = null,
+                        message = VideoSplitterMessage.SplitSuccess
+                    )
+                }
+                VideoSplitResult.Cancelled -> showMessage(VideoSplitterMessage.Cancelled, VideoSplitterStatus.Ready)
+                VideoSplitResult.EmptyOrUnknownDuration -> showMessage(VideoSplitterMessage.UnknownDuration, VideoSplitterStatus.Ready)
+                VideoSplitResult.FileUnavailable -> showMessage(VideoSplitterMessage.FileUnavailable, VideoSplitterStatus.Ready)
+                VideoSplitResult.InsufficientStorage -> showMessage(VideoSplitterMessage.InsufficientStorage, VideoSplitterStatus.Ready)
+                VideoSplitResult.UnsupportedAndroidVersion -> showMessage(VideoSplitterMessage.UnsupportedAndroidVersion, VideoSplitterStatus.Ready)
+                VideoSplitResult.ExportError -> showMessage(VideoSplitterMessage.ExportError, VideoSplitterStatus.Ready)
+            }
+        }
+    }
+
+    fun cancelProcessing() {
+        processingJob?.cancel()
+        processingJob = null
+        _uiState.update {
+            it.copy(
+                status = if (it.selectedVideo == null) VideoSplitterStatus.Idle else VideoSplitterStatus.Ready,
+                progress = null,
+                message = VideoSplitterMessage.Cancelled
+            )
+        }
+    }
+
+    fun previewOriginal() {
+        _uiState.update { it.copy(previewUri = it.selectedVideo?.uri ?: it.previewUri) }
+    }
+
+    fun previewPart(part: GeneratedVideoPart) {
+        _uiState.update { it.copy(previewUri = part.uri) }
+    }
+
+    fun sharePart(part: GeneratedVideoPart) {
+        share { sharerRepository.sharePart(part) }
+    }
+
+    fun shareAllParts() {
+        val parts = _uiState.value.generatedParts
+        share { sharerRepository.shareAll(parts) }
+    }
+
+    fun clearMessage() {
+        _uiState.update { it.copy(message = null) }
+    }
+
+    private fun share(block: suspend () -> VideoShareResult) {
+        viewModelScope.launch(Dispatchers.IO) {
+            _uiState.update { it.copy(shareStatus = VideoShareStatus.Opening, message = null) }
+            val message = when (block()) {
+                VideoShareResult.ChooserOpened -> VideoSplitterMessage.ShareChooserOpened
+                VideoShareResult.NoCompatibleApp -> VideoSplitterMessage.ShareNoCompatibleApp
+                VideoShareResult.FileUnavailable -> VideoSplitterMessage.FileUnavailable
+                VideoShareResult.Error -> VideoSplitterMessage.ShareError
+            }
+            _uiState.update { it.copy(shareStatus = VideoShareStatus.Idle, message = message) }
+        }
+    }
+
+    private suspend fun showMessage(
+        message: VideoSplitterMessage,
+        status: VideoSplitterStatus = VideoSplitterStatus.Idle
+    ) {
+        withContext(Dispatchers.Main.immediate) {
+            _uiState.update {
+                it.copy(status = status, progress = null, message = message)
+            }
+        }
+    }
+
+    private companion object {
+        const val DEFAULT_PART_SECONDS = 30
+        val PART_SECONDS_OPTIONS = setOf(15, 30, 60)
+    }
+}
+
+data class VideoSplitterUiState(
+    val selectedVideo: SelectedVideo? = null,
+    val previewUri: Uri? = null,
+    val selectedPartSeconds: Int = 30,
+    val estimatedParts: Int = 0,
+    val generatedParts: List<GeneratedVideoPart> = emptyList(),
+    val status: VideoSplitterStatus = VideoSplitterStatus.Idle,
+    val progress: VideoSplitProgress? = null,
+    val shareStatus: VideoShareStatus = VideoShareStatus.Idle,
+    val message: VideoSplitterMessage? = null
+)
+
+enum class VideoSplitterStatus {
+    Idle,
+    LoadingVideo,
+    Ready,
+    Processing,
+    Completed
+}
+
+enum class VideoShareStatus {
+    Idle,
+    Opening
+}
+
+enum class VideoSplitterMessage {
+    UnknownDuration,
+    FileUnavailable,
+    LoadError,
+    InsufficientStorage,
+    UnsupportedAndroidVersion,
+    ExportError,
+    Cancelled,
+    SplitSuccess,
+    ShareChooserOpened,
+    ShareNoCompatibleApp,
+    ShareError
+}
+
+class VideoSplitterViewModelFactory(
+    context: Context
+) : ViewModelProvider.Factory {
+    private val appContext = context.applicationContext
+
+    @Suppress("UNCHECKED_CAST")
+    override fun <T : ViewModel> create(modelClass: Class<T>): T {
+        if (modelClass.isAssignableFrom(VideoSplitterViewModel::class.java)) {
+            return VideoSplitterViewModel(
+                splitterRepository = Media3VideoSplitterRepository(appContext),
+                sharerRepository = AndroidVideoPartSharerRepository(appContext)
+            ) as T
+        }
+        throw IllegalArgumentException("Unknown ViewModel class")
+    }
+}

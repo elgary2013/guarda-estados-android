@@ -1,4 +1,4 @@
-package com.guardaestados.domain.saved
+﻿package com.guardaestados.domain.saved
 
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -28,21 +28,43 @@ class SavedImageDeleteTargetValidatorTest {
     }
 
     @Test
-    fun `rejects images outside saved relative path`() {
+    fun `accepts generated video parts in app relative path`() {
+        assertTrue(
+            validator.isValid(
+                relativePath = "Movies/GuardaEstados/Partes/",
+                mimeType = "video/mp4"
+            )
+        )
+    }
+
+    @Test
+    fun `rejects media outside saved relative paths`() {
         assertFalse(
             validator.isValid(
                 relativePath = "Pictures/WhatsApp/",
                 mimeType = "image/jpeg"
             )
         )
+        assertFalse(
+            validator.isValid(
+                relativePath = "Movies/Other/",
+                mimeType = "video/mp4"
+            )
+        )
     }
 
     @Test
-    fun `rejects non image media in saved relative path`() {
+    fun `rejects videos in image path and images in video parts path`() {
         assertFalse(
             validator.isValid(
                 relativePath = "Pictures/GuardaEstados/",
                 mimeType = "video/mp4"
+            )
+        )
+        assertFalse(
+            validator.isValid(
+                relativePath = "Movies/GuardaEstados/Partes/",
+                mimeType = "image/jpeg"
             )
         )
     }

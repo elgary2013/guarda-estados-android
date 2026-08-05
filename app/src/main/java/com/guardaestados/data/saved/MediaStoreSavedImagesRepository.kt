@@ -1,4 +1,4 @@
-package com.guardaestados.data.saved
+﻿package com.guardaestados.data.saved
 
 import android.app.RecoverableSecurityException
 import android.content.ActivityNotFoundException
@@ -35,51 +35,17 @@ class MediaStoreSavedImagesRepository(
                 return@runCatching emptyList()
             }
 
-            val collection = MediaStore.Images.Media.EXTERNAL_CONTENT_URI
-            val projection = arrayOf(
-                MediaStore.Images.Media._ID,
-                MediaStore.Images.Media.DISPLAY_NAME,
-                MediaStore.Images.Media.MIME_TYPE,
-                MediaStore.Images.Media.DATE_ADDED,
-                MediaStore.Images.Media.SIZE
+            loadSavedMedia(
+                collection = MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
+                relativePath = IMAGE_SAVE_RELATIVE_PATH,
+                expectedMimePrefix = IMAGE_MIME_PREFIX
+            ) + loadSavedMedia(
+                collection = MediaStore.Video.Media.EXTERNAL_CONTENT_URI,
+                relativePath = VIDEO_PARTS_RELATIVE_PATH,
+                expectedMimePrefix = VIDEO_MIME_PREFIX
             )
-            val selection = "${MediaStore.Images.Media.RELATIVE_PATH} = ?"
-            val selectionArgs = arrayOf(SAVE_RELATIVE_PATH)
-
-            contentResolver.query(
-                collection,
-                projection,
-                selection,
-                selectionArgs,
-                null
-            )?.use { cursor ->
-                val idColumn = cursor.getColumnIndexOrThrow(MediaStore.Images.Media._ID)
-                val nameColumn = cursor.getColumnIndexOrThrow(MediaStore.Images.Media.DISPLAY_NAME)
-                val mimeColumn = cursor.getColumnIndexOrThrow(MediaStore.Images.Media.MIME_TYPE)
-                val dateAddedColumn = cursor.getColumnIndexOrThrow(MediaStore.Images.Media.DATE_ADDED)
-                val sizeColumn = cursor.getColumnIndexOrThrow(MediaStore.Images.Media.SIZE)
-                buildList {
-                    while (cursor.moveToNext()) {
-                        val id = cursor.getLong(idColumn)
-                        val uri = ContentUris.withAppendedId(collection, id)
-                        val name = cursor.getString(nameColumn).orEmpty()
-                        val mimeType = cursor.getString(mimeColumn).orEmpty()
-                        if (!mimeType.startsWith("image/")) continue
-                        val dateAddedSeconds = cursor.getLongOrNull(dateAddedColumn)
-                        add(
-                            SavedImage(
-                                uri = uri,
-                                name = name,
-                                mimeType = mimeType,
-                                dateAddedMillis = dateAddedSeconds?.times(MILLIS_PER_SECOND),
-                                sizeBytes = cursor.getLongOrNull(sizeColumn)
-                            )
-                        )
-                    }
-                }
-            }.orEmpty()
         }.onFailure { exception ->
-            Log.e(TAG, "Saved images query failed", exception)
+            Log.e(TAG, "Saved media query failed", exception)
         }
     }
 
@@ -92,7 +58,7 @@ class MediaStoreSavedImagesRepository(
             is SavedImageTargetValidation.Valid -> Unit
             SavedImageTargetValidation.Missing -> return@withContext DeleteSavedImageResult.AlreadyMissing
             SavedImageTargetValidation.Invalid -> {
-                Log.w(TAG, "Delete rejected: URI is not a saved Guarda Estados image")
+                Log.w(TAG, "Delete rejected: URI is not a saved Guarda Estados media item")
                 return@withContext DeleteSavedImageResult.InvalidTarget
             }
             SavedImageTargetValidation.Error -> return@withContext DeleteSavedImageResult.Error
@@ -111,10 +77,10 @@ class MediaStoreSavedImagesRepository(
                 intentSender = exception.userAction.actionIntent.intentSender
             )
         } catch (exception: SecurityException) {
-            Log.e(TAG, "Saved image delete failed because permission was denied", exception)
+            Log.e(TAG, "Saved media delete failed because permission was denied", exception)
             DeleteSavedImageResult.Error
         } catch (exception: Exception) {
-            Log.e(TAG, "Saved image delete failed", exception)
+            Log.e(TAG, "Saved media delete failed", exception)
             DeleteSavedImageResult.Error
         }
     }
@@ -125,7 +91,7 @@ class MediaStoreSavedImagesRepository(
             is SavedImageTargetValidation.Valid -> Unit
             SavedImageTargetValidation.Missing -> return@withContext ShareSavedImageResult.AlreadyMissing
             SavedImageTargetValidation.Invalid -> {
-                Log.w(TAG, "Share rejected: URI is not a saved Guarda Estados image")
+                Log.w(TAG, "Share rejected: URI is not a saved Guarda Estados media item")
                 return@withContext ShareSavedImageResult.InvalidTarget
             }
             SavedImageTargetValidation.Error -> return@withContext ShareSavedImageResult.Error
@@ -135,7 +101,7 @@ class MediaStoreSavedImagesRepository(
             contentResolver.openInputStream(image.uri)?.use {
                 // Opening the stream verifies that the MediaStore item still exists and is readable.
             } ?: return@withContext ShareSavedImageResult.Error.also {
-                Log.w(TAG, "Share rejected: saved image could not be opened")
+                Log.w(TAG, "Share rejected: saved media could not be opened")
             }
 
             val mimeType = mimeTypeResolver.resolve(validation.mimeType)
@@ -167,12 +133,53 @@ class MediaStoreSavedImagesRepository(
             Log.w(TAG, "Share rejected: no compatible app found", exception)
             ShareSavedImageResult.NoCompatibleApp
         } catch (exception: SecurityException) {
-            Log.e(TAG, "Share failed because saved image read permission was denied", exception)
+            Log.e(TAG, "Share failed because saved media read permission was denied", exception)
             ShareSavedImageResult.Error
         } catch (exception: Exception) {
             Log.e(TAG, "Share failed while opening Android chooser", exception)
             ShareSavedImageResult.Error
         }
+    }
+
+    private fun loadSavedMedia(
+        collection: Uri,
+        relativePath: String,
+        expectedMimePrefix: String
+    ): List<SavedImage> {
+        val projection = arrayOf(
+            MediaStore.MediaColumns._ID,
+            MediaStore.MediaColumns.DISPLAY_NAME,
+            MediaStore.MediaColumns.MIME_TYPE,
+            MediaStore.MediaColumns.DATE_ADDED,
+            MediaStore.MediaColumns.SIZE
+        )
+        val selection = "${MediaStore.MediaColumns.RELATIVE_PATH} = ?"
+        val selectionArgs = arrayOf(relativePath)
+        return contentResolver.query(collection, projection, selection, selectionArgs, null)?.use { cursor ->
+            val idColumn = cursor.getColumnIndexOrThrow(MediaStore.MediaColumns._ID)
+            val nameColumn = cursor.getColumnIndexOrThrow(MediaStore.MediaColumns.DISPLAY_NAME)
+            val mimeColumn = cursor.getColumnIndexOrThrow(MediaStore.MediaColumns.MIME_TYPE)
+            val dateAddedColumn = cursor.getColumnIndexOrThrow(MediaStore.MediaColumns.DATE_ADDED)
+            val sizeColumn = cursor.getColumnIndexOrThrow(MediaStore.MediaColumns.SIZE)
+            buildList {
+                while (cursor.moveToNext()) {
+                    val mimeType = cursor.getString(mimeColumn).orEmpty()
+                    if (!mimeType.startsWith(expectedMimePrefix)) continue
+                    val id = cursor.getLong(idColumn)
+                    val uri = ContentUris.withAppendedId(collection, id)
+                    val dateAddedSeconds = cursor.getLongOrNull(dateAddedColumn)
+                    add(
+                        SavedImage(
+                            uri = uri,
+                            name = cursor.getString(nameColumn).orEmpty(),
+                            mimeType = mimeType,
+                            dateAddedMillis = dateAddedSeconds?.times(MILLIS_PER_SECOND),
+                            sizeBytes = cursor.getLongOrNull(sizeColumn)
+                        )
+                    )
+                }
+            }
+        }.orEmpty()
     }
 
     private fun validateSavedImageTarget(uri: Uri): SavedImageTargetValidation {
@@ -184,16 +191,16 @@ class MediaStoreSavedImagesRepository(
         }
 
         val projection = arrayOf(
-            MediaStore.Images.Media.RELATIVE_PATH,
-            MediaStore.Images.Media.MIME_TYPE
+            MediaStore.MediaColumns.RELATIVE_PATH,
+            MediaStore.MediaColumns.MIME_TYPE
         )
         return try {
             contentResolver.query(uri, projection, null, null, null)?.use { cursor ->
                 if (!cursor.moveToFirst()) {
                     return@use SavedImageTargetValidation.Missing
                 }
-                val relativePathColumn = cursor.getColumnIndexOrThrow(MediaStore.Images.Media.RELATIVE_PATH)
-                val mimeTypeColumn = cursor.getColumnIndexOrThrow(MediaStore.Images.Media.MIME_TYPE)
+                val relativePathColumn = cursor.getColumnIndexOrThrow(MediaStore.MediaColumns.RELATIVE_PATH)
+                val mimeTypeColumn = cursor.getColumnIndexOrThrow(MediaStore.MediaColumns.MIME_TYPE)
                 val mimeType = cursor.getString(mimeTypeColumn)
                 if (deleteTargetValidator.isValid(
                         relativePath = cursor.getString(relativePathColumn),
@@ -206,7 +213,7 @@ class MediaStoreSavedImagesRepository(
                 }
             } ?: SavedImageTargetValidation.Error
         } catch (exception: Exception) {
-            Log.e(TAG, "Saved image validation failed", exception)
+            Log.e(TAG, "Saved media validation failed", exception)
             SavedImageTargetValidation.Error
         }
     }
@@ -223,8 +230,11 @@ class MediaStoreSavedImagesRepository(
     }
 
     private companion object {
-        const val TAG = "SavedImages"
-        const val SAVE_RELATIVE_PATH = "Pictures/GuardaEstados/"
+        const val TAG = "SavedMedia"
+        const val IMAGE_SAVE_RELATIVE_PATH = "Pictures/GuardaEstados/"
+        const val VIDEO_PARTS_RELATIVE_PATH = "Movies/GuardaEstados/Partes/"
+        const val IMAGE_MIME_PREFIX = "image/"
+        const val VIDEO_MIME_PREFIX = "video/"
         const val MEDIA_AUTHORITY = "media"
         const val MILLIS_PER_SECOND = 1000L
     }

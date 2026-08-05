@@ -1,4 +1,4 @@
-package com.guardaestados.ui.screens
+﻿package com.guardaestados.ui.screens
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -28,6 +28,7 @@ fun HomeScreen(
     folderSelectionState: FolderSelectionState,
     onSelectFolder: () -> Unit,
     onOpenStates: () -> Unit,
+    onOpenVideoSplitter: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Surface(
@@ -59,6 +60,8 @@ fun HomeScreen(
                 onOpenStates = onOpenStates
             )
 
+            VideoSplitterEntryCard(onOpenVideoSplitter = onOpenVideoSplitter)
+
             Spacer(modifier = Modifier.height(4.dp))
 
             Text(
@@ -66,6 +69,36 @@ fun HomeScreen(
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
+        }
+    }
+}
+
+@Composable
+private fun VideoSplitterEntryCard(
+    onOpenVideoSplitter: () -> Unit
+) {
+    Card(
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
+        )
+    ) {
+        Column(
+            modifier = Modifier.padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Text(
+                text = stringResource(R.string.home_video_splitter_title),
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold
+            )
+            Text(
+                text = stringResource(R.string.home_video_splitter_body),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            OutlinedButton(onClick = onOpenVideoSplitter) {
+                Text(text = stringResource(R.string.home_video_splitter_action))
+            }
         }
     }
 }
