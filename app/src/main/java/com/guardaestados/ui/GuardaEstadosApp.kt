@@ -3,7 +3,6 @@ package com.guardaestados.ui
 import android.content.Context
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -14,7 +13,6 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.guardaestados.data.folder.FolderSelectionRepository
 import com.guardaestados.data.folder.FolderSelectionState
 import com.guardaestados.data.folder.takeSelectedFolderPermission
-import com.guardaestados.data.settings.AppThemePreference
 import com.guardaestados.ui.navigation.AppNavigation
 import com.guardaestados.ui.settings.SettingsViewModel
 import com.guardaestados.ui.settings.SettingsViewModelFactory
@@ -45,13 +43,7 @@ fun GuardaEstadosApp() {
         }
     }
     val appVersion = remember(context) { context.installedVersionName() }
-    val useDarkTheme = when (themePreference) {
-        AppThemePreference.System -> isSystemInDarkTheme()
-        AppThemePreference.Light -> false
-        AppThemePreference.Dark -> true
-    }
-
-    GuardaEstadosTheme(darkTheme = useDarkTheme) {
+    GuardaEstadosTheme(themeMode = themePreference.toThemeMode()) {
         AppNavigation(
             folderSelectionState = folderSelectionState,
             themePreference = themePreference,

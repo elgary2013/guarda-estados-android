@@ -1,4 +1,4 @@
-﻿package com.guardaestados.ui.theme
+package com.guardaestados.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
@@ -12,7 +12,38 @@ val SocialBorder = Color(0xFF263451)
 val SocialGreen = Color(0xFF29C976)
 val SocialViolet = Color(0xFF8D5BD5)
 val SocialFuchsia = Color(0xFFD62E92)
+
+val NeutralLightBackground = Color(0xFFF8FAFC)
+val NeutralLightSurface = Color(0xFFFFFFFF)
+val NeutralLightSurfaceHigh = Color(0xFFEFF3F7)
+val NeutralLightSurfaceHighest = Color(0xFFE1E7EF)
+val NeutralLightTextPrimary = Color(0xFF111827)
+val NeutralLightTextSecondary = Color(0xFF52606F)
+val NeutralLightBorder = Color(0xFFC5CED8)
+val NeutralLightPrimary = Color(0xFF36515F)
+val NeutralLightOnPrimary = Color(0xFFFFFFFF)
+val NeutralLightSecondary = Color(0xFF5D6470)
+
+val NeutralDarkBackground = Color(0xFF090D14)
+val NeutralDarkSurface = Color(0xFF121821)
+val NeutralDarkSurfaceHigh = Color(0xFF1B2430)
+val NeutralDarkSurfaceHighest = Color(0xFF243041)
+val NeutralDarkTextPrimary = Color(0xFFF2F5F8)
+val NeutralDarkTextSecondary = Color(0xFFBBC5D0)
+val NeutralDarkBorder = Color(0xFF3A4656)
+val NeutralDarkPrimary = Color(0xFFB7C6D4)
+val NeutralDarkOnPrimary = Color(0xFF10202B)
+val NeutralDarkSecondary = Color(0xFFC6C9CF)
+
 val SocialError = Color(0xFFFFB4AB)
 val SocialOnError = Color(0xFF690005)
 val SocialErrorContainer = Color(0xFF93000A)
 val SocialOnErrorContainer = Color(0xFFFFDAD6)
+val NeutralLightError = Color(0xFFBA1A1A)
+val NeutralLightOnError = Color(0xFFFFFFFF)
+val NeutralLightErrorContainer = Color(0xFFFFDAD6)
+val NeutralLightOnErrorContainer = Color(0xFF410002)
+val NeutralDarkError = Color(0xFFFFB4AB)
+val NeutralDarkOnError = Color(0xFF690005)
+val NeutralDarkErrorContainer = Color(0xFF93000A)
+val NeutralDarkOnErrorContainer = Color(0xFFFFDAD6)

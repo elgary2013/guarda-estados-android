@@ -1,4 +1,4 @@
-﻿package com.guardaestados.ui.theme
+package com.guardaestados.ui.theme
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -36,15 +36,25 @@ fun BrandGradientButton(
     enabled: Boolean = true,
     highlight: Boolean = false
 ) {
-    val brush = if (highlight) HighlightBrandGradient else PrimaryBrandGradient
+    val shape = RoundedCornerShape(8.dp)
+    val useBrandGradient = LocalBrandGradientsEnabled.current
+    val backgroundModifier = if (useBrandGradient) {
+        Modifier.background(
+            brush = if (highlight) HighlightBrandGradient else PrimaryBrandGradient,
+            shape = shape,
+            alpha = if (enabled) 1f else 0.42f
+        )
+    } else {
+        Modifier.background(
+            color = MaterialTheme.colorScheme.primary.copy(alpha = if (enabled) 1f else 0.42f),
+            shape = shape
+        )
+    }
+
     Box(
         modifier = modifier
             .defaultMinSize(minHeight = 48.dp)
-            .background(
-                brush = brush,
-                shape = RoundedCornerShape(8.dp),
-                alpha = if (enabled) 1f else 0.42f
-            )
+            .then(backgroundModifier)
             .clickable(
                 enabled = enabled,
                 role = Role.Button,
@@ -58,14 +68,22 @@ fun BrandGradientButton(
             text = text,
             style = MaterialTheme.typography.labelLarge,
             fontWeight = FontWeight.Bold,
-            color = SocialTextPrimary
+            color = MaterialTheme.colorScheme.onPrimary
         )
     }
 }
 
+@Composable
 fun brandGradientBorder(highlight: Boolean = false): BorderStroke {
-    return BorderStroke(
-        width = 1.dp,
-        brush = if (highlight) HighlightBrandGradient else PrimaryBrandGradient
-    )
+    return if (LocalBrandGradientsEnabled.current) {
+        BorderStroke(
+            width = 1.dp,
+            brush = if (highlight) HighlightBrandGradient else PrimaryBrandGradient
+        )
+    } else {
+        BorderStroke(
+            width = 1.dp,
+            color = MaterialTheme.colorScheme.outline
+        )
+    }
 }
