@@ -46,6 +46,7 @@
     <string name="status_image_value_unavailable">No disponible</string>
     <string name="status_image_thumbnail_error">No se pudo cargar</string>
     <string name="status_image_thumbnail_description">Miniatura de %1$s</string>
+    <string name="status_video_thumbnail_description">Miniatura del video %1$s</string>
     <string name="status_image_open_action">Abrir imagen %1$s</string>
     <string name="saved_image_open_action">Abrir copia guardada %1$s</string>
     <string name="preview_title">Vista previa</string>

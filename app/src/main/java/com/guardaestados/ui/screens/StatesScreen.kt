@@ -13,14 +13,17 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Tab
@@ -34,9 +37,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
@@ -331,11 +336,12 @@ private fun StatusImageGridCard(
                 contentAlignment = Alignment.Center
             ) {
                 if (image.mediaType == StatusMediaType.Video) {
-                    Text(
-                        text = stringResource(R.string.saved_video_thumbnail_label),
-                        modifier = Modifier.padding(12.dp),
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    VideoThumbnail(
+                        image = image,
+                        displayTitle = displayTitle,
+                        failedToLoad = failedToLoad,
+                        onLoading = { failedToLoad = false },
+                        onError = { failedToLoad = true }
                     )
                 } else if (failedToLoad) {
                     Text(
@@ -392,6 +398,79 @@ private fun StatusImageGridCard(
     }
 }
 
+@Composable
+private fun VideoThumbnail(
+    image: StatusImage,
+    displayTitle: String,
+    failedToLoad: Boolean,
+    onLoading: () -> Unit,
+    onError: () -> Unit
+) {
+    val context = LocalContext.current
+    var loaded by remember(image.uri) { mutableStateOf(false) }
+
+    VideoFallbackThumbnail()
+    if (!failedToLoad) {
+        AsyncImage(
+            model = ImageRequest.Builder(context)
+                .data(image.uri)
+                .size(Size(ThumbnailPixelSize, ThumbnailPixelSize))
+                .build(),
+            contentDescription = stringResource(R.string.status_video_thumbnail_description, displayTitle),
+            contentScale = ContentScale.Crop,
+            modifier = Modifier
+                .fillMaxSize()
+                .alpha(if (loaded) 1f else 0f),
+            onLoading = {
+                loaded = false
+                onLoading()
+            },
+            onSuccess = { loaded = true },
+            onError = {
+                loaded = false
+                onError()
+            }
+        )
+    }
+    VideoPlayIndicator()
+}
+
+@Composable
+private fun VideoFallbackThumbnail() {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.surfaceContainerHighest),
+        contentAlignment = Alignment.Center
+    ) {
+        Icon(
+            painter = painterResource(R.drawable.ic_video),
+            contentDescription = null,
+            modifier = Modifier.size(40.dp),
+            tint = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    }
+}
+
+@Composable
+private fun VideoPlayIndicator() {
+    Box(
+        modifier = Modifier
+            .size(48.dp)
+            .background(
+                color = MaterialTheme.colorScheme.inverseSurface.copy(alpha = 0.72f),
+                shape = CircleShape
+            ),
+        contentAlignment = Alignment.Center
+    ) {
+        Icon(
+            painter = painterResource(R.drawable.ic_play_arrow),
+            contentDescription = null,
+            modifier = Modifier.size(30.dp),
+            tint = MaterialTheme.colorScheme.inverseOnSurface
+        )
+    }
+}
 private fun Long.formatDate(): String {
     return DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.SHORT).format(Date(this))
 }
