@@ -43,6 +43,8 @@ import com.guardaestados.ui.share.ShareStatusImageUiState
 import com.guardaestados.ui.status.StatusImagePresentationFormatter
 import com.guardaestados.ui.status.StatusImagePreviewState
 import com.guardaestados.ui.video.VideoPlayerPreview
+import com.guardaestados.ui.theme.BrandGradientButton
+import com.guardaestados.ui.theme.brandGradientBorder
 import java.text.DateFormat
 import java.util.Date
 
@@ -125,7 +127,7 @@ private fun PreviewContent(
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
         ),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+        border = brandGradientBorder(),
         shape = RoundedCornerShape(8.dp)
     ) {
         Column(
@@ -278,7 +280,7 @@ private fun FileDetailsCard(image: StatusImage) {
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface
         ),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+        border = brandGradientBorder(),
         shape = RoundedCornerShape(8.dp)
     ) {
         Column(
@@ -354,7 +356,7 @@ private fun PreviewMessageCard(
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
         ),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+        border = brandGradientBorder(),
         shape = RoundedCornerShape(8.dp)
     ) {
         Column(

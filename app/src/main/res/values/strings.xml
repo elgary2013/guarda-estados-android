@@ -1,10 +1,10 @@
 ﻿<resources>
-    <string name="app_name">Guarda Estados</string>
+    <string name="app_name">SocialSaverFull</string>
     <string name="nav_home">Inicio</string>
     <string name="nav_states">Estados</string>
     <string name="nav_saved">Guardados</string>
     <string name="nav_settings">Configuración</string>
-    <string name="home_title">Guarda Estados</string>
+    <string name="home_title">SocialSaverFull</string>
     <string name="home_subtitle">Elegí una carpeta para preparar el espacio donde se organizarán tus imágenes guardadas.</string>
     <string name="home_summary_title">Carpeta de trabajo</string>
     <string name="home_summary_empty">Todavía no hay estados listados.</string>
@@ -70,7 +70,7 @@
     <string name="share_status_no_app">No hay una aplicación compatible para compartir esta imagen.</string>
     <string name="share_status_error">No se pudo compartir la imagen. Probá de nuevo.</string>
     <string name="saved_title">Guardados</string>
-    <string name="saved_subtitle">Copias guardadas por Guarda Estados en Pictures/GuardaEstados y Movies/GuardaEstados/Partes.</string>
+    <string name="saved_subtitle">Copias guardadas por SocialSaverFull en Pictures/GuardaEstados y Movies/GuardaEstados/Partes.</string>
     <string name="saved_action_refresh">Actualizar</string>
     <string name="saved_loading_title">Leyendo guardados</string>
     <string name="saved_loading_body">Buscando copias guardadas por la app...</string>
@@ -89,13 +89,13 @@
     <string name="saved_action_delete">Eliminar</string>
     <string name="saved_delete_description">Eliminar copia guardada de %1$s</string>
     <string name="saved_delete_dialog_title">Eliminar copia guardada</string>
-    <string name="saved_delete_dialog_body">Se eliminará solamente la copia guardada por Guarda Estados. No se borrará el video original ni ningún archivo de la carpeta original de estados.</string>
+    <string name="saved_delete_dialog_body">Se eliminará solamente la copia guardada por SocialSaverFull. No se borrará el video original ni ningún archivo de la carpeta original de estados.</string>
     <string name="saved_delete_dialog_cancel">Cancelar</string>
     <string name="saved_delete_dialog_confirm">Eliminar</string>
     <string name="saved_delete_status_deleting">Eliminando copia guardada...</string>
     <string name="saved_delete_status_success">Copia guardada eliminada.</string>
     <string name="saved_delete_status_missing">La copia guardada ya no existe.</string>
-    <string name="saved_delete_status_invalid">No se eliminó la copia porque no pertenece a las carpetas locales de Guarda Estados.</string>
+    <string name="saved_delete_status_invalid">No se eliminó la copia porque no pertenece a las carpetas locales de SocialSaverFull.</string>
     <string name="saved_delete_status_error">No se pudo eliminar la copia guardada. Probá de nuevo.</string>
     <string name="saved_delete_system_confirmation">Android necesita confirmar esta eliminación.</string>
     <string name="saved_action_share_image">Compartir imagen</string>
@@ -103,7 +103,7 @@
     <string name="saved_share_status_opening">Abriendo opciones para compartir la copia guardada...</string>
     <string name="saved_share_status_chooser_opened">Elegí una aplicación para compartir la copia guardada.</string>
     <string name="saved_share_status_missing">La copia guardada ya no existe.</string>
-    <string name="saved_share_status_invalid">No se compartió la copia porque no pertenece a las carpetas locales de Guarda Estados.</string>
+    <string name="saved_share_status_invalid">No se compartió la copia porque no pertenece a las carpetas locales de SocialSaverFull.</string>
     <string name="saved_share_status_no_app">No hay una aplicación compatible para compartir esta imagen guardada.</string>
     <string name="saved_share_status_error">No se pudo compartir la copia guardada. Probá de nuevo.</string>
     <string name="settings_title">Configuración</string>
@@ -133,7 +133,7 @@
     <string name="settings_reset_success">Configuración restablecida. No hay carpeta seleccionada y se usa el tema del sistema.</string>
     <string name="settings_reset_success_dismiss">Entendido</string>
     <string name="settings_about_title">Acerca de</string>
-    <string name="settings_about_app_name">Guarda Estados</string>
+    <string name="settings_about_app_name">SocialSaverFull</string>
     <string name="settings_about_version">Versión instalada: %1$s</string>
     <string name="folder_status_loading">Revisando carpeta seleccionada...</string>
     <string name="folder_status_not_selected">Todavía no se seleccionó una carpeta.</string>

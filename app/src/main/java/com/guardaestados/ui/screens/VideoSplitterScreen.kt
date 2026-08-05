@@ -37,6 +37,8 @@ import com.guardaestados.ui.video.VideoShareStatus
 import com.guardaestados.ui.video.VideoSplitterMessage
 import com.guardaestados.ui.video.VideoSplitterStatus
 import com.guardaestados.ui.video.VideoSplitterUiState
+import com.guardaestados.ui.theme.BrandGradientButton
+import com.guardaestados.ui.theme.brandGradientBorder
 
 @Composable
 fun VideoSplitterScreen(
@@ -90,13 +92,13 @@ fun VideoSplitterScreen(
                 )
             }
 
-            Button(
+            BrandGradientButton(
+                text = stringResource(R.string.video_splitter_action_pick),
                 onClick = onPickVideo,
                 enabled = uiState.status != VideoSplitterStatus.Processing,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text(text = stringResource(R.string.video_splitter_action_pick))
-            }
+                modifier = Modifier.fillMaxWidth(),
+                highlight = true
+            )
 
             val previewUri = uiState.previewUri
             if (previewUri != null) {
@@ -265,16 +267,11 @@ private fun SelectedVideoCard(
                 ) {
                     Text(text = stringResource(R.string.video_splitter_preview_original))
                 }
-                Button(
+                BrandGradientButton(
+                    text = stringResource(if (processing) R.string.video_splitter_action_cancel else R.string.video_splitter_action_create),
                     onClick = if (processing) onCancelProcessing else onCreateParts,
                     modifier = Modifier.weight(1f)
-                ) {
-                    Text(
-                        text = stringResource(
-                            if (processing) R.string.video_splitter_action_cancel else R.string.video_splitter_action_create
-                        )
-                    )
-                }
+                )
             }
         }
     }
@@ -309,13 +306,13 @@ private fun GeneratedPartsCard(
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-            Button(
+            BrandGradientButton(
+                text = stringResource(R.string.video_splitter_share_all),
                 onClick = onShareAllParts,
                 enabled = !sharing,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text(text = stringResource(R.string.video_splitter_share_all))
-            }
+                modifier = Modifier.fillMaxWidth(),
+                highlight = true
+            )
             parts.sortedBy { it.index }.forEach { part ->
                 Card(
                     colors = CardDefaults.cardColors(
