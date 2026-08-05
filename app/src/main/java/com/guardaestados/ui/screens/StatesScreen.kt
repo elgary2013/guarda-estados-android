@@ -1,7 +1,6 @@
 package com.guardaestados.ui.screens
 
 import androidx.annotation.StringRes
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -13,16 +12,13 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Tab
@@ -36,11 +32,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
@@ -53,6 +47,7 @@ import com.guardaestados.R
 import com.guardaestados.domain.status.StatusGalleryState
 import com.guardaestados.domain.status.StatusImage
 import com.guardaestados.domain.status.StatusMediaType
+import com.guardaestados.ui.components.VideoThumbnail
 import com.guardaestados.ui.status.StatusImagePresentationFormatter
 import com.guardaestados.ui.theme.BrandGradientButton
 import com.guardaestados.ui.theme.brandGradientBorder
@@ -314,8 +309,6 @@ private fun StatusImageGridCard(
     val formatter = remember { StatusImagePresentationFormatter() }
     val formattedDate = image.lastModifiedMillis?.formatDate()
     val unavailable = stringResource(R.string.status_image_value_unavailable)
-    val title = formatter.title(image.name, formattedDate)
-    val displayTitle = if (title.isBlank()) unavailable else title
     val sizeValue = formatter.sizeValue(image.sizeBytes)
     val formatValue = formatter.formatValue(image.mimeType)
     var failedToLoad by remember(image.uri) { mutableStateOf(false) }
@@ -323,8 +316,7 @@ private fun StatusImageGridCard(
     Card(
         modifier = Modifier.clickable(
             onClickLabel = stringResource(
-                if (image.mediaType == StatusMediaType.Video) R.string.status_video_open_action else R.string.status_image_open_action,
-                displayTitle
+                if (image.mediaType == StatusMediaType.Video) R.string.status_video_open_action_simple else R.string.status_image_open_action_simple
             ),
             role = Role.Button,
             onClick = { onImageSelected(image) }
@@ -347,11 +339,8 @@ private fun StatusImageGridCard(
             ) {
                 if (image.mediaType == StatusMediaType.Video) {
                     VideoThumbnail(
-                        image = image,
-                        displayTitle = displayTitle,
-                        failedToLoad = failedToLoad,
-                        onLoading = { failedToLoad = false },
-                        onError = { failedToLoad = true }
+                        uri = image.uri,
+                        contentDescription = stringResource(R.string.status_video_card_description)
                     )
                 } else if (failedToLoad) {
                     Text(
@@ -368,7 +357,7 @@ private fun StatusImageGridCard(
                             .build(),
                         contentDescription = stringResource(
                             R.string.status_image_thumbnail_description,
-                            displayTitle
+                            stringResource(R.string.status_image_card_description)
                         ),
                         contentScale = ContentScale.Crop,
                         modifier = Modifier.fillMaxSize(),
@@ -381,12 +370,6 @@ private fun StatusImageGridCard(
                 modifier = Modifier.padding(start = 12.dp, end = 12.dp, bottom = 12.dp),
                 verticalArrangement = Arrangement.spacedBy(6.dp)
             ) {
-                Text(
-                    text = displayTitle,
-                    style = MaterialTheme.typography.titleMedium,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
                 Text(
                     text = formattedDate ?: unavailable,
                     style = MaterialTheme.typography.bodyMedium,
@@ -408,79 +391,6 @@ private fun StatusImageGridCard(
     }
 }
 
-@Composable
-private fun VideoThumbnail(
-    image: StatusImage,
-    displayTitle: String,
-    failedToLoad: Boolean,
-    onLoading: () -> Unit,
-    onError: () -> Unit
-) {
-    val context = LocalContext.current
-    var loaded by remember(image.uri) { mutableStateOf(false) }
-
-    VideoFallbackThumbnail()
-    if (!failedToLoad) {
-        AsyncImage(
-            model = ImageRequest.Builder(context)
-                .data(image.uri)
-                .size(Size(ThumbnailPixelSize, ThumbnailPixelSize))
-                .build(),
-            contentDescription = stringResource(R.string.status_video_thumbnail_description, displayTitle),
-            contentScale = ContentScale.Crop,
-            modifier = Modifier
-                .fillMaxSize()
-                .alpha(if (loaded) 1f else 0f),
-            onLoading = {
-                loaded = false
-                onLoading()
-            },
-            onSuccess = { loaded = true },
-            onError = {
-                loaded = false
-                onError()
-            }
-        )
-    }
-    VideoPlayIndicator()
-}
-
-@Composable
-private fun VideoFallbackThumbnail() {
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.surfaceContainerHighest),
-        contentAlignment = Alignment.Center
-    ) {
-        Icon(
-            painter = painterResource(R.drawable.ic_video),
-            contentDescription = null,
-            modifier = Modifier.size(40.dp),
-            tint = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-    }
-}
-
-@Composable
-private fun VideoPlayIndicator() {
-    Box(
-        modifier = Modifier
-            .size(48.dp)
-            .background(
-                color = MaterialTheme.colorScheme.inverseSurface.copy(alpha = 0.72f),
-                shape = CircleShape
-            ),
-        contentAlignment = Alignment.Center
-    ) {
-        Icon(
-            painter = painterResource(R.drawable.ic_play_arrow),
-            contentDescription = null,
-            modifier = Modifier.size(30.dp),
-            tint = MaterialTheme.colorScheme.inverseOnSurface
-        )
-    }
-}
 private fun Long.formatDate(): String {
     return DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.SHORT).format(Date(this))
 }

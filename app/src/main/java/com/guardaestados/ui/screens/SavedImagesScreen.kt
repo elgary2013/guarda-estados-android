@@ -1,4 +1,4 @@
-﻿package com.guardaestados.ui.screens
+package com.guardaestados.ui.screens
 
 import androidx.annotation.StringRes
 import androidx.compose.foundation.background
@@ -49,11 +49,11 @@ import coil3.request.ImageRequest
 import coil3.size.Size
 import com.guardaestados.R
 import com.guardaestados.domain.saved.SavedImage
-import com.guardaestados.domain.saved.SavedMediaOrigin
 import com.guardaestados.domain.saved.SavedMediaType
 import com.guardaestados.domain.saved.SavedImagesState
 import com.guardaestados.ui.saved.SavedImageDeleteState
-import com.guardaestados.ui.status.StatusImagePresentationFormatter
+import com.guardaestados.domain.saved.SavedMediaOrigin
+import com.guardaestados.ui.components.VideoThumbnail
 import com.guardaestados.ui.theme.BrandGradientButton
 import com.guardaestados.ui.theme.brandGradientBorder
 import java.text.DateFormat
@@ -233,11 +233,8 @@ private fun SavedImageGridCard(
     deleting: Boolean
 ) {
     val context = LocalContext.current
-    val formatter = remember { StatusImagePresentationFormatter() }
     val formattedDate = image.dateAddedMillis?.formatDate()
     val unavailable = stringResource(R.string.status_image_value_unavailable)
-    val title = formatter.title(image.name, formattedDate)
-    val displayTitle = if (title.isBlank()) unavailable else title
     var failedToLoad by remember(image.uri) { mutableStateOf(false) }
     var showDeleteDialog by remember(image.uri) { mutableStateOf(false) }
 
@@ -254,7 +251,9 @@ private fun SavedImageGridCard(
     Card(
         modifier = Modifier.clickable(
             enabled = !deleting,
-            onClickLabel = stringResource(R.string.saved_image_open_action, displayTitle),
+            onClickLabel = stringResource(
+                if (image.mediaType == SavedMediaType.Video) R.string.saved_video_open_action_simple else R.string.saved_image_open_action_simple
+            ),
             role = Role.Button,
             onClick = { onImageSelected(image) }
         ),
@@ -273,11 +272,9 @@ private fun SavedImageGridCard(
                 contentAlignment = Alignment.Center
             ) {
                 if (image.mediaType == SavedMediaType.Video) {
-                    Text(
-                        text = stringResource(if (image.origin == SavedMediaOrigin.VideoPart) R.string.saved_video_part_thumbnail_label else R.string.saved_video_thumbnail_label),
-                        modifier = Modifier.padding(12.dp),
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    VideoThumbnail(
+                        uri = image.uri,
+                        contentDescription = stringResource(R.string.saved_video_card_description)
                     )
                 } else if (failedToLoad) {
                     Text(
@@ -294,7 +291,7 @@ private fun SavedImageGridCard(
                             .build(),
                         contentDescription = stringResource(
                             R.string.saved_thumbnail_description,
-                            displayTitle
+                            stringResource(R.string.saved_image_card_description)
                         ),
                         contentScale = ContentScale.Crop,
                         modifier = Modifier.fillMaxSize(),
@@ -316,10 +313,7 @@ private fun SavedImageGridCard(
                 ) {
                     Icon(
                         painter = painterResource(R.drawable.ic_delete),
-                        contentDescription = stringResource(
-                            R.string.saved_delete_description,
-                            displayTitle
-                        ),
+                        contentDescription = stringResource(R.string.saved_delete_media_description),
                         tint = MaterialTheme.colorScheme.onErrorContainer
                     )
                 }
@@ -329,12 +323,6 @@ private fun SavedImageGridCard(
                 modifier = Modifier.padding(start = 12.dp, end = 12.dp, bottom = 12.dp),
                 verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
-                Text(
-                    text = displayTitle,
-                    style = MaterialTheme.typography.titleMedium,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
                 Text(
                     text = stringResource(image.origin.labelRes()),
                     style = MaterialTheme.typography.bodyMedium,

@@ -1,4 +1,4 @@
-﻿<resources>
+<resources>
     <string name="app_name">SocialSaverFull</string>
     <string name="nav_home">Inicio</string>
     <string name="nav_states">Estados</string>
@@ -47,8 +47,17 @@
     <string name="status_image_thumbnail_error">No se pudo cargar</string>
     <string name="status_image_thumbnail_description">Miniatura de %1$s</string>
     <string name="status_video_thumbnail_description">Miniatura del video %1$s</string>
+    <string name="status_image_card_description">Imagen de estado</string>
+    <string name="status_video_card_description">Video de estado</string>
+    <string name="saved_image_card_description">Imagen guardada</string>
+    <string name="saved_video_card_description">Video guardado</string>
+    <string name="saved_delete_media_description">Eliminar copia guardada</string>
     <string name="status_image_open_action">Abrir imagen %1$s</string>
+    <string name="status_image_open_action_simple">Abrir imagen de estado</string>
+    <string name="status_video_open_action_simple">Abrir video de estado</string>
     <string name="saved_image_open_action">Abrir copia guardada %1$s</string>
+    <string name="saved_image_open_action_simple">Abrir imagen guardada</string>
+    <string name="saved_video_open_action_simple">Abrir video guardado</string>
     <string name="preview_title">Vista previa</string>
     <string name="preview_action_back">Volver</string>
     <string name="preview_action_save_image">Guardar imagen</string>
