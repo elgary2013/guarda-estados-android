@@ -36,6 +36,7 @@ import com.guardaestados.ui.settings.SettingsResetState
 import com.guardaestados.ui.save.SaveStatusImageViewModelFactory
 import com.guardaestados.ui.saved.SavedImageDeleteState
 import com.guardaestados.ui.saved.SavedImagePreviewResolver
+import com.guardaestados.ui.saved.SavedImagePreviewState
 import com.guardaestados.ui.saved.SavedImagesViewModel
 import com.guardaestados.ui.saved.SavedImagesViewModelFactory
 import com.guardaestados.ui.share.ShareStatusImageViewModel
@@ -89,9 +90,11 @@ fun AppNavigation(
     val saveStatusImageState by saveStatusImageViewModel.uiState.collectAsState()
     val shareStatusImageState by shareStatusImageViewModel.uiState.collectAsState()
     val savedImagesState by savedImagesViewModel.uiState.collectAsState()
+    val savedImagesRefreshing by savedImagesViewModel.isRefreshing.collectAsState()
     val deleteSavedImageState by savedImagesViewModel.deleteState.collectAsState()
     val shareSavedImageState by savedImagesViewModel.shareState.collectAsState()
     val openSavedImageState by savedImagesViewModel.openState.collectAsState()
+    val selectedSavedPreviewImage by savedImagesViewModel.selectedPreviewImage.collectAsState()
     val videoSplitterState by videoSplitterViewModel.uiState.collectAsState()
     val navController = rememberNavController()
     val routes = listOf(AppRoute.Home, AppRoute.States, AppRoute.Saved, AppRoute.Settings)
@@ -181,8 +184,10 @@ fun AppNavigation(
                 SavedImagesScreen(
                     savedImagesState = savedImagesState,
                     deleteState = deleteSavedImageState,
+                    isRefreshing = savedImagesRefreshing,
                     onRefresh = savedImagesViewModel::refresh,
                     onImageSelected = { image ->
+                        savedImagesViewModel.selectForPreview(image)
                         navController.navigate(AppRoute.SavedImagePreview.createRoute(image.uri.toString()))
                     },
                     onDeleteImage = savedImagesViewModel::delete,
@@ -249,7 +254,10 @@ fun AppNavigation(
                     AppRoute.SavedImagePreview.SavedImageUriArgument
                 )
                 SavedImagePreviewScreen(
-                    previewState = savedPreviewResolver.resolve(savedImagesState, imageUri),
+                    previewState = selectedSavedPreviewImage
+                        ?.takeIf { image -> image.uri.toString() == imageUri }
+                        ?.let(SavedImagePreviewState::Content)
+                        ?: savedPreviewResolver.resolve(savedImagesState, imageUri),
                     deleteState = deleteSavedImageState,
                     shareState = shareSavedImageState,
                     openState = openSavedImageState,

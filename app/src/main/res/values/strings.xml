@@ -98,6 +98,12 @@
     <string name="saved_error_body">El acceso falló de forma recuperable. Probá actualizar.</string>
     <string name="saved_found_title">Copias guardadas</string>
     <string name="saved_found_body">Cantidad: %1$d</string>
+    <string name="saved_tab_images">Imágenes (%1$d)</string>
+    <string name="saved_tab_videos">Videos (%1$d)</string>
+    <string name="saved_empty_images_title">Sin imágenes guardadas</string>
+    <string name="saved_empty_images_body">No hay imágenes guardadas por la app.</string>
+    <string name="saved_empty_videos_title">Sin videos guardados</string>
+    <string name="saved_empty_videos_body">No hay videos guardados por la app.</string>
     <string name="saved_image_date">Guardada: %1$s</string>
     <string name="saved_thumbnail_description">Miniatura guardada de %1$s</string>
     <string name="saved_preview_title">Vista guardada</string>
@@ -236,6 +242,12 @@
     <string name="saved_origin_status_copy">Copia guardada</string>
     <string name="saved_origin_video_part">Parte generada</string>
     <string name="saved_action_open_with">Abrir con otra app</string>
+    <string name="saved_action_view_details">Ver detalles</string>
+    <string name="saved_action_hide_details">Ocultar detalles</string>
+    <string name="saved_detail_origin_label">Origen</string>
+    <string name="saved_detail_type_label">Tipo</string>
+    <string name="saved_detail_size_label">Tamaño</string>
+    <string name="saved_detail_saved_date_label">Fecha de guardado</string>
     <string name="saved_open_chooser_title">Abrir copia</string>
     <string name="saved_open_status_opening">Abriendo opciones para ver la copia...</string>
     <string name="saved_open_status_viewer_opened">Elegí una aplicación para abrir la copia.</string>

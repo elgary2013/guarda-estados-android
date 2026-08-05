@@ -1,13 +1,18 @@
-﻿package com.guardaestados.ui.screens
+package com.guardaestados.ui.screens
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateContentSize
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -17,6 +22,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -34,6 +40,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
@@ -78,18 +85,10 @@ fun SavedImagePreviewScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
-                .padding(24.dp),
+                .padding(20.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Button(onClick = onBack) {
-                Text(text = stringResource(R.string.preview_action_back))
-            }
-
-            Text(
-                text = stringResource(R.string.saved_preview_title),
-                style = MaterialTheme.typography.headlineMedium,
-                color = MaterialTheme.colorScheme.onBackground
-            )
+            SavedPreviewTopBar(onBack = onBack)
 
             deleteState.statusMessageRes()?.let { messageRes ->
                 SavedPreviewMessageCard(
@@ -113,6 +112,7 @@ fun SavedImagePreviewScreen(
                     onDismiss = onOpenMessageDismissed
                 )
             }
+
             when (previewState) {
                 SavedImagePreviewState.Loading -> SavedPreviewMessageCard(
                     title = stringResource(R.string.saved_loading_title),
@@ -139,6 +139,19 @@ fun SavedImagePreviewScreen(
 }
 
 @Composable
+private fun SavedPreviewTopBar(onBack: () -> Unit) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.Start,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        TextButton(onClick = onBack) {
+            Text(text = stringResource(R.string.preview_action_back))
+        }
+    }
+}
+
+@Composable
 private fun SavedPreviewContent(
     image: SavedImage,
     deleteState: SavedImageDeleteState,
@@ -150,10 +163,12 @@ private fun SavedPreviewContent(
 ) {
     var failedToLoad by remember(image.uri) { mutableStateOf(false) }
     var showDeleteDialog by remember(image.uri) { mutableStateOf(false) }
+    var showDetails by remember(image.uri) { mutableStateOf(false) }
     val deleting = deleteState == SavedImageDeleteState.Deleting ||
         deleteState is SavedImageDeleteState.NeedsSystemConfirmation
     val sharing = shareState == SavedImageShareState.Sharing
     val opening = openState == SavedImageOpenState.Opening
+    val busy = deleting || sharing || opening
 
     if (showDeleteDialog) {
         ConfirmSavedImageDeleteDialog(
@@ -166,20 +181,23 @@ private fun SavedPreviewContent(
     }
 
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .animateContentSize(),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
-        )
+        ),
+        shape = RoundedCornerShape(12.dp)
     ) {
         Column(
             modifier = Modifier.padding(12.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+            verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .heightIn(min = 260.dp, max = 560.dp)
-                    .clip(RoundedCornerShape(8.dp))
+                    .heightIn(min = 320.dp, max = 620.dp)
+                    .clip(RoundedCornerShape(12.dp))
                     .background(MaterialTheme.colorScheme.surfaceVariant),
                 contentAlignment = Alignment.Center
             ) {
@@ -200,10 +218,7 @@ private fun SavedPreviewContent(
                         model = ImageRequest.Builder(LocalContext.current)
                             .data(image.uri)
                             .build(),
-                        contentDescription = stringResource(
-                            R.string.saved_preview_image_description,
-                            image.displayTitle()
-                        ),
+                        contentDescription = stringResource(R.string.saved_image_card_description),
                         contentScale = ContentScale.Fit,
                         modifier = Modifier.fillMaxSize(),
                         onError = { failedToLoad = true }
@@ -211,91 +226,179 @@ private fun SavedPreviewContent(
                 }
             }
 
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                Button(
-                    onClick = { onShareImage(image) },
-                    enabled = !deleting && !sharing && !opening,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Icon(
-                        painter = painterResource(R.drawable.ic_share),
-                        contentDescription = null
-                    )
-                    Text(
-                        modifier = Modifier.padding(start = 8.dp),
-                        text = stringResource(R.string.saved_action_share_media)
-                    )
-                }
+            DetailsToggleButton(
+                expanded = showDetails,
+                onClick = { showDetails = !showDetails }
+            )
 
-                Button(
-                    onClick = { onOpenImage(image) },
-                    enabled = !deleting && !sharing && !opening,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text(text = stringResource(R.string.saved_action_open_with))
-                }
-
-                Button(
-                    onClick = { showDeleteDialog = true },
-                    enabled = !deleting && !sharing && !opening,
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.error,
-                        contentColor = MaterialTheme.colorScheme.onError
-                    )
-                ) {
-                    Icon(
-                        painter = painterResource(R.drawable.ic_delete),
-                        contentDescription = null
-                    )
-                    Text(
-                        modifier = Modifier.padding(start = 8.dp),
-                        text = stringResource(R.string.saved_action_delete)
-                    )
-                }
+            AnimatedVisibility(visible = showDetails) {
+                SavedImageDetailsCard(image = image)
             }
 
-            SavedImageInfoCard(image)
+            SavedPreviewActions(
+                busy = busy,
+                onShareImage = { onShareImage(image) },
+                onOpenImage = { onOpenImage(image) },
+                onDeleteImage = { showDeleteDialog = true }
+            )
         }
     }
 }
 
 @Composable
-private fun SavedImageInfoCard(image: SavedImage) {
+private fun DetailsToggleButton(
+    expanded: Boolean,
+    onClick: () -> Unit
+) {
+    OutlinedButton(
+        onClick = onClick,
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(8.dp),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.7f)),
+        contentPadding = ButtonDefaults.ContentPadding
+    ) {
+        Icon(
+            painter = painterResource(R.drawable.ic_info),
+            contentDescription = null,
+            modifier = Modifier.size(18.dp)
+        )
+        Text(
+            modifier = Modifier.padding(start = 8.dp),
+            text = stringResource(if (expanded) R.string.saved_action_hide_details else R.string.saved_action_view_details),
+            maxLines = 1
+        )
+    }
+}
+
+@Composable
+private fun SavedPreviewActions(
+    busy: Boolean,
+    onShareImage: () -> Unit,
+    onOpenImage: () -> Unit,
+    onDeleteImage: () -> Unit
+) {
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        Button(
+            onClick = onShareImage,
+            enabled = !busy,
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(8.dp)
+        ) {
+            Icon(
+                painter = painterResource(R.drawable.ic_share),
+                contentDescription = null,
+                modifier = Modifier.size(18.dp)
+            )
+            Text(
+                modifier = Modifier.padding(start = 8.dp),
+                text = stringResource(R.string.saved_action_share_media),
+                maxLines = 1
+            )
+        }
+
+        OutlinedButton(
+            onClick = onOpenImage,
+            enabled = !busy,
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(8.dp),
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.7f))
+        ) {
+            Text(text = stringResource(R.string.saved_action_open_with), maxLines = 1)
+        }
+
+        Button(
+            onClick = onDeleteImage,
+            enabled = !busy,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 4.dp),
+            shape = RoundedCornerShape(8.dp),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = MaterialTheme.colorScheme.errorContainer,
+                contentColor = MaterialTheme.colorScheme.onErrorContainer
+            )
+        ) {
+            Icon(
+                painter = painterResource(R.drawable.ic_delete),
+                contentDescription = null,
+                modifier = Modifier.size(18.dp)
+            )
+            Text(
+                modifier = Modifier.padding(start = 8.dp),
+                text = stringResource(R.string.saved_action_delete),
+                maxLines = 1
+            )
+        }
+    }
+}
+
+@Composable
+private fun SavedImageDetailsCard(image: SavedImage) {
     val unavailable = stringResource(R.string.status_image_value_unavailable)
     val formattedDate = image.dateAddedMillis?.formatDate()
     val formatter = remember { StatusImagePresentationFormatter() }
-    val title = formatter.title(image.name, formattedDate).ifBlank { unavailable }
     val size = formatter.sizeValue(image.sizeBytes) ?: unavailable
 
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        ),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.55f)),
+        shape = RoundedCornerShape(8.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(14.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            DetailRow(
+                label = stringResource(R.string.saved_detail_origin_label),
+                value = stringResource(image.origin.labelRes())
+            )
+            DetailRow(
+                label = stringResource(R.string.saved_detail_type_label),
+                value = image.mimeType
+            )
+            DetailRow(
+                label = stringResource(R.string.saved_detail_size_label),
+                value = size
+            )
+            DetailRow(
+                label = stringResource(R.string.saved_detail_saved_date_label),
+                value = formattedDate ?: unavailable
+            )
+        }
+    }
+}
+
+@Composable
+private fun DetailRow(
+    label: String,
+    value: String
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalAlignment = Alignment.Top
+    ) {
         Text(
-            text = title,
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.SemiBold
+            text = label,
+            modifier = Modifier.weight(0.38f),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
         )
         Text(
-            text = stringResource(R.string.saved_media_origin, stringResource(image.origin.labelRes())),
+            text = value,
+            modifier = Modifier.weight(0.62f),
             style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-        Text(
-            text = stringResource(R.string.status_image_mime_type, image.mimeType),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-        Text(
-            text = stringResource(R.string.status_image_size, size),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-        Text(
-            text = stringResource(R.string.saved_image_date, formattedDate ?: unavailable),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+            color = MaterialTheme.colorScheme.onSurface,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis
         )
     }
 }
@@ -408,9 +511,6 @@ private fun SavedMediaOrigin.labelRes(): Int {
         SavedMediaOrigin.SavedStatus -> R.string.saved_origin_status_copy
         SavedMediaOrigin.VideoPart -> R.string.saved_origin_video_part
     }
-}
-private fun SavedImage.displayTitle(): String {
-    return name.ifBlank { uri.toString() }
 }
 
 private fun Long.formatDate(): String {

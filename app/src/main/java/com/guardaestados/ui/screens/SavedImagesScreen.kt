@@ -6,6 +6,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
@@ -22,14 +23,19 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.PrimaryTabRow
+import androidx.compose.material3.Tab
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -38,6 +44,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
@@ -54,7 +63,6 @@ import com.guardaestados.domain.saved.SavedImagesState
 import com.guardaestados.ui.saved.SavedImageDeleteState
 import com.guardaestados.domain.saved.SavedMediaOrigin
 import com.guardaestados.ui.components.VideoThumbnail
-import com.guardaestados.ui.theme.BrandGradientButton
 import com.guardaestados.ui.theme.brandGradientBorder
 import java.text.DateFormat
 import java.util.Date
@@ -65,12 +73,27 @@ private const val ThumbnailPixelSize = 360
 fun SavedImagesScreen(
     savedImagesState: SavedImagesState,
     deleteState: SavedImageDeleteState,
+    isRefreshing: Boolean,
     onRefresh: () -> Unit,
     onImageSelected: (SavedImage) -> Unit,
     onDeleteImage: (SavedImage) -> Unit,
     onDeleteMessageDismissed: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    var selectedTabIndex by remember { mutableIntStateOf(0) }
+    val selectedMediaType = if (selectedTabIndex == 0) SavedMediaType.Image else SavedMediaType.Video
+    val lifecycleOwner = LocalLifecycleOwner.current
+
+    DisposableEffect(lifecycleOwner, onRefresh) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                onRefresh()
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
+
     Surface(
         modifier = modifier.fillMaxSize(),
         color = MaterialTheme.colorScheme.background
@@ -83,22 +106,10 @@ fun SavedImagesScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             item(span = { GridItemSpan(maxLineSpan) }) {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(
-                        text = stringResource(R.string.saved_title),
-                        style = MaterialTheme.typography.headlineMedium,
-                        color = MaterialTheme.colorScheme.onBackground
-                    )
-                    Text(
-                        text = stringResource(R.string.saved_subtitle),
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    BrandGradientButton(
-                        text = stringResource(R.string.saved_action_refresh),
-                        onClick = onRefresh
-                    )
-                }
+                SavedHeader(
+                    isRefreshing = isRefreshing,
+                    onRefresh = onRefresh
+                )
             }
 
             deleteState.statusMessageRes()?.let { messageRes ->
@@ -128,25 +139,41 @@ fun SavedImagesScreen(
                 )
 
                 is SavedImagesState.Content -> {
+                    val images = savedImagesState.images.filter { it.mediaType == SavedMediaType.Image }
+                    val videos = savedImagesState.images.filter { it.mediaType == SavedMediaType.Video }
+                    val selectedItems = if (selectedMediaType == SavedMediaType.Image) images else videos
+
+                    item(span = { GridItemSpan(maxLineSpan) }) {
+                        SavedMediaTabs(
+                            selectedTabIndex = selectedTabIndex,
+                            imageCount = images.size,
+                            videoCount = videos.size,
+                            onTabSelected = { selectedTabIndex = it }
+                        )
+                    }
                     item(span = { GridItemSpan(maxLineSpan) }) {
                         SavedMessageCard(
                             title = stringResource(R.string.saved_found_title),
-                            body = stringResource(
-                                R.string.saved_found_body,
-                                savedImagesState.images.size
-                            )
+                            body = stringResource(R.string.saved_found_body, selectedItems.size)
                         )
                     }
-                    items(
-                        items = savedImagesState.images,
-                        key = { image -> image.uri.toString() }
-                    ) { image ->
-                        SavedImageGridCard(
-                            image = image,
-                            onImageSelected = onImageSelected,
-                            onDeleteImage = onDeleteImage,
-                            deleting = deleteState == SavedImageDeleteState.Deleting
+                    if (selectedItems.isEmpty()) {
+                        fullWidthSavedMessage(
+                            titleRes = if (selectedMediaType == SavedMediaType.Video) R.string.saved_empty_videos_title else R.string.saved_empty_images_title,
+                            bodyRes = if (selectedMediaType == SavedMediaType.Video) R.string.saved_empty_videos_body else R.string.saved_empty_images_body
                         )
+                    } else {
+                        items(
+                            items = selectedItems,
+                            key = { image -> image.uri.toString() }
+                        ) { image ->
+                            SavedImageGridCard(
+                                image = image,
+                                onImageSelected = onImageSelected,
+                                onDeleteImage = onDeleteImage,
+                                deleting = deleteState == SavedImageDeleteState.Deleting
+                            )
+                        }
                     }
                 }
             }
@@ -154,6 +181,72 @@ fun SavedImagesScreen(
     }
 }
 
+@Composable
+private fun SavedHeader(
+    isRefreshing: Boolean,
+    onRefresh: () -> Unit
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                Text(
+                    text = stringResource(R.string.saved_title),
+                    style = MaterialTheme.typography.headlineMedium,
+                    color = MaterialTheme.colorScheme.onBackground
+                )
+                Text(
+                    text = stringResource(R.string.saved_subtitle),
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            IconButton(
+                onClick = onRefresh,
+                enabled = !isRefreshing
+            ) {
+                if (isRefreshing) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(22.dp),
+                        strokeWidth = 2.dp
+                    )
+                } else {
+                    Icon(
+                        painter = painterResource(R.drawable.ic_refresh),
+                        contentDescription = stringResource(R.string.saved_action_refresh)
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun SavedMediaTabs(
+    selectedTabIndex: Int,
+    imageCount: Int,
+    videoCount: Int,
+    onTabSelected: (Int) -> Unit
+) {
+    PrimaryTabRow(selectedTabIndex = selectedTabIndex) {
+        Tab(
+            selected = selectedTabIndex == 0,
+            onClick = { onTabSelected(0) },
+            text = { Text(text = stringResource(R.string.saved_tab_images, imageCount)) }
+        )
+        Tab(
+            selected = selectedTabIndex == 1,
+            onClick = { onTabSelected(1) },
+            text = { Text(text = stringResource(R.string.saved_tab_videos, videoCount)) }
+        )
+    }
+}
 private fun androidx.compose.foundation.lazy.grid.LazyGridScope.fullWidthSavedMessage(
     @StringRes titleRes: Int,
     @StringRes bodyRes: Int
@@ -377,7 +470,7 @@ private fun SavedImageDeleteState.statusMessageRes(): Int? {
     return when (this) {
         SavedImageDeleteState.Idle -> null
         SavedImageDeleteState.Deleting -> R.string.saved_delete_status_deleting
-        SavedImageDeleteState.Success -> R.string.saved_delete_status_success
+        SavedImageDeleteState.Success -> null
         SavedImageDeleteState.AlreadyMissing -> R.string.saved_delete_status_missing
         SavedImageDeleteState.InvalidTarget -> R.string.saved_delete_status_invalid
         SavedImageDeleteState.Error -> R.string.saved_delete_status_error
