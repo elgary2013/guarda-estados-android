@@ -98,6 +98,7 @@ fun AppNavigation(
     resetState: SettingsResetState,
     onResetSettings: () -> Unit,
     onResetMessageDismissed: () -> Unit,
+    onOpenPrivacyPolicy: () -> Unit,
     onHomePhotoSystemBarsStateChanged: (Boolean) -> Unit
 ) {
     val context = LocalContext.current
@@ -292,7 +293,8 @@ fun AppNavigation(
                         onThemePreferenceSelected = onThemePreferenceSelected,
                         resetState = resetState,
                         onResetSettings = onResetSettings,
-                        onResetMessageDismissed = onResetMessageDismissed
+                        onResetMessageDismissed = onResetMessageDismissed,
+                        onOpenPrivacyPolicy = onOpenPrivacyPolicy
                     )
                 }
             }

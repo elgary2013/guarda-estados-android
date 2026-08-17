@@ -172,6 +172,8 @@
     <string name="settings_privacy_info_summary">Datos locales y versión de la app</string>
     <string name="settings_privacy_local">La aplicación funciona localmente.</string>
     <string name="settings_privacy_folder_access">Solo accede a la carpeta que el usuario autoriza.</string>
+    <string name="settings_privacy_policy">Política de privacidad</string>
+    <string name="settings_privacy_policy_url">https://programarpara.com/estadogo-privacidad</string>
     <string name="settings_legal_affiliation">No está afiliada a WhatsApp LLC, Meta Platforms, Inc. ni otras aplicaciones compatibles.</string>
     <string name="settings_legal_user_responsibility">El usuario debe guardar o compartir contenido únicamente con autorización de su creador.</string>
     <string name="settings_reset_title">Restablecer configuración</string>

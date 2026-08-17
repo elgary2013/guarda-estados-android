@@ -22,6 +22,7 @@ import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.Image
@@ -101,6 +102,7 @@ fun SettingsScreen(
     resetState: SettingsResetState,
     onResetSettings: () -> Unit,
     onResetMessageDismissed: () -> Unit,
+    onOpenPrivacyPolicy: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     var showResetDialog by remember { mutableStateOf(false) }
@@ -247,6 +249,7 @@ fun SettingsScreen(
                     text = stringResource(R.string.settings_legal_user_responsibility),
                     style = MaterialTheme.typography.bodyMedium
                 )
+                PrivacyPolicyButton(onClick = onOpenPrivacyPolicy)
                 Spacer(modifier = Modifier.size(4.dp))
                 Text(
                     text = stringResource(R.string.settings_about_app_name),
@@ -303,6 +306,34 @@ fun SettingsScreen(
                 onResetSettings()
             }
         )
+    }
+}
+
+@Composable
+private fun PrivacyPolicyButton(onClick: () -> Unit) {
+    TextButton(
+        onClick = onClick,
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = stringResource(R.string.settings_privacy_policy),
+                modifier = Modifier.weight(1f),
+                color = SettingsIconTint,
+                style = MaterialTheme.typography.bodyLarge,
+                fontWeight = FontWeight.SemiBold
+            )
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.OpenInNew,
+                contentDescription = null,
+                modifier = Modifier.size(20.dp),
+                tint = SettingsIconTint
+            )
+        }
     }
 }
 

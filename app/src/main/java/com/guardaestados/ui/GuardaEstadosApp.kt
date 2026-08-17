@@ -15,6 +15,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.guardaestados.R
 import com.guardaestados.data.folder.FolderSelectionRepository
 import com.guardaestados.data.folder.FolderSelectionState
 import com.guardaestados.data.folder.takeSaveDestinationFolderPermission
@@ -89,6 +90,7 @@ fun GuardaEstadosApp() {
             resetState = resetState,
             onResetSettings = settingsViewModel::resetSettings,
             onResetMessageDismissed = settingsViewModel::clearResetMessage,
+            onOpenPrivacyPolicy = { context.openPrivacyPolicy() },
             onHomePhotoSystemBarsStateChanged = { drawHomePhotoBehindSystemBars = it }
         )
     }
@@ -102,4 +104,9 @@ private fun Context.takeHomeBackgroundImagePermission(uri: Uri) {
 private fun Context.installedVersionName(): String {
     val packageInfo = packageManager.getPackageInfo(packageName, 0)
     return packageInfo.versionName.orEmpty()
+}
+
+private fun Context.openPrivacyPolicy() {
+    val intent = Intent(Intent.ACTION_VIEW, Uri.parse(getString(R.string.settings_privacy_policy_url)))
+    runCatching { startActivity(intent) }
 }
