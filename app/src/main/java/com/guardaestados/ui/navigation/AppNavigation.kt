@@ -9,6 +9,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
@@ -369,13 +370,13 @@ private fun SoloEstadosBottomBar(
     val containerColor = if (glassOnPhoto) Color(0xB8031519) else colors.surface.copy(alpha = 0.94f)
     val borderColor = if (glassOnPhoto) Color.White.copy(alpha = 0.18f) else colors.border
     val contentColor = if (glassOnPhoto) Color.White.copy(alpha = 0.78f) else colors.body
-    val barMinHeight = 68.dp
-    val barVerticalPadding = 8.dp
+    val barMinHeight = 76.dp
+    val barVerticalPadding = 6.dp
 
     Surface(
         modifier = Modifier
             .fillMaxWidth()
-            .shadow(if (glassOnPhoto) 0.dp else 12.dp, RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp))
+            .shadow(if (glassOnPhoto) 0.dp else 12.dp)
             .background(containerColor)
             .windowInsetsPadding(WindowInsets.navigationBars),
         color = containerColor,
@@ -412,40 +413,69 @@ private fun RowScope.BottomBarItem(
     glassOnPhoto: Boolean
 ) {
     val colors = LocalGuardaEstadosColors.current
-    val activeColor = if (glassOnPhoto) Color.White else colors.active
+    val activeColor = colors.active
     val inactiveColor = if (glassOnPhoto) Color.White.copy(alpha = 0.74f) else colors.body
-    val activeContainerColor = if (glassOnPhoto) Color.White.copy(alpha = 0.16f) else colors.surfaceSoft
-    val itemShape = RoundedCornerShape(22.dp)
+    val itemShape = RoundedCornerShape(18.dp)
+    val itemContentColor = if (selected) activeColor else inactiveColor
+    val isCentralAction = route == AppRoute.VideoSplitter
 
-    Row(
+    Column(
         modifier = Modifier
             .weight(1f)
-            .heightIn(min = 44.dp)
+            .heightIn(min = if (isCentralAction) 64.dp else 58.dp)
             .background(
-                color = if (selected) activeContainerColor else Color.Transparent,
+                color = if (selected && !isCentralAction && !glassOnPhoto) colors.surfaceSoft else Color.Transparent,
                 shape = itemShape
             )
             .clickable(role = Role.Tab, onClick = onClick)
-            .padding(horizontal = 4.dp, vertical = 8.dp),
-        horizontalArrangement = Arrangement.Center,
-        verticalAlignment = Alignment.CenterVertically
+            .padding(horizontal = 2.dp, vertical = 4.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
     ) {
-        route.iconRes?.let { iconRes ->
-            Icon(
-                painter = painterResource(iconRes),
-                contentDescription = null,
-                modifier = Modifier.size(18.dp),
-                tint = if (selected) activeColor else inactiveColor
-            )
+        if (isCentralAction) {
+            Surface(
+                modifier = Modifier.size(46.dp),
+                shape = RoundedCornerShape(50),
+                color = if (selected) activeColor.copy(alpha = 0.18f) else Color.Transparent,
+                contentColor = itemContentColor,
+                border = BorderStroke(
+                    width = if (selected || glassOnPhoto) 1.5.dp else 1.dp,
+                    color = if (selected) activeColor else inactiveColor.copy(alpha = 0.58f)
+                ),
+                tonalElevation = 0.dp,
+                shadowElevation = 0.dp
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    route.iconRes?.let { iconRes ->
+                        Icon(
+                            painter = painterResource(iconRes),
+                            contentDescription = null,
+                            modifier = Modifier.size(24.dp),
+                            tint = itemContentColor
+                        )
+                    }
+                }
+            }
+        } else {
+            route.iconRes?.let { iconRes ->
+                Icon(
+                    painter = painterResource(iconRes),
+                    contentDescription = null,
+                    modifier = Modifier.size(22.dp),
+                    tint = itemContentColor
+                )
+            }
         }
         Text(
             text = stringResource(route.labelRes),
-            modifier = Modifier.padding(start = 3.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 3.dp),
             style = MaterialTheme.typography.labelSmall,
             fontSize = 10.sp,
-            lineHeight = 10.sp,
+            lineHeight = 12.sp,
             fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium,
-            color = if (selected) activeColor else inactiveColor,
+            color = itemContentColor,
             maxLines = 1,
             overflow = TextOverflow.Clip,
             textAlign = TextAlign.Center
