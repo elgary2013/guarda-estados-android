@@ -1,12 +1,12 @@
 <resources>
-    <string name="app_name">Solo Estados</string>
+    <string name="app_name">EstadoGo</string>
     <string name="nav_home">Inicio</string>
     <string name="nav_states">Estados</string>
     <string name="nav_split">Dividir</string>
     <string name="nav_saved">Guardados</string>
     <string name="nav_settings">Ajustes</string>
-    <string name="home_title">Guarda Estados</string>
-    <string name="home_title_visible">Guarda Estados</string>
+    <string name="home_title">EstadoGo</string>
+    <string name="home_title_visible">EstadoGo</string>
     <string name="home_subtitle">Tus estados, siempre a mano.</string>
     <string name="home_device_states_title">Estados en tu dispositivo</string>
     <string name="home_device_states_body">Elegí Estados en la barra inferior para ver imágenes y videos disponibles.</string>
@@ -187,7 +187,7 @@
     <string name="settings_reset_success">Configuración restablecida. No hay carpeta seleccionada, se usa la ubicación predeterminada y se usa el tema del sistema.</string>
     <string name="settings_reset_success_dismiss">Entendido</string>
     <string name="settings_about_title">Acerca de</string>
-    <string name="settings_about_app_name">Solo Estados</string>
+    <string name="settings_about_app_name">EstadoGo</string>
     <string name="settings_about_version">Versión instalada: %1$s</string>
     <string name="folder_status_loading">Revisando carpeta seleccionada...</string>
     <string name="folder_status_not_selected">Todavía no se seleccionó una carpeta.</string>

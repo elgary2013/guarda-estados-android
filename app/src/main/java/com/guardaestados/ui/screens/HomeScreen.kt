@@ -26,7 +26,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import com.guardaestados.R
@@ -115,6 +118,7 @@ private fun HomeCoverContent(
 ) {
     val titleColor = if (glassOnPhoto) Color.White else MaterialTheme.colorScheme.onBackground
     val bodyColor = if (glassOnPhoto) Color.White.copy(alpha = 0.82f) else MaterialTheme.colorScheme.onSurfaceVariant
+    val brandActiveColor = LocalGuardaEstadosColors.current.active
 
     Column(
         modifier = modifier,
@@ -122,7 +126,12 @@ private fun HomeCoverContent(
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(
-                text = stringResource(R.string.home_title),
+                text = buildAnnotatedString {
+                    append("Estado")
+                    withStyle(SpanStyle(color = brandActiveColor)) {
+                        append("Go")
+                    }
+                },
                 style = MaterialTheme.typography.displaySmall,
                 fontWeight = FontWeight.Bold,
                 color = titleColor
