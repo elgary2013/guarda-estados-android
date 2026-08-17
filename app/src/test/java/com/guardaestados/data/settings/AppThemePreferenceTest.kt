@@ -19,17 +19,18 @@ class AppThemePreferenceTest {
     }
 
     @Test
-    fun `system preference resolves to socialsaver theme mode`() {
-        assertEquals(AppThemeMode.SocialSaver, AppThemePreference.System.toThemeMode())
+    fun `system preference follows system theme mode`() {
+        assertEquals(AppThemeMode.Light, AppThemePreference.System.toThemeMode(systemDarkTheme = false))
+        assertEquals(AppThemeMode.SocialSaver, AppThemePreference.System.toThemeMode(systemDarkTheme = true))
     }
 
     @Test
     fun `light preference resolves to light theme mode`() {
-        assertEquals(AppThemeMode.Light, AppThemePreference.Light.toThemeMode())
+        assertEquals(AppThemeMode.Light, AppThemePreference.Light.toThemeMode(systemDarkTheme = true))
     }
 
     @Test
-    fun `dark preference resolves to dark theme mode`() {
-        assertEquals(AppThemeMode.Dark, AppThemePreference.Dark.toThemeMode())
+    fun `dark preference resolves to socialsaver theme mode`() {
+        assertEquals(AppThemeMode.SocialSaver, AppThemePreference.Dark.toThemeMode(systemDarkTheme = false))
     }
 }

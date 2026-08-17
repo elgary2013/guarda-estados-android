@@ -27,6 +27,12 @@ class SettingsViewModel(
         initialValue = AppThemePreference.System
     )
 
+    val homeBackgroundUri: StateFlow<String?> = appSettingsRepository.homeBackgroundUri.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5_000),
+        initialValue = null
+    )
+
     val saveDestinationState: StateFlow<SaveDestinationState> = appSettingsRepository.saveDestinationState.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5_000),
@@ -35,6 +41,18 @@ class SettingsViewModel(
 
     private val _resetState = MutableStateFlow<SettingsResetState>(SettingsResetState.Idle)
     val resetState: StateFlow<SettingsResetState> = _resetState.asStateFlow()
+
+    fun selectHomeBackground(uri: Uri) {
+        viewModelScope.launch(Dispatchers.IO) {
+            appSettingsRepository.saveHomeBackground(uri)
+        }
+    }
+
+    fun clearHomeBackground() {
+        viewModelScope.launch(Dispatchers.IO) {
+            appSettingsRepository.clearHomeBackground()
+        }
+    }
 
     fun selectTheme(themePreference: AppThemePreference) {
         viewModelScope.launch {

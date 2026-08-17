@@ -1,6 +1,7 @@
 package com.guardaestados.data.settings
 
 import android.content.Context
+import android.content.Intent
 import android.net.Uri
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
@@ -24,6 +25,10 @@ class AppSettingsRepository(
             AppThemePreference.fromStorageKey(preferences[THEME_PREFERENCE])
         }
         .catch { emit(AppThemePreference.System) }
+
+    val homeBackgroundUri: Flow<String?> = appContext.appSettingsDataStore.data
+        .map { preferences -> preferences[HOME_BACKGROUND_URI] }
+        .catch { emit(null) }
 
     val saveDestinationState: Flow<SaveDestinationState> = appContext.appSettingsDataStore.data
         .map { preferences ->
@@ -50,6 +55,23 @@ class AppSettingsRepository(
         return saveDestinationState.first()
     }
 
+    suspend fun saveHomeBackground(uri: Uri) {
+        appContext.appSettingsDataStore.edit { preferences ->
+            preferences[HOME_BACKGROUND_URI] = uri.toString()
+        }
+    }
+
+    suspend fun clearHomeBackground() {
+        var selectedUri: Uri? = null
+        appContext.appSettingsDataStore.edit { preferences ->
+            preferences[HOME_BACKGROUND_URI]?.let { uriString ->
+                selectedUri = Uri.parse(uriString)
+            }
+            preferences.remove(HOME_BACKGROUND_URI)
+        }
+        selectedUri?.let { uri -> appContext.releasePersistedReadPermission(uri) }
+    }
+
     suspend fun saveThemePreference(themePreference: AppThemePreference) {
         appContext.appSettingsDataStore.edit { preferences ->
             preferences[THEME_PREFERENCE] = themePreference.storageKey
@@ -74,16 +96,25 @@ class AppSettingsRepository(
         }
     }
 
+    private fun Context.releasePersistedReadPermission(uri: Uri) {
+        val permission = contentResolver.persistedUriPermissions.firstOrNull { permission ->
+            permission.uri == uri && permission.isReadPermission
+        } ?: return
+        runCatching {
+            contentResolver.releasePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        }
+    }
+
     private fun Context.hasPersistedReadWritePermission(uri: Uri): Boolean {
         return contentResolver.persistedUriPermissions.any { permission ->
             permission.uri == uri && permission.isReadPermission && permission.isWritePermission
         }
     }
 
-
     companion object {
         private val THEME_PREFERENCE = stringPreferencesKey("theme_preference")
         private val SAVE_DESTINATION_URI = stringPreferencesKey("save_destination_uri")
+        private val HOME_BACKGROUND_URI = stringPreferencesKey("home_background_uri")
     }
 }
 

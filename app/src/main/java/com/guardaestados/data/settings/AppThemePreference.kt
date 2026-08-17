@@ -11,11 +11,11 @@ enum class AppThemePreference(val storageKey: String) {
     Light("light"),
     Dark("dark");
 
-    fun toThemeMode(): AppThemeMode {
+    fun toThemeMode(systemDarkTheme: Boolean): AppThemeMode {
         return when (this) {
-            System -> AppThemeMode.SocialSaver
+            System -> if (systemDarkTheme) AppThemeMode.SocialSaver else AppThemeMode.Light
             Light -> AppThemeMode.Light
-            Dark -> AppThemeMode.Dark
+            Dark -> AppThemeMode.SocialSaver
         }
     }
 

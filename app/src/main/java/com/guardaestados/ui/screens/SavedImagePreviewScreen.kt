@@ -4,6 +4,8 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -12,17 +14,16 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -35,15 +36,20 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
+import com.guardaestados.ui.theme.LocalGuardaEstadosColors
 import com.guardaestados.R
 import com.guardaestados.domain.saved.SavedImage
 import com.guardaestados.domain.saved.SavedMediaOrigin
@@ -56,6 +62,33 @@ import com.guardaestados.ui.status.StatusImagePresentationFormatter
 import com.guardaestados.ui.video.VideoPlayerPreview
 import java.text.DateFormat
 import java.util.Date
+
+private val SavedPreviewBackground: Color
+    @Composable get() = LocalGuardaEstadosColors.current.background
+private val SavedPreviewSurface: Color
+    @Composable get() = LocalGuardaEstadosColors.current.surface
+private val SavedPreviewSurfaceSoft: Color
+    @Composable get() = LocalGuardaEstadosColors.current.surfaceStrong
+private val SavedPreviewTitle: Color
+    @Composable get() = LocalGuardaEstadosColors.current.title
+private val SavedPreviewBody: Color
+    @Composable get() = LocalGuardaEstadosColors.current.body
+private val SavedPreviewBorder: Color
+    @Composable get() = LocalGuardaEstadosColors.current.border
+private val SavedPreviewActive: Color
+    @Composable get() = LocalGuardaEstadosColors.current.active
+private val SavedPreviewBlue: Color
+    @Composable get() = LocalGuardaEstadosColors.current.activeAlt
+private val SavedPreviewGradient: Brush
+    @Composable get() = LocalGuardaEstadosColors.current.primaryGradient
+private val SavedPreviewGreenSoft: Color
+    @Composable get() = LocalGuardaEstadosColors.current.surfaceSoft
+private val SavedPreviewMediaBackground: Color
+    @Composable get() = LocalGuardaEstadosColors.current.mediaBackground
+private val SavedPreviewDanger: Color
+    @Composable get() = LocalGuardaEstadosColors.current.danger
+private val SavedPreviewDangerSoft: Color
+    @Composable get() = LocalGuardaEstadosColors.current.dangerSoft
 
 @Composable
 fun SavedImagePreviewScreen(
@@ -79,13 +112,15 @@ fun SavedImagePreviewScreen(
 
     Surface(
         modifier = modifier.fillMaxSize(),
-        color = MaterialTheme.colorScheme.background
+        color = SavedPreviewBackground
     ) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
-                .padding(20.dp),
+                .statusBarsPadding()
+                .padding(horizontal = 16.dp, vertical = 18.dp)
+                .navigationBarsPadding(),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             SavedPreviewTopBar(onBack = onBack)
@@ -142,12 +177,33 @@ fun SavedImagePreviewScreen(
 private fun SavedPreviewTopBar(onBack: () -> Unit) {
     Row(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.Start,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        TextButton(onClick = onBack) {
-            Text(text = stringResource(R.string.preview_action_back))
+        Surface(
+            shape = RoundedCornerShape(999.dp),
+            color = SavedPreviewSurface,
+            contentColor = SavedPreviewActive,
+            border = BorderStroke(1.dp, SavedPreviewBorder),
+            shadowElevation = 0.dp
+        ) {
+            TextButton(onClick = onBack) {
+                Text(
+                    text = stringResource(R.string.preview_action_back),
+                    color = SavedPreviewActive,
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
         }
+        Text(
+            text = stringResource(R.string.preview_title),
+            modifier = Modifier.weight(1f),
+            style = MaterialTheme.typography.headlineSmall,
+            fontWeight = FontWeight.Bold,
+            color = SavedPreviewTitle,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
     }
 }
 
@@ -180,66 +236,156 @@ private fun SavedPreviewContent(
         )
     }
 
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(14.dp)
+    ) {
+        SavedPreviewMediaCard(
+            image = image,
+            failedToLoad = failedToLoad,
+            onImageLoadFailed = { failedToLoad = true }
+        )
+
+        SavedInfoChips(image = image)
+
+        DetailsToggleButton(
+            expanded = showDetails,
+            onClick = { showDetails = !showDetails }
+        )
+
+        AnimatedVisibility(visible = showDetails) {
+            SavedImageDetailsCard(image = image)
+        }
+
+        SavedPreviewActions(
+            busy = busy,
+            onShareImage = { onShareImage(image) },
+            onOpenImage = { onOpenImage(image) },
+            onDeleteImage = { showDeleteDialog = true }
+        )
+    }
+}
+
+@Composable
+private fun SavedPreviewMediaCard(
+    image: SavedImage,
+    failedToLoad: Boolean,
+    onImageLoadFailed: () -> Unit
+) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .animateContentSize(),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
-        ),
-        shape = RoundedCornerShape(12.dp)
+            .shadow(6.dp, RoundedCornerShape(24.dp), clip = false),
+        colors = CardDefaults.cardColors(containerColor = SavedPreviewSurface),
+        border = BorderStroke(1.dp, SavedPreviewBorder),
+        shape = RoundedCornerShape(24.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
-        Column(
-            modifier = Modifier.padding(12.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp)
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(min = 360.dp, max = 660.dp)
+                .padding(8.dp)
+                .clip(RoundedCornerShape(20.dp))
+                .background(SavedPreviewMediaBackground),
+            contentAlignment = Alignment.Center
         ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .heightIn(min = 320.dp, max = 620.dp)
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(MaterialTheme.colorScheme.surfaceVariant),
-                contentAlignment = Alignment.Center
-            ) {
-                if (image.mediaType == SavedMediaType.Video) {
-                    VideoPlayerPreview(
-                        uri = image.uri,
-                        modifier = Modifier.fillMaxSize()
-                    )
-                } else if (failedToLoad) {
-                    Text(
-                        text = stringResource(R.string.preview_load_error_body),
-                        modifier = Modifier.padding(20.dp),
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                } else {
-                    AsyncImage(
-                        model = ImageRequest.Builder(LocalContext.current)
-                            .data(image.uri)
-                            .build(),
-                        contentDescription = stringResource(R.string.saved_image_card_description),
-                        contentScale = ContentScale.Fit,
-                        modifier = Modifier.fillMaxSize(),
-                        onError = { failedToLoad = true }
-                    )
-                }
+            if (image.mediaType == SavedMediaType.Video) {
+                VideoPlayerPreview(
+                    uri = image.uri,
+                    modifier = Modifier.fillMaxSize()
+                )
+            } else if (failedToLoad) {
+                Text(
+                    text = stringResource(R.string.preview_load_error_body),
+                    modifier = Modifier.padding(20.dp),
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = SavedPreviewBody
+                )
+            } else {
+                AsyncImage(
+                    model = ImageRequest.Builder(LocalContext.current)
+                        .data(image.uri)
+                        .build(),
+                    contentDescription = stringResource(R.string.saved_image_card_description),
+                    contentScale = ContentScale.Fit,
+                    modifier = Modifier.fillMaxSize(),
+                    onError = { onImageLoadFailed() }
+                )
             }
+        }
+    }
+}
 
-            DetailsToggleButton(
-                expanded = showDetails,
-                onClick = { showDetails = !showDetails }
+@Composable
+private fun SavedInfoChips(image: SavedImage) {
+    val formatter = remember { StatusImagePresentationFormatter() }
+    val formattedDate = image.dateAddedMillis?.formatDate()
+    val formatValue = formatter.formatValue(image.mimeType)
+    val sizeValue = formatter.sizeValue(image.sizeBytes)
+    val typeText = stringResource(
+        if (image.mediaType == SavedMediaType.Video) R.string.preview_video_status_label else R.string.preview_image_status_label
+    )
+    val originText = stringResource(image.origin.labelRes())
+
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            SavedInfoChip(
+                text = typeText,
+                iconRes = if (image.mediaType == SavedMediaType.Video) R.drawable.ic_video else R.drawable.ic_image
             )
+            SavedInfoChip(
+                text = originText,
+                iconRes = if (image.origin == SavedMediaOrigin.VideoPart) R.drawable.ic_video else R.drawable.ic_nav_saved
+            )
+        }
+        formatValue?.let { value ->
+            SavedInfoChip(text = stringResource(R.string.preview_info_chip, stringResource(R.string.status_file_format_label), value))
+        }
+        formattedDate?.let { date ->
+            SavedInfoChip(text = stringResource(R.string.saved_detail_saved_date_value, date))
+        }
+        sizeValue?.let { size ->
+            SavedInfoChip(text = stringResource(R.string.preview_info_chip, stringResource(R.string.saved_detail_size_label), size))
+        }
+    }
+}
 
-            AnimatedVisibility(visible = showDetails) {
-                SavedImageDetailsCard(image = image)
+@Composable
+private fun SavedInfoChip(
+    text: String,
+    iconRes: Int? = null
+) {
+    Surface(
+        shape = RoundedCornerShape(999.dp),
+        color = SavedPreviewSurface,
+        contentColor = SavedPreviewTitle,
+        border = BorderStroke(1.dp, SavedPreviewBorder),
+        shadowElevation = 0.dp
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 7.dp),
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            iconRes?.let { res ->
+                Icon(
+                    painter = painterResource(res),
+                    contentDescription = null,
+                    modifier = Modifier.size(16.dp),
+                    tint = SavedPreviewBlue
+                )
             }
-
-            SavedPreviewActions(
-                busy = busy,
-                onShareImage = { onShareImage(image) },
-                onOpenImage = { onOpenImage(image) },
-                onDeleteImage = { showDeleteDialog = true }
+            Text(
+                text = text,
+                style = MaterialTheme.typography.labelMedium,
+                color = SavedPreviewTitle,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
             )
         }
     }
@@ -250,23 +396,37 @@ private fun DetailsToggleButton(
     expanded: Boolean,
     onClick: () -> Unit
 ) {
-    OutlinedButton(
-        onClick = onClick,
+    Surface(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(8.dp),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.7f)),
-        contentPadding = ButtonDefaults.ContentPadding
+        shape = RoundedCornerShape(16.dp),
+        color = SavedPreviewSurface,
+        contentColor = SavedPreviewActive,
+        border = BorderStroke(1.dp, SavedPreviewBorder),
+        shadowElevation = 0.dp
     ) {
-        Icon(
-            painter = painterResource(R.drawable.ic_info),
-            contentDescription = null,
-            modifier = Modifier.size(18.dp)
-        )
-        Text(
-            modifier = Modifier.padding(start = 8.dp),
-            text = stringResource(if (expanded) R.string.saved_action_hide_details else R.string.saved_action_view_details),
-            maxLines = 1
-        )
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable(role = Role.Button, onClick = onClick)
+                .padding(horizontal = 14.dp, vertical = 13.dp),
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                painter = painterResource(R.drawable.ic_info),
+                contentDescription = null,
+                modifier = Modifier.size(18.dp),
+                tint = SavedPreviewActive
+            )
+            Text(
+                modifier = Modifier.padding(start = 8.dp),
+                text = stringResource(if (expanded) R.string.saved_action_hide_details else R.string.saved_action_view_details),
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.SemiBold,
+                color = SavedPreviewActive,
+                maxLines = 1
+            )
+        }
     }
 }
 
@@ -281,54 +441,132 @@ private fun SavedPreviewActions(
         modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
-        Button(
+        GradientActionButton(
+            text = stringResource(R.string.saved_action_share_media),
+            iconRes = R.drawable.ic_share,
             onClick = onShareImage,
             enabled = !busy,
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(8.dp)
-        ) {
-            Icon(
-                painter = painterResource(R.drawable.ic_share),
-                contentDescription = null,
-                modifier = Modifier.size(18.dp)
-            )
-            Text(
-                modifier = Modifier.padding(start = 8.dp),
-                text = stringResource(R.string.saved_action_share_media),
-                maxLines = 1
-            )
-        }
+            modifier = Modifier.fillMaxWidth()
+        )
 
-        OutlinedButton(
+        SecondaryActionButton(
+            text = stringResource(R.string.saved_action_open_with),
             onClick = onOpenImage,
             enabled = !busy,
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(8.dp),
-            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.7f))
-        ) {
-            Text(text = stringResource(R.string.saved_action_open_with), maxLines = 1)
-        }
+            modifier = Modifier.fillMaxWidth()
+        )
 
-        Button(
+        DeleteActionButton(
+            text = stringResource(R.string.saved_action_delete),
+            iconRes = R.drawable.ic_delete,
             onClick = onDeleteImage,
             enabled = !busy,
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(top = 4.dp),
-            shape = RoundedCornerShape(8.dp),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = MaterialTheme.colorScheme.errorContainer,
-                contentColor = MaterialTheme.colorScheme.onErrorContainer
-            )
+                .padding(top = 4.dp)
+        )
+    }
+}
+
+@Composable
+private fun GradientActionButton(
+    text: String,
+    iconRes: Int,
+    onClick: () -> Unit,
+    enabled: Boolean,
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier
+            .heightIn(min = 54.dp)
+            .clip(RoundedCornerShape(16.dp))
+            .background(if (enabled) SavedPreviewGradient else Brush.horizontalGradient(listOf(SavedPreviewBorder, SavedPreviewBorder)))
+            .clickable(enabled = enabled, role = Role.Button, onClick = onClick)
+            .padding(horizontal = 16.dp, vertical = 14.dp),
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(
+            painter = painterResource(iconRes),
+            contentDescription = null,
+            modifier = Modifier.size(20.dp),
+            tint = Color.White
+        )
+        Text(
+            modifier = Modifier.padding(start = 8.dp),
+            text = text,
+            style = MaterialTheme.typography.labelLarge,
+            fontWeight = FontWeight.Bold,
+            color = Color.White,
+            maxLines = 1
+        )
+    }
+}
+
+@Composable
+private fun SecondaryActionButton(
+    text: String,
+    onClick: () -> Unit,
+    enabled: Boolean,
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier
+            .heightIn(min = 54.dp)
+            .clip(RoundedCornerShape(16.dp))
+            .background(if (enabled) SavedPreviewSurfaceSoft else SavedPreviewSurfaceSoft.copy(alpha = 0.54f))
+            .border(1.dp, if (enabled) SavedPreviewActive.copy(alpha = 0.72f) else SavedPreviewBorder, RoundedCornerShape(16.dp))
+            .clickable(enabled = enabled, role = Role.Button, onClick = onClick)
+            .padding(horizontal = 16.dp, vertical = 14.dp),
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = text,
+            style = MaterialTheme.typography.labelLarge,
+            fontWeight = FontWeight.Bold,
+            color = if (enabled) SavedPreviewActive else SavedPreviewBody,
+            maxLines = 1
+        )
+    }
+}
+
+@Composable
+private fun DeleteActionButton(
+    text: String,
+    iconRes: Int,
+    onClick: () -> Unit,
+    enabled: Boolean,
+    modifier: Modifier = Modifier
+) {
+    val deleteColor = SavedPreviewDanger
+    Surface(
+        modifier = modifier,
+        shape = RoundedCornerShape(16.dp),
+        color = SavedPreviewDangerSoft,
+        contentColor = deleteColor,
+        border = BorderStroke(1.dp, deleteColor.copy(alpha = 0.58f))
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable(enabled = enabled, role = Role.Button, onClick = onClick)
+                .padding(horizontal = 16.dp, vertical = 14.dp),
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.CenterVertically
         ) {
             Icon(
-                painter = painterResource(R.drawable.ic_delete),
+                painter = painterResource(iconRes),
                 contentDescription = null,
-                modifier = Modifier.size(18.dp)
+                modifier = Modifier.size(18.dp),
+                tint = deleteColor
             )
             Text(
                 modifier = Modifier.padding(start = 8.dp),
-                text = stringResource(R.string.saved_action_delete),
+                text = text,
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.SemiBold,
+                color = deleteColor,
                 maxLines = 1
             )
         }
@@ -344,11 +582,10 @@ private fun SavedImageDetailsCard(image: SavedImage) {
 
     Card(
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
-        ),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.55f)),
-        shape = RoundedCornerShape(8.dp)
+        colors = CardDefaults.cardColors(containerColor = SavedPreviewSurface),
+        border = BorderStroke(1.dp, SavedPreviewBorder),
+        shape = RoundedCornerShape(18.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Column(
             modifier = Modifier.padding(14.dp),
@@ -388,7 +625,7 @@ private fun DetailRow(
             text = label,
             modifier = Modifier.weight(0.38f),
             style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            color = SavedPreviewBody,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis
         )
@@ -396,7 +633,7 @@ private fun DetailRow(
             text = value,
             modifier = Modifier.weight(0.62f),
             style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurface,
+            color = SavedPreviewTitle,
             maxLines = 2,
             overflow = TextOverflow.Ellipsis
         )
@@ -410,9 +647,10 @@ private fun SavedPreviewMessageCard(
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
-        )
+        colors = CardDefaults.cardColors(containerColor = SavedPreviewSurface),
+        border = BorderStroke(1.dp, SavedPreviewBorder),
+        shape = RoundedCornerShape(18.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Column(
             modifier = Modifier.padding(20.dp),
@@ -421,12 +659,13 @@ private fun SavedPreviewMessageCard(
             Text(
                 text = title,
                 style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold
+                fontWeight = FontWeight.SemiBold,
+                color = SavedPreviewTitle
             )
             Text(
                 text = body,
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = SavedPreviewBody
             )
         }
     }
@@ -440,9 +679,10 @@ private fun SavedPreviewStatusCard(
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.secondaryContainer
-        )
+        colors = CardDefaults.cardColors(containerColor = SavedPreviewSurface),
+        border = BorderStroke(1.dp, SavedPreviewBorder),
+        shape = RoundedCornerShape(18.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Column(
             modifier = Modifier.padding(16.dp),
@@ -451,11 +691,11 @@ private fun SavedPreviewStatusCard(
             Text(
                 text = message,
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSecondaryContainer
+                color = SavedPreviewBody
             )
             if (canDismiss) {
                 TextButton(onClick = onDismiss) {
-                    Text(text = stringResource(R.string.saved_delete_dialog_cancel))
+                    Text(text = stringResource(R.string.saved_delete_dialog_cancel), color = SavedPreviewActive)
                 }
             }
         }

@@ -1,8 +1,11 @@
 package com.guardaestados.ui
 
 import android.content.Context
+import android.content.Intent
+import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -33,6 +36,7 @@ fun GuardaEstadosApp() {
     val themePreference by settingsViewModel.themePreference.collectAsState()
     val resetState by settingsViewModel.resetState.collectAsState()
     val saveDestinationState by settingsViewModel.saveDestinationState.collectAsState()
+    val homeBackgroundUri by settingsViewModel.homeBackgroundUri.collectAsState()
     val coroutineScope = rememberCoroutineScope()
     val folderPicker = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocumentTree()
@@ -44,6 +48,14 @@ fun GuardaEstadosApp() {
             }
         }
     }
+    val homeBackgroundPicker = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument()
+    ) { uri ->
+        if (uri != null) {
+            context.takeHomeBackgroundImagePermission(uri)
+            settingsViewModel.selectHomeBackground(uri)
+        }
+    }
     val saveDestinationPicker = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocumentTree()
     ) { uri ->
@@ -53,13 +65,17 @@ fun GuardaEstadosApp() {
         }
     }
     val appVersion = remember(context) { context.installedVersionName() }
-    GuardaEstadosTheme(themeMode = themePreference.toThemeMode()) {
+    val systemDarkTheme = isSystemInDarkTheme()
+    GuardaEstadosTheme(themeMode = themePreference.toThemeMode(systemDarkTheme)) {
         AppNavigation(
             folderSelectionState = folderSelectionState,
             themePreference = themePreference,
             saveDestinationState = saveDestinationState,
             appVersion = appVersion,
+            homeBackgroundUri = homeBackgroundUri,
             onSelectFolder = { folderPicker.launch(null) },
+            onSelectHomeBackground = { homeBackgroundPicker.launch(arrayOf("image/*")) },
+            onClearHomeBackground = settingsViewModel::clearHomeBackground,
             onSelectSaveDestination = { saveDestinationPicker.launch(null) },
             onUseDefaultSaveDestination = settingsViewModel::useDefaultSaveDestination,
             onThemePreferenceSelected = settingsViewModel::selectTheme,
@@ -68,6 +84,11 @@ fun GuardaEstadosApp() {
             onResetMessageDismissed = settingsViewModel::clearResetMessage
         )
     }
+}
+
+private fun Context.takeHomeBackgroundImagePermission(uri: Uri) {
+    val flags = Intent.FLAG_GRANT_READ_URI_PERMISSION
+    runCatching { contentResolver.takePersistableUriPermission(uri, flags) }
 }
 
 private fun Context.installedVersionName(): String {

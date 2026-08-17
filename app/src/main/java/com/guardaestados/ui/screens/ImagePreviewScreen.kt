@@ -4,21 +4,23 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -34,36 +36,53 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
+import com.guardaestados.ui.theme.LocalGuardaEstadosColors
 import com.guardaestados.R
 import com.guardaestados.domain.status.StatusImage
 import com.guardaestados.domain.status.StatusMediaType
 import com.guardaestados.ui.save.SaveStatusImageUiState
 import com.guardaestados.ui.share.ShareStatusImageUiState
+import com.guardaestados.ui.status.StatusImagePresentationFormatter
 import com.guardaestados.ui.status.StatusImagePreviewState
 import com.guardaestados.ui.video.VideoPlayerPreview
 import java.text.DateFormat
 import java.util.Date
-private val PreviewBackground = Color(0xFF030A1C)
-private val PreviewSurface = Color(0xFF101A30)
-private val PreviewSurfaceHigh = Color(0xFF15213A)
-private val PreviewText = Color(0xFFF4F7FF)
-private val PreviewSecondaryText = Color(0xFFAAB5CE)
-private val PreviewBorder = Color(0xFF263451)
-private val PreviewGreen = Color(0xFF24D18B)
-private val PreviewViolet = Color(0xFF7C5CFF)
-private val PreviewFuchsia = Color(0xFFFF4FD8)
-private val PreviewGradient = Brush.horizontalGradient(listOf(PreviewGreen, PreviewViolet, PreviewFuchsia))
+
+private val PreviewBackground: Color
+    @Composable get() = LocalGuardaEstadosColors.current.background
+private val PreviewSurface: Color
+    @Composable get() = LocalGuardaEstadosColors.current.surface
+private val PreviewTitle: Color
+    @Composable get() = LocalGuardaEstadosColors.current.title
+private val PreviewBody: Color
+    @Composable get() = LocalGuardaEstadosColors.current.body
+private val PreviewBorder: Color
+    @Composable get() = LocalGuardaEstadosColors.current.border
+private val PreviewActive: Color
+    @Composable get() = LocalGuardaEstadosColors.current.active
+private val PreviewMutedSurface: Color
+    @Composable get() = LocalGuardaEstadosColors.current.surfaceStrong
+private val PreviewErrorSurface: Color
+    @Composable get() = LocalGuardaEstadosColors.current.dangerSoft
+private val PreviewErrorBorder: Color
+    @Composable get() = LocalGuardaEstadosColors.current.dangerBorder
+private val PreviewErrorText: Color
+    @Composable get() = LocalGuardaEstadosColors.current.danger
+private val PreviewGradient: Brush
+    @Composable get() = LocalGuardaEstadosColors.current.primaryGradient
 
 @Composable
 fun ImagePreviewScreen(
@@ -75,6 +94,7 @@ fun ImagePreviewScreen(
     onBack: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+
     Surface(
         modifier = modifier.fillMaxSize(),
         color = PreviewBackground
@@ -83,7 +103,9 @@ fun ImagePreviewScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = 16.dp, vertical = 18.dp),
+                .statusBarsPadding()
+                .padding(horizontal = 16.dp, vertical = 18.dp)
+                .navigationBarsPadding(),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             PreviewTopBar(onBack = onBack)
@@ -125,19 +147,33 @@ fun ImagePreviewScreen(
 private fun PreviewTopBar(onBack: () -> Unit) {
     Row(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.Start,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Surface(
-            color = PreviewSurface.copy(alpha = 0.72f),
-            contentColor = PreviewText,
-            shape = RoundedCornerShape(8.dp),
-            border = BorderStroke(1.dp, PreviewBorder)
+            shape = RoundedCornerShape(999.dp),
+            color = PreviewSurface,
+            contentColor = PreviewActive,
+            border = BorderStroke(1.dp, PreviewBorder),
+            shadowElevation = 0.dp
         ) {
             TextButton(onClick = onBack) {
-                Text(text = stringResource(R.string.preview_action_back), color = PreviewText)
+                Text(
+                    text = stringResource(R.string.preview_action_back),
+                    color = PreviewActive,
+                    fontWeight = FontWeight.SemiBold
+                )
             }
         }
+        Text(
+            text = stringResource(R.string.preview_title),
+            modifier = Modifier.weight(1f),
+            style = MaterialTheme.typography.headlineSmall,
+            fontWeight = FontWeight.Bold,
+            color = PreviewTitle,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
     }
 }
 
@@ -155,11 +191,44 @@ private fun PreviewContent(
         modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
+        PreviewMediaCard(
+            image = image,
+            failedToLoad = failedToLoad,
+            onImageLoadFailed = { failedToLoad = true }
+        )
+
+        MediaInfoChips(image = image)
+
+        PreviewActionsCard(
+            image = image,
+            saveState = saveState,
+            shareState = shareState,
+            onSaveImage = onSaveImage,
+            onShareImage = onShareImage
+        )
+    }
+}
+
+@Composable
+private fun PreviewMediaCard(
+    image: StatusImage,
+    failedToLoad: Boolean,
+    onImageLoadFailed: () -> Unit
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .shadow(6.dp, RoundedCornerShape(24.dp), clip = false),
+        colors = CardDefaults.cardColors(containerColor = PreviewSurface),
+        border = BorderStroke(1.dp, PreviewBorder),
+        shape = RoundedCornerShape(24.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+    ) {
         Box(
             modifier = Modifier
-                .fillMaxWidth()
-                .heightIn(min = 360.dp, max = 650.dp)
-                .clip(RoundedCornerShape(14.dp))
+                .previewMediaFrame(image)
+                .padding(8.dp)
+                .clip(RoundedCornerShape(20.dp))
                 .background(Color.Black),
             contentAlignment = Alignment.Center
         ) {
@@ -175,7 +244,7 @@ private fun PreviewContent(
                     text = stringResource(R.string.preview_load_error_body),
                     modifier = Modifier.padding(20.dp),
                     style = MaterialTheme.typography.bodyLarge,
-                    color = PreviewSecondaryText
+                    color = Color.White.copy(alpha = 0.86f)
                 )
             } else {
                 AsyncImage(
@@ -187,50 +256,88 @@ private fun PreviewContent(
                     modifier = Modifier
                         .fillMaxSize()
                         .background(Color.Black),
-                    onError = { failedToLoad = true }
+                    onError = { onImageLoadFailed() }
                 )
             }
         }
+    }
+}
 
-        MediaInfoCard(image = image)
+private fun Modifier.previewMediaFrame(image: StatusImage): Modifier {
+    return if (image.mediaType == StatusMediaType.Image) {
+        val width = image.widthPixels?.takeIf { it > 0 }
+        val height = image.heightPixels?.takeIf { it > 0 }
+        if (width != null && height != null) {
+            fillMaxWidth()
+                .aspectRatio(width.toFloat() / height.toFloat())
+                .heightIn(min = 220.dp, max = 720.dp)
+        } else {
+            fillMaxWidth().heightIn(min = 420.dp, max = 720.dp)
+        }
+    } else {
+        fillMaxWidth().heightIn(min = 380.dp, max = 660.dp)
+    }
+}
+@Composable
+private fun MediaInfoChips(image: StatusImage) {
+    val formatter = remember { StatusImagePresentationFormatter() }
+    val formattedDate = image.lastModifiedMillis?.formatDate()
+    val formatValue = formatter.formatValue(image.mimeType)
+    val typeText = stringResource(
+        if (image.mediaType == StatusMediaType.Video) R.string.preview_video_status_label else R.string.preview_image_status_label
+    )
 
-        PreviewActionsCard(
-            image = image,
-            saveState = saveState,
-            shareState = shareState,
-            onSaveImage = onSaveImage,
-            onShareImage = onShareImage
-        )
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            InfoChip(text = typeText, iconRes = if (image.mediaType == StatusMediaType.Video) R.drawable.ic_video else R.drawable.ic_image)
+            formatValue?.let { value ->
+                InfoChip(text = stringResource(R.string.preview_info_chip, stringResource(R.string.status_file_format_label), value))
+            }
+        }
+        formattedDate?.let { date ->
+            Row(modifier = Modifier.fillMaxWidth()) {
+                InfoChip(text = stringResource(R.string.preview_media_date, date))
+            }
+        }
     }
 }
 
 @Composable
-private fun MediaInfoCard(image: StatusImage) {
-    val formattedDate = image.lastModifiedMillis?.formatDate()
-
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = PreviewSurface),
+private fun InfoChip(
+    text: String,
+    iconRes: Int? = null
+) {
+    Surface(
+        shape = RoundedCornerShape(999.dp),
+        color = PreviewSurface,
+        contentColor = PreviewTitle,
         border = BorderStroke(1.dp, PreviewBorder),
-        shape = RoundedCornerShape(10.dp)
+        shadowElevation = 0.dp
     ) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(6.dp)
+        Row(
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 7.dp),
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(
-                text = stringResource(if (image.mediaType == StatusMediaType.Video) R.string.preview_video_status_label else R.string.preview_image_status_label),
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold,
-                color = PreviewText
-            )
-            formattedDate?.let { date ->
-                Text(
-                    text = stringResource(R.string.preview_media_date, date),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = PreviewSecondaryText
+            iconRes?.let { res ->
+                Icon(
+                    painter = painterResource(res),
+                    contentDescription = null,
+                    modifier = Modifier.size(16.dp),
+                    tint = PreviewActive
                 )
             }
+            Text(
+                text = text,
+                style = MaterialTheme.typography.labelMedium,
+                color = PreviewTitle,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
         }
     }
 }
@@ -247,25 +354,25 @@ private fun PreviewActionsCard(
         modifier = Modifier
             .fillMaxWidth()
             .animateContentSize(),
-        colors = CardDefaults.cardColors(containerColor = PreviewSurfaceHigh),
+        colors = CardDefaults.cardColors(containerColor = PreviewSurface),
         border = BorderStroke(1.dp, PreviewBorder),
-        shape = RoundedCornerShape(12.dp)
+        shape = RoundedCornerShape(20.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Column(
             modifier = Modifier.padding(12.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Row(
+            Column(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
-                verticalAlignment = Alignment.CenterVertically
+                verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 GradientActionButton(
                     text = stringResource(R.string.preview_action_save_short),
                     iconRes = R.drawable.ic_nav_saved,
                     onClick = { onSaveImage(image) },
                     enabled = saveState != SaveStatusImageUiState.Saving,
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.fillMaxWidth()
                 )
 
                 SecondaryActionButton(
@@ -273,7 +380,7 @@ private fun PreviewActionsCard(
                     iconRes = R.drawable.ic_share,
                     onClick = { onShareImage(image) },
                     enabled = shareState != ShareStatusImageUiState.Sharing,
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.fillMaxWidth()
                 )
             }
 
@@ -283,11 +390,30 @@ private fun PreviewActionsCard(
             ) {
                 SaveStatusMessage(saveState = saveState)
                 ShareStatusMessage(shareState = shareState)
+                PreviewOriginalNotice()
             }
         }
     }
 }
 
+@Composable
+private fun PreviewOriginalNotice() {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(14.dp),
+        color = PreviewMutedSurface,
+        border = BorderStroke(1.dp, PreviewBorder),
+        contentColor = PreviewBody,
+        shadowElevation = 0.dp
+    ) {
+        Text(
+            text = stringResource(R.string.preview_original_unchanged_notice),
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+            style = MaterialTheme.typography.bodyMedium,
+            color = PreviewBody
+        )
+    }
+}
 @Composable
 private fun GradientActionButton(
     text: String,
@@ -296,23 +422,29 @@ private fun GradientActionButton(
     enabled: Boolean,
     modifier: Modifier = Modifier
 ) {
-    Button(
-        onClick = onClick,
-        enabled = enabled,
-        modifier = modifier.defaultMinSize(minHeight = 52.dp),
-        colors = ButtonDefaults.buttonColors(
-            containerColor = Color.Transparent,
-            contentColor = PreviewText,
-            disabledContainerColor = PreviewBorder,
-            disabledContentColor = PreviewSecondaryText
-        ),
-        contentPadding = ButtonDefaults.ContentPadding,
-        shape = RoundedCornerShape(10.dp)
+    Row(
+        modifier = modifier
+            .heightIn(min = 54.dp)
+            .clip(RoundedCornerShape(16.dp))
+            .background(if (enabled) PreviewGradient else Brush.horizontalGradient(listOf(PreviewBorder, PreviewBorder)))
+            .clickable(enabled = enabled, role = Role.Button, onClick = onClick)
+            .padding(horizontal = 16.dp, vertical = 14.dp),
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        ActionButtonContent(
+        Icon(
+            painter = painterResource(iconRes),
+            contentDescription = null,
+            modifier = Modifier.size(20.dp),
+            tint = Color.White
+        )
+        Text(
+            modifier = Modifier.padding(start = 8.dp),
             text = text,
-            iconRes = iconRes,
-            background = if (enabled) PreviewGradient else Brush.horizontalGradient(listOf(PreviewBorder, PreviewBorder))
+            style = MaterialTheme.typography.labelLarge,
+            fontWeight = FontWeight.Bold,
+            color = Color.White,
+            maxLines = 1
         )
     }
 }
@@ -325,62 +457,29 @@ private fun SecondaryActionButton(
     enabled: Boolean,
     modifier: Modifier = Modifier
 ) {
-    Button(
-        onClick = onClick,
-        enabled = enabled,
-        modifier = modifier.defaultMinSize(minHeight = 52.dp),
-        colors = ButtonDefaults.buttonColors(
-            containerColor = PreviewSurface,
-            contentColor = PreviewText,
-            disabledContainerColor = PreviewSurface.copy(alpha = 0.54f),
-            disabledContentColor = PreviewSecondaryText
-        ),
-        border = BorderStroke(1.dp, PreviewBorder),
-        contentPadding = ButtonDefaults.ContentPadding,
-        shape = RoundedCornerShape(10.dp)
-    ) {
-        Row(
-            horizontalArrangement = Arrangement.Center,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(
-                painter = painterResource(iconRes),
-                contentDescription = null,
-                modifier = Modifier.size(18.dp)
-            )
-            Text(
-                modifier = Modifier.padding(start = 8.dp),
-                text = text,
-                fontWeight = FontWeight.SemiBold,
-                maxLines = 1
-            )
-        }
-    }
-}
-
-@Composable
-private fun ActionButtonContent(
-    text: String,
-    iconRes: Int,
-    background: Brush
-) {
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(background, RoundedCornerShape(10.dp))
-            .padding(horizontal = 12.dp, vertical = 12.dp),
+        modifier = modifier
+            .heightIn(min = 54.dp)
+            .clip(RoundedCornerShape(16.dp))
+            .background(if (enabled) PreviewMutedSurface else PreviewMutedSurface.copy(alpha = 0.54f))
+            .border(1.dp, if (enabled) PreviewActive.copy(alpha = 0.72f) else PreviewBorder, RoundedCornerShape(16.dp))
+            .clickable(enabled = enabled, role = Role.Button, onClick = onClick)
+            .padding(horizontal = 16.dp, vertical = 14.dp),
         horizontalArrangement = Arrangement.Center,
         verticalAlignment = Alignment.CenterVertically
     ) {
         Icon(
             painter = painterResource(iconRes),
             contentDescription = null,
-            modifier = Modifier.size(18.dp)
+            modifier = Modifier.size(20.dp),
+            tint = if (enabled) PreviewActive else PreviewBody
         )
         Text(
             modifier = Modifier.padding(start = 8.dp),
             text = text,
-            fontWeight = FontWeight.SemiBold,
+            style = MaterialTheme.typography.labelLarge,
+            fontWeight = FontWeight.Bold,
+            color = if (enabled) PreviewActive else PreviewBody,
             maxLines = 1
         )
     }
@@ -424,11 +523,19 @@ private fun StatusText(
     isError: Boolean
 ) {
     AnimatedVisibility(visible = message != null) {
-        Text(
-            text = message.orEmpty(),
-            style = MaterialTheme.typography.bodyMedium,
-            color = if (isError) Color(0xFFFFB4AB) else PreviewSecondaryText
-        )
+        Surface(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(14.dp),
+            color = if (isError) PreviewErrorSurface else PreviewMutedSurface,
+            border = BorderStroke(1.dp, if (isError) PreviewErrorBorder else PreviewBorder)
+        ) {
+            Text(
+                text = message.orEmpty(),
+                modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+                style = MaterialTheme.typography.bodyMedium,
+                color = if (isError) PreviewErrorText else PreviewBody
+            )
+        }
     }
 }
 
@@ -441,7 +548,8 @@ private fun PreviewMessageCard(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = PreviewSurface),
         border = BorderStroke(1.dp, PreviewBorder),
-        shape = RoundedCornerShape(10.dp)
+        shape = RoundedCornerShape(18.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Column(
             modifier = Modifier.padding(20.dp),
@@ -451,12 +559,12 @@ private fun PreviewMessageCard(
                 text = title,
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold,
-                color = PreviewText
+                color = PreviewTitle
             )
             Text(
                 text = body,
                 style = MaterialTheme.typography.bodyMedium,
-                color = PreviewSecondaryText
+                color = PreviewBody
             )
         }
     }

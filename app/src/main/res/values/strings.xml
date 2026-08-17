@@ -1,11 +1,15 @@
 <resources>
-    <string name="app_name">SocialSaverFull</string>
+    <string name="app_name">Solo Estados</string>
     <string name="nav_home">Inicio</string>
     <string name="nav_states">Estados</string>
+    <string name="nav_split">Dividir</string>
     <string name="nav_saved">Guardados</string>
-    <string name="nav_settings">Configuración</string>
-    <string name="home_title">SocialSaverFull</string>
-    <string name="home_subtitle">Elegí una carpeta para preparar el espacio donde se organizarán tus imágenes guardadas.</string>
+    <string name="nav_settings">Ajustes</string>
+    <string name="home_title">Guarda Estados</string>
+    <string name="home_title_visible">Guarda Estados</string>
+    <string name="home_subtitle">Tus estados, siempre a mano.</string>
+    <string name="home_device_states_title">Estados en tu dispositivo</string>
+    <string name="home_device_states_body">Elegí Estados en la barra inferior para ver imágenes y videos disponibles.</string>
     <string name="home_summary_title">Carpeta de trabajo</string>
     <string name="home_summary_empty">Todavía no hay estados listados.</string>
     <string name="home_primary_action">Ver estados</string>
@@ -16,6 +20,8 @@
     <string name="states_header_note">Tocá una imagen o video para ver la vista previa.</string>
     <string name="states_count_badge">%1$d archivos</string>
     <string name="states_action_refresh">Actualizar</string>
+    <string name="states_refresh_footer">Actualizar para buscar nuevos estados</string>
+    <string name="states_video_badge">Video</string>
     <string name="states_loading_title">Leyendo carpeta</string>
     <string name="states_loading_body">Buscando imágenes y videos compatibles...</string>
     <string name="states_empty_title">Sin estados compatibles</string>
@@ -73,6 +79,8 @@
     <string name="preview_image_status_label">Imagen de estado</string>
     <string name="preview_video_status_label">Video de estado</string>
     <string name="preview_media_date">Fecha: %1$s</string>
+    <string name="preview_info_chip">%1$s: %2$s</string>
+    <string name="preview_original_unchanged_notice">Se guarda o comparte una copia. El archivo original no se modifica.</string>
     <string name="preview_video_load_error_body">No se pudo reproducir este video.</string>
     <string name="save_status_saving">Guardando copia...</string>
     <string name="save_status_success">Copia guardada como %1$s.</string>
@@ -148,6 +156,10 @@
     <string name="settings_save_destination_default_action">Usar ubicación predeterminada</string>
     <string name="settings_save_destination_new_copies_note">Solo las nuevas copias usarán esta ubicación. Las copias existentes no se mueven ni se modifican.</string>
     <string name="settings_appearance_title">Apariencia</string>
+    <string name="settings_home_background_title">Fondo de Inicio</string>
+    <string name="settings_home_background_body">Elegí una foto para usar como fondo de la pantalla de Inicio.</string>
+    <string name="settings_home_background_load">Cargar foto de fondo</string>
+    <string name="settings_home_background_remove">Quitar foto de fondo</string>
     <string name="settings_theme_title">Tema</string>
     <string name="settings_theme_summary_system">Usar tema del sistema</string>
     <string name="settings_theme_summary_light">Claro</string>
@@ -175,7 +187,7 @@
     <string name="settings_reset_success">Configuración restablecida. No hay carpeta seleccionada, se usa la ubicación predeterminada y se usa el tema del sistema.</string>
     <string name="settings_reset_success_dismiss">Entendido</string>
     <string name="settings_about_title">Acerca de</string>
-    <string name="settings_about_app_name">SocialSaverFull</string>
+    <string name="settings_about_app_name">Solo Estados</string>
     <string name="settings_about_version">Versión instalada: %1$s</string>
     <string name="folder_status_loading">Revisando carpeta seleccionada...</string>
     <string name="folder_status_not_selected">Todavía no se seleccionó una carpeta.</string>
@@ -185,9 +197,12 @@
     <string name="folder_action_select_again">Volver a seleccionar carpeta</string>
     <string name="folder_action_change">Cambiar carpeta</string>
     <string name="folder_selected_uri">URI: %1$s</string>
+    <string name="home_background_change">Cambiar fondo</string>
+    <string name="home_background_choose">Elegir imagen de galería</string>
+    <string name="home_background_remove">Quitar fondo</string>
     <string name="home_video_splitter_title">Dividir video</string>
-    <string name="home_video_splitter_body">Elegí un video del teléfono, previsualizalo y creá partes locales para compartir manualmente.</string>
-    <string name="home_video_splitter_action">Dividir video</string>
+    <string name="home_video_splitter_body">Prepará clips para compartir</string>
+    <string name="home_video_splitter_action">Dividir</string>
     <string name="video_splitter_title">Dividir video</string>
     <string name="video_splitter_subtitle">Elegí un video con el selector oficial de Android, creá partes y compartilas manualmente.</string>
     <string name="video_splitter_privacy_notice">La app no publica estados automáticamente, no accede a WhatsApp, chats, contactos ni datos internos de otras apps. El usuario decide dónde compartir cada parte.</string>
@@ -248,6 +263,7 @@
     <string name="saved_detail_type_label">Tipo</string>
     <string name="saved_detail_size_label">Tamaño</string>
     <string name="saved_detail_saved_date_label">Fecha de guardado</string>
+    <string name="saved_detail_saved_date_value">Guardada: %1$s</string>
     <string name="saved_open_chooser_title">Abrir copia</string>
     <string name="saved_open_status_opening">Abriendo opciones para ver la copia...</string>
     <string name="saved_open_status_viewer_opened">Elegí una aplicación para abrir la copia.</string>

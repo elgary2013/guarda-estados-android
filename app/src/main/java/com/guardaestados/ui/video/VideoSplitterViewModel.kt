@@ -33,13 +33,15 @@ class VideoSplitterViewModel(
     private val _uiState = MutableStateFlow(VideoSplitterUiState())
     val uiState: StateFlow<VideoSplitterUiState> = _uiState.asStateFlow()
 
+    private var loadVideoJob: Job? = null
     private var processingJob: Job? = null
 
     fun onVideoSelected(uri: Uri?) {
         if (uri == null) return
+        loadVideoJob?.cancel()
         processingJob?.cancel()
         _uiState.value = VideoSplitterUiState(status = VideoSplitterStatus.LoadingVideo)
-        viewModelScope.launch(Dispatchers.IO) {
+        loadVideoJob = viewModelScope.launch(Dispatchers.IO) {
             when (val result = splitterRepository.loadVideo(uri)) {
                 is VideoMetadataResult.Success -> {
                     val selectedSeconds = DEFAULT_PART_SECONDS
@@ -56,6 +58,14 @@ class VideoSplitterViewModel(
                 VideoMetadataResult.Error -> showMessage(VideoSplitterMessage.LoadError)
             }
         }
+    }
+
+    fun resetTemporaryStateIfIdle() {
+        if (processingJob?.isActive == true) return
+        loadVideoJob?.cancel()
+        loadVideoJob = null
+        processingJob = null
+        _uiState.value = VideoSplitterUiState()
     }
 
     fun selectPartDuration(seconds: Int) {
