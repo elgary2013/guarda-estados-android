@@ -36,6 +36,7 @@ import com.guardaestados.ui.theme.LocalGuardaEstadosColors
 @Composable
 fun HomeScreen(
     homeBackgroundUri: String?,
+    contentPadding: PaddingValues = PaddingValues(0.dp),
     modifier: Modifier = Modifier
 ) {
     val appColors = LocalGuardaEstadosColors.current
@@ -77,9 +78,9 @@ fun HomeScreen(
                         Brush.verticalGradient(
                             colors = if (hasBackgroundImage) {
                                 listOf(
-                                    Color(0xF0061413),
-                                    Color(0xB0061413),
-                                    Color(0xF0061413)
+                                    Color(0xE8031519),
+                                    Color(0xA0062622),
+                                    Color(0xF2031519)
                                 )
                             } else {
                                 listOf(
@@ -97,7 +98,11 @@ fun HomeScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .statusBarsPadding()
-                    .padding(horizontal = 24.dp, vertical = 28.dp)
+                    .padding(horizontal = 24.dp)
+                    .padding(
+                        top = 28.dp,
+                        bottom = contentPadding.calculateBottomPadding() + 28.dp
+                    )
             )
         }
     }
@@ -169,7 +174,5 @@ private fun HomeCoverContent(
                 }
             }
         }
-
-        Spacer(modifier = Modifier.size(92.dp))
     }
 }

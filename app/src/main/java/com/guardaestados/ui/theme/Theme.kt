@@ -1,6 +1,7 @@
 package com.guardaestados.ui.theme
 
 import android.app.Activity
+import android.os.Build
 
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
@@ -170,6 +171,7 @@ private val NeutralDarkColorScheme = darkColorScheme(
 @Composable
 fun GuardaEstadosTheme(
     themeMode: AppThemeMode = AppThemeMode.SocialSaver,
+    drawHomePhotoBehindSystemBars: Boolean = false,
     content: @Composable () -> Unit
 ) {
     val colorScheme = when (themeMode) {
@@ -188,11 +190,23 @@ fun GuardaEstadosTheme(
     if (!view.isInEditMode) {
         SideEffect {
             val window = (view.context as? Activity)?.window ?: return@SideEffect
-            window.statusBarColor = colorScheme.background.toArgb()
-            window.navigationBarColor = colorScheme.background.toArgb()
+            val systemBarColor = if (drawHomePhotoBehindSystemBars) {
+                Color.Transparent
+            } else {
+                colorScheme.background
+            }
+
+            window.statusBarColor = systemBarColor.toArgb()
+            window.navigationBarColor = systemBarColor.toArgb()
+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                window.isStatusBarContrastEnforced = !drawHomePhotoBehindSystemBars
+                window.isNavigationBarContrastEnforced = !drawHomePhotoBehindSystemBars
+            }
+
             WindowCompat.getInsetsController(window, view).apply {
-                isAppearanceLightStatusBars = useLightSystemBars
-                isAppearanceLightNavigationBars = useLightSystemBars
+                isAppearanceLightStatusBars = useLightSystemBars && !drawHomePhotoBehindSystemBars
+                isAppearanceLightNavigationBars = useLightSystemBars && !drawHomePhotoBehindSystemBars
             }
         }
     }

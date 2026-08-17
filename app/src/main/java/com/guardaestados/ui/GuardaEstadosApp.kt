@@ -9,8 +9,10 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.guardaestados.data.folder.FolderSelectionRepository
@@ -66,7 +68,12 @@ fun GuardaEstadosApp() {
     }
     val appVersion = remember(context) { context.installedVersionName() }
     val systemDarkTheme = isSystemInDarkTheme()
-    GuardaEstadosTheme(themeMode = themePreference.toThemeMode(systemDarkTheme)) {
+    var drawHomePhotoBehindSystemBars by remember { mutableStateOf(false) }
+
+    GuardaEstadosTheme(
+        themeMode = themePreference.toThemeMode(systemDarkTheme),
+        drawHomePhotoBehindSystemBars = drawHomePhotoBehindSystemBars
+    ) {
         AppNavigation(
             folderSelectionState = folderSelectionState,
             themePreference = themePreference,
@@ -81,7 +88,8 @@ fun GuardaEstadosApp() {
             onThemePreferenceSelected = settingsViewModel::selectTheme,
             resetState = resetState,
             onResetSettings = settingsViewModel::resetSettings,
-            onResetMessageDismissed = settingsViewModel::clearResetMessage
+            onResetMessageDismissed = settingsViewModel::clearResetMessage,
+            onHomePhotoSystemBarsStateChanged = { drawHomePhotoBehindSystemBars = it }
         )
     }
 }

@@ -24,6 +24,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.ScaffoldDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -95,7 +96,8 @@ fun AppNavigation(
     onThemePreferenceSelected: (AppThemePreference) -> Unit,
     resetState: SettingsResetState,
     onResetSettings: () -> Unit,
-    onResetMessageDismissed: () -> Unit
+    onResetMessageDismissed: () -> Unit,
+    onHomePhotoSystemBarsStateChanged: (Boolean) -> Unit
 ) {
     val context = LocalContext.current
     val statusGalleryViewModel: StatusGalleryViewModel = viewModel(
@@ -137,6 +139,7 @@ fun AppNavigation(
     val currentDestination = currentBackStackEntry?.destination
     val currentRoute = currentDestination?.route
     val showBottomBar = routes.any { route -> currentDestination?.hierarchy?.any { it.route == route.route } == true }
+    val glassOnHomePhoto = currentRoute == AppRoute.Home.route && homeBackgroundUri != null
     val routesThatResetVideoSplitter = remember {
         setOf(
             AppRoute.Home.route,
@@ -163,6 +166,10 @@ fun AppNavigation(
         savedImagesViewModel.onSystemDeleteConfirmationResult(result.resultCode == Activity.RESULT_OK)
     }
 
+    LaunchedEffect(glassOnHomePhoto) {
+        onHomePhotoSystemBarsStateChanged(glassOnHomePhoto)
+    }
+
     LaunchedEffect(currentRoute) {
         if (currentRoute in routesThatResetVideoSplitter) {
             videoSplitterViewModel.resetTemporaryStateIfIdle()
@@ -183,12 +190,17 @@ fun AppNavigation(
     }
 
     Scaffold(
+        contentWindowInsets = if (glassOnHomePhoto) {
+            WindowInsets(0.dp)
+        } else {
+            ScaffoldDefaults.contentWindowInsets
+        },
         bottomBar = {
             if (showBottomBar) {
                 SoloEstadosBottomBar(
                     routes = routes,
                     currentRoute = currentRoute,
-                    glassOnPhoto = currentRoute == AppRoute.Home.route && homeBackgroundUri != null,
+                    glassOnPhoto = glassOnHomePhoto,
                     onRouteSelected = { route ->
                         navController.navigate(route.route) {
                             popUpTo(navController.graph.startDestinationId) {
@@ -209,7 +221,10 @@ fun AppNavigation(
         ) {
             composable(AppRoute.Home.route) {
                 Box(modifier = Modifier.fillMaxSize()) {
-                    HomeScreen(homeBackgroundUri = homeBackgroundUri)
+                    HomeScreen(
+                        homeBackgroundUri = homeBackgroundUri,
+                        contentPadding = innerPadding
+                    )
                 }
             }
             composable(AppRoute.States.route) {
@@ -351,9 +366,9 @@ private fun SoloEstadosBottomBar(
     onRouteSelected: (AppRoute) -> Unit
 ) {
     val colors = LocalGuardaEstadosColors.current
-    val containerColor = if (glassOnPhoto) Color.Black.copy(alpha = 0.58f) else colors.surface.copy(alpha = 0.94f)
-    val borderColor = if (glassOnPhoto) Color.White.copy(alpha = 0.16f) else colors.border
-    val contentColor = if (glassOnPhoto) Color.White.copy(alpha = 0.76f) else colors.body
+    val containerColor = if (glassOnPhoto) Color(0xB8031519) else colors.surface.copy(alpha = 0.94f)
+    val borderColor = if (glassOnPhoto) Color.White.copy(alpha = 0.18f) else colors.border
+    val contentColor = if (glassOnPhoto) Color.White.copy(alpha = 0.78f) else colors.body
     val barMinHeight = 68.dp
     val barVerticalPadding = 8.dp
 
@@ -397,9 +412,9 @@ private fun RowScope.BottomBarItem(
     glassOnPhoto: Boolean
 ) {
     val colors = LocalGuardaEstadosColors.current
-    val activeColor = colors.active
+    val activeColor = if (glassOnPhoto) Color.White else colors.active
     val inactiveColor = if (glassOnPhoto) Color.White.copy(alpha = 0.74f) else colors.body
-    val activeContainerColor = if (glassOnPhoto) colors.surfaceSoft.copy(alpha = 0.62f) else colors.surfaceSoft
+    val activeContainerColor = if (glassOnPhoto) Color.White.copy(alpha = 0.16f) else colors.surfaceSoft
     val itemShape = RoundedCornerShape(22.dp)
 
     Row(
