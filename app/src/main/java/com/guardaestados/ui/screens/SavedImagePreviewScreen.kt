@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
@@ -18,15 +19,25 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Snackbar
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -46,17 +57,19 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
 import com.guardaestados.ui.theme.LocalGuardaEstadosColors
 import com.guardaestados.R
 import com.guardaestados.domain.saved.SavedImage
 import com.guardaestados.domain.saved.SavedMediaOrigin
 import com.guardaestados.domain.saved.SavedMediaType
+import com.guardaestados.ui.components.ZoomableAsyncImage
 import com.guardaestados.ui.saved.SavedImageDeleteState
 import com.guardaestados.ui.saved.SavedImageOpenState
 import com.guardaestados.ui.saved.SavedImagePreviewState
@@ -92,6 +105,12 @@ private val SavedPreviewDanger: Color
     @Composable get() = LocalGuardaEstadosColors.current.danger
 private val SavedPreviewDangerSoft: Color
     @Composable get() = LocalGuardaEstadosColors.current.dangerSoft
+private val SavedImmersivePreviewBackground = Color(0xFF050607)
+private val SavedImmersiveOverlay = Color.Black.copy(alpha = 0.48f)
+private val SavedImmersiveContent = Color.White
+private val SavedImmersiveMutedContent = Color.White.copy(alpha = 0.72f)
+private val SavedImmersiveSnackbarContainer = Color(0xFFEAF3EF)
+private val SavedImmersiveSnackbarContent = Color(0xFF101615)
 
 @Composable
 fun SavedImagePreviewScreen(
@@ -115,41 +134,57 @@ fun SavedImagePreviewScreen(
         }
     }
 
+    val activeImage = (previewState as? SavedImagePreviewState.Content)?.image
+    val useImmersivePreview = activeImage?.mediaType == SavedMediaType.Image ||
+        activeImage?.mediaType == SavedMediaType.Video
+    val screenBackground = if (useImmersivePreview) SavedImmersivePreviewBackground else SavedPreviewBackground
+
     Surface(
         modifier = modifier.fillMaxSize(),
-        color = SavedPreviewBackground
+        color = screenBackground
     ) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .statusBarsPadding()
-                .padding(horizontal = 16.dp, vertical = 18.dp)
-                .navigationBarsPadding(),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+                .then(
+                    if (useImmersivePreview) {
+                        Modifier
+                    } else {
+                        Modifier
+                            .statusBarsPadding()
+                            .padding(horizontal = 16.dp, vertical = 18.dp)
+                            .navigationBarsPadding()
+                    }
+                ),
+            verticalArrangement = if (useImmersivePreview) Arrangement.Top else Arrangement.spacedBy(16.dp)
         ) {
-            SavedPreviewTopBar(onBack = onBack)
-
-            deleteState.statusMessageRes()?.let { messageRes ->
-                SavedPreviewMessageCard(
-                    title = stringResource(R.string.saved_delete_dialog_title),
-                    body = stringResource(messageRes)
-                )
+            if (!useImmersivePreview) {
+                SavedPreviewTopBar(onBack = onBack)
             }
 
-            shareState.statusMessageRes()?.let { messageRes ->
-                SavedPreviewStatusCard(
-                    message = stringResource(messageRes),
-                    canDismiss = shareState.canDismiss(),
-                    onDismiss = onShareMessageDismissed
-                )
-            }
+            if (!useImmersivePreview) {
+                deleteState.statusMessageRes()?.let { messageRes ->
+                    SavedPreviewMessageCard(
+                        title = stringResource(R.string.saved_delete_dialog_title),
+                        body = stringResource(messageRes)
+                    )
+                }
 
-            openState.statusMessageRes()?.let { messageRes ->
-                SavedPreviewStatusCard(
-                    message = stringResource(messageRes),
-                    canDismiss = openState.canDismiss(),
-                    onDismiss = onOpenMessageDismissed
-                )
+                shareState.statusMessageRes()?.let { messageRes ->
+                    SavedPreviewStatusCard(
+                        message = stringResource(messageRes),
+                        canDismiss = shareState.canDismiss(),
+                        onDismiss = onShareMessageDismissed
+                    )
+                }
+
+                openState.statusMessageRes()?.let { messageRes ->
+                    SavedPreviewStatusCard(
+                        message = stringResource(messageRes),
+                        canDismiss = openState.canDismiss(),
+                        onDismiss = onOpenMessageDismissed
+                    )
+                }
             }
 
             when (previewState) {
@@ -171,7 +206,12 @@ fun SavedImagePreviewScreen(
                     openState = openState,
                     onDeleteImage = onDeleteImage,
                     onShareImage = onShareImage,
-                    onOpenImage = onOpenImage
+                    onOpenImage = onOpenImage,
+                    onBack = onBack,
+                    onShareMessageDismissed = onShareMessageDismissed,
+                    onOpenMessageDismissed = onOpenMessageDismissed,
+                    immersivePreview = previewState.image.mediaType == SavedMediaType.Image ||
+                        previewState.image.mediaType == SavedMediaType.Video
                 )
             }
         }
@@ -187,7 +227,11 @@ private fun ColumnScope.SavedPreviewPagerContent(
     openState: SavedImageOpenState,
     onDeleteImage: (SavedImage) -> Unit,
     onShareImage: (SavedImage) -> Unit,
-    onOpenImage: (SavedImage) -> Unit
+    onOpenImage: (SavedImage) -> Unit,
+    onBack: () -> Unit,
+    onShareMessageDismissed: () -> Unit,
+    onOpenMessageDismissed: () -> Unit,
+    immersivePreview: Boolean
 ) {
     if (images.isEmpty()) {
         SavedPreviewMessageCard(
@@ -200,6 +244,8 @@ private fun ColumnScope.SavedPreviewPagerContent(
     val pageKeys = remember(images) { images.joinToString(separator = "|") { image -> image.uri.toString() } }
     val startPage = initialIndex.coerceIn(images.indices)
     val pagerState = rememberPagerState(initialPage = startPage, pageCount = { images.size })
+    var activePageZoomed by remember(pageKeys) { mutableStateOf(false) }
+    var activePageVideoSeeking by remember(pageKeys) { mutableStateOf(false) }
 
     LaunchedEffect(pageKeys, startPage) {
         if (pagerState.currentPage != startPage) {
@@ -207,33 +253,396 @@ private fun ColumnScope.SavedPreviewPagerContent(
         }
     }
 
-    Text(
-        text = stringResource(R.string.preview_page_indicator, pagerState.currentPage + 1, images.size),
-        style = MaterialTheme.typography.labelLarge,
-        fontWeight = FontWeight.SemiBold,
-        color = SavedPreviewBody
-    )
+    LaunchedEffect(pageKeys, pagerState.currentPage) {
+        activePageZoomed = false
+        activePageVideoSeeking = false
+    }
 
-    HorizontalPager(
-        state = pagerState,
-        modifier = Modifier
-            .fillMaxWidth()
-            .weight(1f),
-        userScrollEnabled = images.size > 1
-    ) { page ->
-        SavedPreviewContent(
-            image = images[page],
-            isActivePage = page == pagerState.currentPage,
-            deleteState = deleteState,
-            shareState = shareState,
-            openState = openState,
-            onDeleteImage = onDeleteImage,
-            onShareImage = onShareImage,
-            onOpenImage = onOpenImage,
+    if (immersivePreview) {
+        val snackbarHostState = remember { SnackbarHostState() }
+        var deleteSnackbarRequested by remember { mutableStateOf(false) }
+        var shareSnackbarRequested by remember { mutableStateOf(false) }
+        var openSnackbarRequested by remember { mutableStateOf(false) }
+        val deleteInvalidMessage = stringResource(R.string.saved_delete_status_invalid)
+        val deleteErrorMessage = stringResource(R.string.saved_delete_status_error)
+        val shareMissingMessage = stringResource(R.string.saved_share_status_missing)
+        val shareInvalidMessage = stringResource(R.string.saved_share_status_invalid)
+        val shareNoCompatibleAppMessage = stringResource(R.string.saved_share_status_no_app)
+        val shareErrorMessage = stringResource(R.string.saved_share_status_error)
+        val openMissingMessage = stringResource(R.string.saved_share_status_missing)
+        val openInvalidMessage = stringResource(R.string.saved_share_status_invalid)
+        val openNoCompatibleAppMessage = stringResource(R.string.saved_open_status_no_app)
+        val openErrorMessage = stringResource(R.string.saved_open_status_error)
+        var showDeleteDialog by remember { mutableStateOf(false) }
+
+        LaunchedEffect(deleteState) {
+            if (!deleteSnackbarRequested) return@LaunchedEffect
+            val message = when (deleteState) {
+                SavedImageDeleteState.Idle,
+                SavedImageDeleteState.Deleting,
+                SavedImageDeleteState.Success,
+                SavedImageDeleteState.AlreadyMissing,
+                is SavedImageDeleteState.NeedsSystemConfirmation -> null
+                SavedImageDeleteState.InvalidTarget -> deleteInvalidMessage
+                SavedImageDeleteState.Error -> deleteErrorMessage
+            }
+            if (message != null) {
+                deleteSnackbarRequested = false
+                snackbarHostState.currentSnackbarData?.dismiss()
+                snackbarHostState.showSnackbar(message)
+            }
+        }
+
+        LaunchedEffect(shareState) {
+            if (!shareSnackbarRequested) return@LaunchedEffect
+            val message = when (shareState) {
+                SavedImageShareState.Idle,
+                SavedImageShareState.Sharing -> null
+                SavedImageShareState.ChooserOpened -> {
+                    shareSnackbarRequested = false
+                    onShareMessageDismissed()
+                    null
+                }
+                SavedImageShareState.AlreadyMissing -> shareMissingMessage
+                SavedImageShareState.InvalidTarget -> shareInvalidMessage
+                SavedImageShareState.NoCompatibleApp -> shareNoCompatibleAppMessage
+                SavedImageShareState.Error -> shareErrorMessage
+            }
+            if (message != null) {
+                shareSnackbarRequested = false
+                snackbarHostState.currentSnackbarData?.dismiss()
+                snackbarHostState.showSnackbar(message)
+                onShareMessageDismissed()
+            }
+        }
+
+        LaunchedEffect(openState) {
+            if (!openSnackbarRequested) return@LaunchedEffect
+            val message = when (openState) {
+                SavedImageOpenState.Idle,
+                SavedImageOpenState.Opening -> null
+                SavedImageOpenState.ViewerOpened -> {
+                    openSnackbarRequested = false
+                    onOpenMessageDismissed()
+                    null
+                }
+                SavedImageOpenState.AlreadyMissing -> openMissingMessage
+                SavedImageOpenState.InvalidTarget -> openInvalidMessage
+                SavedImageOpenState.NoCompatibleApp -> openNoCompatibleAppMessage
+                SavedImageOpenState.Error -> openErrorMessage
+            }
+            if (message != null) {
+                openSnackbarRequested = false
+                snackbarHostState.currentSnackbarData?.dismiss()
+                snackbarHostState.showSnackbar(message)
+                onOpenMessageDismissed()
+            }
+        }
+
+        if (showDeleteDialog) {
+            ConfirmSavedImageDeleteDialog(
+                onDismiss = { showDeleteDialog = false },
+                onConfirm = {
+                    showDeleteDialog = false
+                    deleteSnackbarRequested = true
+                    onDeleteImage(images[pagerState.currentPage])
+                }
+            )
+        }
+
+        Box(
             modifier = Modifier
-                .fillMaxSize()
-                .verticalScroll(rememberScrollState())
+                .fillMaxWidth()
+                .weight(1f)
+                .background(SavedImmersivePreviewBackground)
+        ) {
+            HorizontalPager(
+                state = pagerState,
+                modifier = Modifier.fillMaxSize(),
+                userScrollEnabled = images.size > 1 && !activePageZoomed && !activePageVideoSeeking
+            ) { page ->
+                val pageImage = images[page]
+                if (pageImage.mediaType == SavedMediaType.Video) {
+                    SavedImmersiveVideoPage(
+                        image = pageImage,
+                        isActivePage = page == pagerState.currentPage,
+                        onSeekInteractionChanged = { seeking ->
+                            if (page == pagerState.currentPage) {
+                                activePageVideoSeeking = seeking
+                            }
+                        }
+                    )
+                } else {
+                    SavedImmersiveImagePage(
+                        image = pageImage,
+                        isActivePage = page == pagerState.currentPage,
+                        onImageZoomChanged = { zoomed ->
+                            if (page == pagerState.currentPage) {
+                                activePageZoomed = zoomed
+                            }
+                        }
+                    )
+                }
+            }
+
+            SavedImmersiveTopBar(
+                currentPage = pagerState.currentPage,
+                pageCount = images.size,
+                shareState = shareState,
+                openState = openState,
+                deleteState = deleteState,
+                onBack = onBack,
+                onShareImage = {
+                    shareSnackbarRequested = true
+                    onShareImage(images[pagerState.currentPage])
+                },
+                onOpenImage = {
+                    openSnackbarRequested = true
+                    onOpenImage(images[pagerState.currentPage])
+                },
+                onDeleteImage = { showDeleteDialog = true },
+                modifier = Modifier.align(Alignment.TopCenter)
+            )
+
+            SnackbarHost(
+                hostState = snackbarHostState,
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .navigationBarsPadding()
+                    .padding(horizontal = 16.dp, vertical = 18.dp),
+                snackbar = { snackbarData ->
+                    Snackbar(
+                        snackbarData = snackbarData,
+                        containerColor = SavedImmersiveSnackbarContainer,
+                        contentColor = SavedImmersiveSnackbarContent
+                    )
+                }
+            )
+        }
+    } else {
+        Text(
+            text = stringResource(R.string.preview_page_indicator, pagerState.currentPage + 1, images.size),
+            style = MaterialTheme.typography.labelLarge,
+            fontWeight = FontWeight.SemiBold,
+            color = SavedPreviewBody
         )
+
+        HorizontalPager(
+            state = pagerState,
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f),
+            userScrollEnabled = images.size > 1 && !activePageZoomed
+        ) { page ->
+            SavedPreviewContent(
+                image = images[page],
+                isActivePage = page == pagerState.currentPage,
+                onImageZoomChanged = { zoomed ->
+                    if (page == pagerState.currentPage) {
+                        activePageZoomed = zoomed
+                    }
+                },
+                deleteState = deleteState,
+                shareState = shareState,
+                openState = openState,
+                onDeleteImage = onDeleteImage,
+                onShareImage = onShareImage,
+                onOpenImage = onOpenImage,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState())
+            )
+        }
+    }
+}
+
+@Composable
+private fun SavedImmersiveImagePage(
+    image: SavedImage,
+    isActivePage: Boolean,
+    onImageZoomChanged: (Boolean) -> Unit
+) {
+    var failedToLoad by remember(image.uri) { mutableStateOf(false) }
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(SavedImmersivePreviewBackground),
+        contentAlignment = Alignment.Center
+    ) {
+        if (failedToLoad) {
+            Text(
+                text = stringResource(R.string.preview_load_error_body),
+                modifier = Modifier.padding(24.dp),
+                style = MaterialTheme.typography.bodyLarge,
+                color = SavedImmersiveMutedContent
+            )
+        } else {
+            ZoomableAsyncImage(
+                model = ImageRequest.Builder(LocalContext.current)
+                    .data(image.uri)
+                    .build(),
+                contentDescription = stringResource(R.string.saved_image_card_description),
+                resetKey = "${image.uri}-$isActivePage",
+                onZoomChanged = onImageZoomChanged,
+                contentScale = ContentScale.Fit,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(SavedImmersivePreviewBackground),
+                onError = { failedToLoad = true }
+            )
+        }
+    }
+}
+
+@Composable
+private fun SavedImmersiveVideoPage(
+    image: SavedImage,
+    isActivePage: Boolean,
+    onSeekInteractionChanged: (Boolean) -> Unit
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(SavedImmersivePreviewBackground),
+        contentAlignment = Alignment.Center
+    ) {
+        if (isActivePage) {
+            VideoPlayerPreview(
+                uri = image.uri,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(SavedImmersivePreviewBackground),
+                showPlaybackStatus = true,
+                errorMessage = stringResource(R.string.preview_video_load_error_body),
+                immersiveControls = true,
+                onSeekInteractionChanged = onSeekInteractionChanged
+            )
+        } else {
+            Icon(
+                painter = painterResource(R.drawable.ic_play_arrow),
+                contentDescription = stringResource(R.string.preview_video_inactive_description),
+                modifier = Modifier.size(56.dp),
+                tint = SavedImmersiveMutedContent
+            )
+        }
+    }
+}
+
+@Composable
+private fun SavedImmersiveTopBar(
+    currentPage: Int,
+    pageCount: Int,
+    shareState: SavedImageShareState,
+    openState: SavedImageOpenState,
+    deleteState: SavedImageDeleteState,
+    onBack: () -> Unit,
+    onShareImage: () -> Unit,
+    onOpenImage: () -> Unit,
+    onDeleteImage: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    var menuExpanded by remember { mutableStateOf(false) }
+    val counterText = stringResource(R.string.preview_page_indicator, currentPage + 1, pageCount)
+    val deleting = deleteState == SavedImageDeleteState.Deleting ||
+        deleteState is SavedImageDeleteState.NeedsSystemConfirmation
+    val busy = deleting ||
+        shareState == SavedImageShareState.Sharing ||
+        openState == SavedImageOpenState.Opening
+
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .background(SavedImmersiveOverlay)
+            .statusBarsPadding()
+            .padding(start = 6.dp, top = 6.dp, end = 6.dp, bottom = 10.dp),
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        IconButton(onClick = onBack) {
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                contentDescription = stringResource(R.string.preview_action_back),
+                tint = SavedImmersiveContent
+            )
+        }
+        SavedSegmentedProgressIndicator(
+            currentPage = currentPage,
+            pageCount = pageCount,
+            modifier = Modifier.weight(1f)
+        )
+        Text(
+            text = counterText,
+            modifier = Modifier
+                .widthIn(min = 48.dp)
+                .semantics { contentDescription = counterText },
+            style = MaterialTheme.typography.labelLarge,
+            fontWeight = FontWeight.SemiBold,
+            color = SavedImmersiveContent,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
+        Box {
+            IconButton(onClick = { menuExpanded = true }) {
+                Icon(
+                    imageVector = Icons.Filled.MoreVert,
+                    contentDescription = stringResource(R.string.preview_more_options),
+                    tint = SavedImmersiveContent
+                )
+            }
+            DropdownMenu(
+                expanded = menuExpanded,
+                onDismissRequest = { menuExpanded = false }
+            ) {
+                DropdownMenuItem(
+                    text = { Text(text = stringResource(R.string.saved_action_share_media)) },
+                    enabled = !busy,
+                    onClick = {
+                        menuExpanded = false
+                        onShareImage()
+                    }
+                )
+                DropdownMenuItem(
+                    text = { Text(text = stringResource(R.string.saved_action_open_file)) },
+                    enabled = !busy,
+                    onClick = {
+                        menuExpanded = false
+                        onOpenImage()
+                    }
+                )
+                DropdownMenuItem(
+                    text = { Text(text = stringResource(R.string.saved_action_delete_copy)) },
+                    enabled = !busy,
+                    onClick = {
+                        menuExpanded = false
+                        onDeleteImage()
+                    }
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun SavedSegmentedProgressIndicator(
+    currentPage: Int,
+    pageCount: Int,
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier,
+        horizontalArrangement = Arrangement.spacedBy(3.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        repeat(pageCount.coerceAtLeast(1)) { index ->
+            val color = if (index <= currentPage) SavedImmersiveContent else SavedImmersiveContent.copy(alpha = 0.42f)
+            Spacer(
+                modifier = Modifier
+                    .weight(1f)
+                    .heightIn(min = 3.dp)
+                    .background(color, RoundedCornerShape(999.dp))
+            )
+        }
     }
 }
 
@@ -275,6 +684,7 @@ private fun SavedPreviewTopBar(onBack: () -> Unit) {
 private fun SavedPreviewContent(
     image: SavedImage,
     isActivePage: Boolean,
+    onImageZoomChanged: (Boolean) -> Unit,
     deleteState: SavedImageDeleteState,
     shareState: SavedImageShareState,
     openState: SavedImageOpenState,
@@ -309,6 +719,7 @@ private fun SavedPreviewContent(
         SavedPreviewMediaCard(
             image = image,
             isActivePage = isActivePage,
+            onImageZoomChanged = onImageZoomChanged,
             failedToLoad = failedToLoad,
             onImageLoadFailed = { failedToLoad = true }
         )
@@ -337,6 +748,7 @@ private fun SavedPreviewContent(
 private fun SavedPreviewMediaCard(
     image: SavedImage,
     isActivePage: Boolean,
+    onImageZoomChanged: (Boolean) -> Unit,
     failedToLoad: Boolean,
     onImageLoadFailed: () -> Unit
 ) {
@@ -382,11 +794,13 @@ private fun SavedPreviewMediaCard(
                     color = SavedPreviewBody
                 )
             } else {
-                AsyncImage(
+                ZoomableAsyncImage(
                     model = ImageRequest.Builder(LocalContext.current)
                         .data(image.uri)
                         .build(),
                     contentDescription = stringResource(R.string.saved_image_card_description),
+                    resetKey = "${image.uri}-$isActivePage",
+                    onZoomChanged = onImageZoomChanged,
                     contentScale = ContentScale.Fit,
                     modifier = Modifier.fillMaxSize(),
                     onError = { onImageLoadFailed() }

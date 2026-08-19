@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
@@ -19,15 +20,25 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Snackbar
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -47,16 +58,18 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
 import com.guardaestados.ui.theme.LocalGuardaEstadosColors
 import com.guardaestados.R
 import com.guardaestados.domain.status.StatusImage
 import com.guardaestados.domain.status.StatusMediaType
+import com.guardaestados.ui.components.ZoomableAsyncImage
 import com.guardaestados.ui.save.SaveStatusImageUiState
 import com.guardaestados.ui.share.ShareStatusImageUiState
 import com.guardaestados.ui.status.StatusImagePresentationFormatter
@@ -87,6 +100,12 @@ private val PreviewErrorText: Color
     @Composable get() = LocalGuardaEstadosColors.current.danger
 private val PreviewGradient: Brush
     @Composable get() = LocalGuardaEstadosColors.current.primaryGradient
+private val ImmersivePreviewBackground = Color(0xFF050607)
+private val ImmersiveOverlay = Color.Black.copy(alpha = 0.48f)
+private val ImmersiveContent = Color.White
+private val ImmersiveMutedContent = Color.White.copy(alpha = 0.72f)
+private val ImmersiveSnackbarContainer = Color(0xFFEAF3EF)
+private val ImmersiveSnackbarContent = Color(0xFF101615)
 
 @Composable
 fun ImagePreviewScreen(
@@ -101,19 +120,33 @@ fun ImagePreviewScreen(
     modifier: Modifier = Modifier
 ) {
 
+    val activeImage = (previewState as? StatusImagePreviewState.Content)?.image
+    val useImmersivePreview = activeImage?.mediaType == StatusMediaType.Image ||
+        activeImage?.mediaType == StatusMediaType.Video
+    val screenBackground = if (useImmersivePreview) ImmersivePreviewBackground else PreviewBackground
+
     Surface(
         modifier = modifier.fillMaxSize(),
-        color = PreviewBackground
+        color = screenBackground
     ) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .statusBarsPadding()
-                .padding(horizontal = 16.dp, vertical = 18.dp)
-                .navigationBarsPadding(),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+                .then(
+                    if (useImmersivePreview) {
+                        Modifier
+                    } else {
+                        Modifier
+                            .statusBarsPadding()
+                            .padding(horizontal = 16.dp, vertical = 18.dp)
+                            .navigationBarsPadding()
+                    }
+                ),
+            verticalArrangement = if (useImmersivePreview) Arrangement.Top else Arrangement.spacedBy(16.dp)
         ) {
-            PreviewTopBar(onBack = onBack)
+            if (!useImmersivePreview) {
+                PreviewTopBar(onBack = onBack)
+            }
 
             when (previewState) {
                 StatusImagePreviewState.Loading -> PreviewMessageCard(
@@ -139,10 +172,13 @@ fun ImagePreviewScreen(
                 is StatusImagePreviewState.Content -> PreviewPagerContent(
                     images = previewItems.ifEmpty { listOf(previewState.image) },
                     initialIndex = initialIndex,
+                    immersivePreview = previewState.image.mediaType == StatusMediaType.Image ||
+                        previewState.image.mediaType == StatusMediaType.Video,
                     saveState = saveState,
                     shareState = shareState,
                     onSaveImage = onSaveImage,
-                    onShareImage = onShareImage
+                    onShareImage = onShareImage,
+                    onBack = onBack
                 )
             }
         }
@@ -153,10 +189,12 @@ fun ImagePreviewScreen(
 private fun ColumnScope.PreviewPagerContent(
     images: List<StatusImage>,
     initialIndex: Int,
+    immersivePreview: Boolean,
     saveState: SaveStatusImageUiState,
     shareState: ShareStatusImageUiState,
     onSaveImage: (StatusImage) -> Unit,
-    onShareImage: (StatusImage) -> Unit
+    onShareImage: (StatusImage) -> Unit,
+    onBack: () -> Unit
 ) {
     if (images.isEmpty()) {
         PreviewMessageCard(
@@ -169,6 +207,8 @@ private fun ColumnScope.PreviewPagerContent(
     val pageKeys = remember(images) { images.joinToString(separator = "|") { image -> image.uri.toString() } }
     val startPage = initialIndex.coerceIn(images.indices)
     val pagerState = rememberPagerState(initialPage = startPage, pageCount = { images.size })
+    var activePageZoomed by remember(pageKeys) { mutableStateOf(false) }
+    var activePageVideoSeeking by remember(pageKeys) { mutableStateOf(false) }
 
     LaunchedEffect(pageKeys, startPage) {
         if (pagerState.currentPage != startPage) {
@@ -176,31 +216,338 @@ private fun ColumnScope.PreviewPagerContent(
         }
     }
 
-    Text(
-        text = stringResource(R.string.preview_page_indicator, pagerState.currentPage + 1, images.size),
-        style = MaterialTheme.typography.labelLarge,
-        fontWeight = FontWeight.SemiBold,
-        color = PreviewBody
-    )
+    LaunchedEffect(pageKeys, pagerState.currentPage) {
+        activePageZoomed = false
+        activePageVideoSeeking = false
+    }
 
-    HorizontalPager(
-        state = pagerState,
-        modifier = Modifier
-            .fillMaxWidth()
-            .weight(1f),
-        userScrollEnabled = images.size > 1
-    ) { page ->
-        PreviewContent(
-            image = images[page],
-            isActivePage = page == pagerState.currentPage,
-            saveState = saveState,
-            shareState = shareState,
-            onSaveImage = onSaveImage,
-            onShareImage = onShareImage,
+    if (immersivePreview) {
+        val snackbarHostState = remember { SnackbarHostState() }
+        var saveSnackbarRequested by remember { mutableStateOf(false) }
+        var saveSnackbarForVideo by remember { mutableStateOf(false) }
+        var shareSnackbarRequested by remember { mutableStateOf(false) }
+        val saveSuccessMessage = stringResource(R.string.preview_snackbar_image_saved)
+        val saveVideoSuccessMessage = stringResource(R.string.preview_snackbar_video_saved)
+        val saveDuplicateMessage = stringResource(R.string.save_status_duplicate_image)
+        val saveDuplicateVideoMessage = stringResource(R.string.save_status_duplicate_video)
+        val saveDestinationPermissionLostMessage = stringResource(R.string.save_status_destination_permission_lost)
+        val saveDestinationUnavailableMessage = stringResource(R.string.save_status_destination_error)
+        val saveErrorMessage = stringResource(R.string.save_status_error)
+        val shareNoCompatibleAppMessage = stringResource(R.string.share_status_no_app)
+        val shareErrorMessage = stringResource(R.string.share_status_error)
+
+        LaunchedEffect(saveState) {
+            if (!saveSnackbarRequested) return@LaunchedEffect
+            val message = when (saveState) {
+                SaveStatusImageUiState.Idle,
+                SaveStatusImageUiState.Saving -> null
+                SaveStatusImageUiState.Duplicate -> if (saveSnackbarForVideo) saveDuplicateVideoMessage else saveDuplicateMessage
+                SaveStatusImageUiState.DestinationPermissionLost -> saveDestinationPermissionLostMessage
+                SaveStatusImageUiState.DestinationUnavailable -> saveDestinationUnavailableMessage
+                SaveStatusImageUiState.Error -> saveErrorMessage
+                is SaveStatusImageUiState.Success -> if (saveSnackbarForVideo) saveVideoSuccessMessage else saveSuccessMessage
+            }
+            if (message != null) {
+                saveSnackbarRequested = false
+                snackbarHostState.currentSnackbarData?.dismiss()
+                snackbarHostState.showSnackbar(message)
+            }
+        }
+
+        LaunchedEffect(shareState) {
+            if (!shareSnackbarRequested) return@LaunchedEffect
+            val message = when (shareState) {
+                ShareStatusImageUiState.Idle,
+                ShareStatusImageUiState.Sharing -> null
+                ShareStatusImageUiState.ChooserOpened -> {
+                    shareSnackbarRequested = false
+                    null
+                }
+                ShareStatusImageUiState.NoCompatibleApp -> shareNoCompatibleAppMessage
+                ShareStatusImageUiState.Error -> shareErrorMessage
+            }
+            if (message != null) {
+                shareSnackbarRequested = false
+                snackbarHostState.currentSnackbarData?.dismiss()
+                snackbarHostState.showSnackbar(message)
+            }
+        }
+
+        Box(
             modifier = Modifier
-                .fillMaxSize()
-                .verticalScroll(rememberScrollState())
+                .fillMaxWidth()
+                .weight(1f)
+                .background(ImmersivePreviewBackground)
+        ) {
+            HorizontalPager(
+                state = pagerState,
+                modifier = Modifier.fillMaxSize(),
+                userScrollEnabled = images.size > 1 && !activePageZoomed && !activePageVideoSeeking
+            ) { page ->
+                val pageImage = images[page]
+                if (pageImage.mediaType == StatusMediaType.Video) {
+                    ImmersiveVideoPage(
+                        image = pageImage,
+                        isActivePage = page == pagerState.currentPage,
+                        onSeekInteractionChanged = { seeking ->
+                            if (page == pagerState.currentPage) {
+                                activePageVideoSeeking = seeking
+                            }
+                        }
+                    )
+                } else {
+                    ImmersiveImagePage(
+                        image = pageImage,
+                        isActivePage = page == pagerState.currentPage,
+                        onImageZoomChanged = { zoomed ->
+                            if (page == pagerState.currentPage) {
+                                activePageZoomed = zoomed
+                            }
+                        }
+                    )
+                }
+            }
+
+            ImmersiveStatusTopBar(
+                currentPage = pagerState.currentPage,
+                pageCount = images.size,
+                saveState = saveState,
+                shareState = shareState,
+                onBack = onBack,
+                onSaveImage = {
+                    saveSnackbarForVideo = images[pagerState.currentPage].mediaType == StatusMediaType.Video
+                    saveSnackbarRequested = true
+                    onSaveImage(images[pagerState.currentPage])
+                },
+                onShareImage = {
+                    shareSnackbarRequested = true
+                    onShareImage(images[pagerState.currentPage])
+                },
+                modifier = Modifier.align(Alignment.TopCenter)
+            )
+
+            SnackbarHost(
+                hostState = snackbarHostState,
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .navigationBarsPadding()
+                    .padding(horizontal = 16.dp, vertical = 18.dp),
+                snackbar = { snackbarData ->
+                    Snackbar(
+                        snackbarData = snackbarData,
+                        containerColor = ImmersiveSnackbarContainer,
+                        contentColor = ImmersiveSnackbarContent
+                    )
+                }
+            )
+        }
+    } else {
+        Text(
+            text = stringResource(R.string.preview_page_indicator, pagerState.currentPage + 1, images.size),
+            style = MaterialTheme.typography.labelLarge,
+            fontWeight = FontWeight.SemiBold,
+            color = PreviewBody
         )
+
+        HorizontalPager(
+            state = pagerState,
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f),
+            userScrollEnabled = images.size > 1 && !activePageZoomed
+        ) { page ->
+            PreviewContent(
+                image = images[page],
+                isActivePage = page == pagerState.currentPage,
+                onImageZoomChanged = { zoomed ->
+                    if (page == pagerState.currentPage) {
+                        activePageZoomed = zoomed
+                    }
+                },
+                saveState = saveState,
+                shareState = shareState,
+                onSaveImage = onSaveImage,
+                onShareImage = onShareImage,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState())
+            )
+        }
+    }
+}
+
+@Composable
+private fun ImmersiveImagePage(
+    image: StatusImage,
+    isActivePage: Boolean,
+    onImageZoomChanged: (Boolean) -> Unit
+) {
+    var failedToLoad by remember(image.uri) { mutableStateOf(false) }
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(ImmersivePreviewBackground),
+        contentAlignment = Alignment.Center
+    ) {
+        if (failedToLoad) {
+            Text(
+                text = stringResource(R.string.preview_load_error_body),
+                modifier = Modifier.padding(24.dp),
+                style = MaterialTheme.typography.bodyLarge,
+                color = ImmersiveMutedContent
+            )
+        } else {
+            ZoomableAsyncImage(
+                model = ImageRequest.Builder(LocalContext.current)
+                    .data(image.uri)
+                    .build(),
+                contentDescription = stringResource(R.string.preview_image_content_description),
+                resetKey = "${image.uri}-$isActivePage",
+                onZoomChanged = onImageZoomChanged,
+                contentScale = ContentScale.Fit,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(ImmersivePreviewBackground),
+                onError = { failedToLoad = true }
+            )
+        }
+    }
+}
+
+@Composable
+private fun ImmersiveVideoPage(
+    image: StatusImage,
+    isActivePage: Boolean,
+    onSeekInteractionChanged: (Boolean) -> Unit
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(ImmersivePreviewBackground),
+        contentAlignment = Alignment.Center
+    ) {
+        if (isActivePage) {
+            VideoPlayerPreview(
+                uri = image.uri,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(ImmersivePreviewBackground),
+                showPlaybackStatus = true,
+                errorMessage = stringResource(R.string.preview_video_load_error_body),
+                immersiveControls = true,
+                onSeekInteractionChanged = onSeekInteractionChanged
+            )
+        } else {
+            Icon(
+                painter = painterResource(R.drawable.ic_play_arrow),
+                contentDescription = stringResource(R.string.preview_video_inactive_description),
+                modifier = Modifier.size(56.dp),
+                tint = ImmersiveMutedContent
+            )
+        }
+    }
+}
+
+@Composable
+private fun ImmersiveStatusTopBar(
+    currentPage: Int,
+    pageCount: Int,
+    saveState: SaveStatusImageUiState,
+    shareState: ShareStatusImageUiState,
+    onBack: () -> Unit,
+    onSaveImage: () -> Unit,
+    onShareImage: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    var menuExpanded by remember { mutableStateOf(false) }
+    val counterText = stringResource(R.string.preview_page_indicator, currentPage + 1, pageCount)
+
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .background(ImmersiveOverlay)
+            .statusBarsPadding()
+            .padding(start = 6.dp, top = 6.dp, end = 6.dp, bottom = 10.dp),
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        IconButton(onClick = onBack) {
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                contentDescription = stringResource(R.string.preview_action_back),
+                tint = ImmersiveContent
+            )
+        }
+        SegmentedProgressIndicator(
+            currentPage = currentPage,
+            pageCount = pageCount,
+            modifier = Modifier.weight(1f)
+        )
+        Text(
+            text = counterText,
+            modifier = Modifier
+                .widthIn(min = 48.dp)
+                .semantics { contentDescription = counterText },
+            style = MaterialTheme.typography.labelLarge,
+            fontWeight = FontWeight.SemiBold,
+            color = ImmersiveContent,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
+        Box {
+            IconButton(onClick = { menuExpanded = true }) {
+                Icon(
+                    imageVector = Icons.Filled.MoreVert,
+                    contentDescription = stringResource(R.string.preview_more_options),
+                    tint = ImmersiveContent
+                )
+            }
+            DropdownMenu(
+                expanded = menuExpanded,
+                onDismissRequest = { menuExpanded = false }
+            ) {
+                DropdownMenuItem(
+                    text = { Text(text = stringResource(R.string.preview_action_save_copy)) },
+                    enabled = saveState != SaveStatusImageUiState.Saving,
+                    onClick = {
+                        menuExpanded = false
+                        onSaveImage()
+                    }
+                )
+                DropdownMenuItem(
+                    text = { Text(text = stringResource(R.string.preview_action_share_short)) },
+                    enabled = shareState != ShareStatusImageUiState.Sharing,
+                    onClick = {
+                        menuExpanded = false
+                        onShareImage()
+                    }
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun SegmentedProgressIndicator(
+    currentPage: Int,
+    pageCount: Int,
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier,
+        horizontalArrangement = Arrangement.spacedBy(3.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        repeat(pageCount.coerceAtLeast(1)) { index ->
+            val color = if (index <= currentPage) ImmersiveContent else ImmersiveContent.copy(alpha = 0.42f)
+            Spacer(
+                modifier = Modifier
+                    .weight(1f)
+                    .heightIn(min = 3.dp)
+                    .background(color, RoundedCornerShape(999.dp))
+            )
+        }
     }
 }
 
@@ -242,6 +589,7 @@ private fun PreviewTopBar(onBack: () -> Unit) {
 private fun PreviewContent(
     image: StatusImage,
     isActivePage: Boolean,
+    onImageZoomChanged: (Boolean) -> Unit,
     saveState: SaveStatusImageUiState,
     shareState: ShareStatusImageUiState,
     onSaveImage: (StatusImage) -> Unit,
@@ -257,6 +605,7 @@ private fun PreviewContent(
         PreviewMediaCard(
             image = image,
             isActivePage = isActivePage,
+            onImageZoomChanged = onImageZoomChanged,
             failedToLoad = failedToLoad,
             onImageLoadFailed = { failedToLoad = true }
         )
@@ -277,6 +626,7 @@ private fun PreviewContent(
 private fun PreviewMediaCard(
     image: StatusImage,
     isActivePage: Boolean,
+    onImageZoomChanged: (Boolean) -> Unit,
     failedToLoad: Boolean,
     onImageLoadFailed: () -> Unit
 ) {
@@ -321,11 +671,13 @@ private fun PreviewMediaCard(
                     color = Color.White.copy(alpha = 0.86f)
                 )
             } else {
-                AsyncImage(
+                ZoomableAsyncImage(
                     model = ImageRequest.Builder(LocalContext.current)
                         .data(image.uri)
                         .build(),
                     contentDescription = stringResource(R.string.preview_image_content_description),
+                    resetKey = "${image.uri}-$isActivePage",
+                    onZoomChanged = onImageZoomChanged,
                     contentScale = ContentScale.Fit,
                     modifier = Modifier
                         .fillMaxSize()

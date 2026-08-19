@@ -76,6 +76,8 @@
     <string name="preview_load_error_body">No se pudo cargar este archivo.</string>
     <string name="preview_page_indicator">%1$d de %2$d</string>
     <string name="preview_video_inactive_description">Video en otra página</string>
+    <string name="preview_more_options">Más opciones</string>
+    <string name="preview_action_save_copy">Guardar copia</string>
     <string name="preview_image_description">Imagen ampliada de %1$s</string>
     <string name="preview_image_content_description">Imagen de estado</string>
     <string name="preview_image_status_label">Imagen de estado</string>
@@ -84,7 +86,14 @@
     <string name="preview_info_chip">%1$s: %2$s</string>
     <string name="preview_original_unchanged_notice">Se guarda o comparte una copia. El archivo original no se modifica.</string>
     <string name="preview_video_load_error_body">No se pudo reproducir este video.</string>
+    <string name="preview_video_play">Reproducir</string>
+    <string name="preview_video_pause">Pausar</string>
+    <string name="preview_video_progress">Progreso del video</string>
+    <string name="preview_video_time">%1$s / %2$s</string>
     <string name="save_status_saving">Guardando copia...</string>
+    <string name="preview_snackbar_image_saved">Imagen guardada en EstadoGo</string>
+    <string name="preview_snackbar_video_saved">Video guardado en EstadoGo</string>
+    <string name="save_status_duplicate_image">Esta imagen ya fue guardada en EstadoGo.</string>
     <string name="save_status_success">Copia guardada como %1$s.</string>
     <string name="save_status_error">No se pudo guardar la copia. Probá de nuevo.</string>
     <string name="save_status_destination_error">No se pudo escribir en la carpeta de destino. Revisá la carpeta en Configuración.</string>
@@ -270,6 +279,8 @@
     <string name="saved_origin_status_copy">Copia guardada</string>
     <string name="saved_origin_video_part">Parte generada</string>
     <string name="saved_action_open_with">Abrir con otra app</string>
+    <string name="saved_action_open_file">Abrir archivo</string>
+    <string name="saved_action_delete_copy">Eliminar copia</string>
     <string name="saved_action_view_details">Ver detalles</string>
     <string name="saved_action_hide_details">Ocultar detalles</string>
     <string name="saved_detail_origin_label">Origen</string>
