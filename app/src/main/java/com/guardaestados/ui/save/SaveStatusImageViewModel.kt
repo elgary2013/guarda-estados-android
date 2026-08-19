@@ -1,4 +1,4 @@
-﻿package com.guardaestados.ui.save
+package com.guardaestados.ui.save
 
 import android.content.Context
 import androidx.lifecycle.ViewModel
@@ -26,6 +26,8 @@ class SaveStatusImageViewModel(
             _uiState.value = SaveStatusImageUiState.Saving
             _uiState.value = when (val result = saveStatusImage.execute(image)) {
                 SaveStatusImageResult.Duplicate -> SaveStatusImageUiState.Duplicate
+                SaveStatusImageResult.DestinationPermissionLost -> SaveStatusImageUiState.DestinationPermissionLost
+                SaveStatusImageResult.DestinationUnavailable -> SaveStatusImageUiState.DestinationUnavailable
                 SaveStatusImageResult.Error -> SaveStatusImageUiState.Error
                 is SaveStatusImageResult.Success -> SaveStatusImageUiState.Success(result.displayName)
             }
@@ -37,6 +39,8 @@ sealed interface SaveStatusImageUiState {
     data object Idle : SaveStatusImageUiState
     data object Saving : SaveStatusImageUiState
     data object Duplicate : SaveStatusImageUiState
+    data object DestinationPermissionLost : SaveStatusImageUiState
+    data object DestinationUnavailable : SaveStatusImageUiState
     data class Success(val displayName: String) : SaveStatusImageUiState
     data object Error : SaveStatusImageUiState
 }

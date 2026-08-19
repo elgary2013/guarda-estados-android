@@ -1,4 +1,4 @@
-﻿package com.guardaestados.ui.saved
+package com.guardaestados.ui.saved
 
 import android.content.Context
 import android.content.IntentSender
@@ -19,7 +19,9 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class SavedImagesViewModel(
     private val loadSavedImages: LoadSavedImagesUseCase,
@@ -33,11 +35,17 @@ class SavedImagesViewModel(
     private val _deleteState = MutableStateFlow<SavedImageDeleteState>(SavedImageDeleteState.Idle)
     val deleteState: StateFlow<SavedImageDeleteState> = _deleteState.asStateFlow()
 
+    private val _isRefreshing = MutableStateFlow(false)
+    val isRefreshing: StateFlow<Boolean> = _isRefreshing.asStateFlow()
+
     private val _shareState = MutableStateFlow<SavedImageShareState>(SavedImageShareState.Idle)
     val shareState: StateFlow<SavedImageShareState> = _shareState.asStateFlow()
 
     private val _openState = MutableStateFlow<SavedImageOpenState>(SavedImageOpenState.Idle)
     val openState: StateFlow<SavedImageOpenState> = _openState.asStateFlow()
+
+    private val _selectedPreviewImage = MutableStateFlow<SavedImage?>(null)
+    val selectedPreviewImage: StateFlow<SavedImage?> = _selectedPreviewImage.asStateFlow()
 
     private var pendingSystemConfirmationImage: SavedImage? = null
     private var nextSystemConfirmationRequestId = 0L
@@ -47,10 +55,25 @@ class SavedImagesViewModel(
     }
 
     fun refresh() {
+        if (_isRefreshing.value) return
+
         viewModelScope.launch(Dispatchers.IO) {
-            _uiState.value = SavedImagesState.Loading
-            _uiState.value = loadSavedImages.execute()
+            _isRefreshing.value = true
+            if (_uiState.value !is SavedImagesState.Content) {
+                _uiState.value = SavedImagesState.Loading
+            }
+            try {
+                _uiState.value = loadSavedImages.execute()
+            } finally {
+                withContext(NonCancellable) {
+                    _isRefreshing.value = false
+                }
+            }
         }
+    }
+
+    fun selectForPreview(image: SavedImage) {
+        _selectedPreviewImage.value = image
     }
 
     fun delete(image: SavedImage) {
@@ -149,7 +172,7 @@ class SavedImagesViewModel(
         }
     }
 
-    private fun refreshSavedImagesAfterDelete() {
+    private suspend fun refreshSavedImagesAfterDelete() {
         _uiState.value = loadSavedImages.execute()
     }
 }

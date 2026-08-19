@@ -1,25 +1,38 @@
-﻿package com.guardaestados.ui.screens
+package com.guardaestados.ui.screens
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -27,14 +40,20 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
+import com.guardaestados.ui.theme.LocalGuardaEstadosColors
 import com.guardaestados.R
 import com.guardaestados.domain.status.StatusImage
 import com.guardaestados.domain.status.StatusMediaType
@@ -43,14 +62,37 @@ import com.guardaestados.ui.share.ShareStatusImageUiState
 import com.guardaestados.ui.status.StatusImagePresentationFormatter
 import com.guardaestados.ui.status.StatusImagePreviewState
 import com.guardaestados.ui.video.VideoPlayerPreview
-import com.guardaestados.ui.theme.BrandGradientButton
-import com.guardaestados.ui.theme.brandGradientBorder
 import java.text.DateFormat
 import java.util.Date
+
+private val PreviewBackground: Color
+    @Composable get() = LocalGuardaEstadosColors.current.background
+private val PreviewSurface: Color
+    @Composable get() = LocalGuardaEstadosColors.current.surface
+private val PreviewTitle: Color
+    @Composable get() = LocalGuardaEstadosColors.current.title
+private val PreviewBody: Color
+    @Composable get() = LocalGuardaEstadosColors.current.body
+private val PreviewBorder: Color
+    @Composable get() = LocalGuardaEstadosColors.current.border
+private val PreviewActive: Color
+    @Composable get() = LocalGuardaEstadosColors.current.active
+private val PreviewMutedSurface: Color
+    @Composable get() = LocalGuardaEstadosColors.current.surfaceStrong
+private val PreviewErrorSurface: Color
+    @Composable get() = LocalGuardaEstadosColors.current.dangerSoft
+private val PreviewErrorBorder: Color
+    @Composable get() = LocalGuardaEstadosColors.current.dangerBorder
+private val PreviewErrorText: Color
+    @Composable get() = LocalGuardaEstadosColors.current.danger
+private val PreviewGradient: Brush
+    @Composable get() = LocalGuardaEstadosColors.current.primaryGradient
 
 @Composable
 fun ImagePreviewScreen(
     previewState: StatusImagePreviewState,
+    previewItems: List<StatusImage>,
+    initialIndex: Int,
     saveState: SaveStatusImageUiState,
     shareState: ShareStatusImageUiState,
     onSaveImage: (StatusImage) -> Unit,
@@ -58,26 +100,20 @@ fun ImagePreviewScreen(
     onBack: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+
     Surface(
         modifier = modifier.fillMaxSize(),
-        color = MaterialTheme.colorScheme.background
+        color = PreviewBackground
     ) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .verticalScroll(rememberScrollState())
-                .padding(20.dp),
+                .statusBarsPadding()
+                .padding(horizontal = 16.dp, vertical = 18.dp)
+                .navigationBarsPadding(),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Button(onClick = onBack) {
-                Text(text = stringResource(R.string.preview_action_back))
-            }
-
-            Text(
-                text = stringResource(R.string.preview_title),
-                style = MaterialTheme.typography.headlineMedium,
-                color = MaterialTheme.colorScheme.onBackground
-            )
+            PreviewTopBar(onBack = onBack)
 
             when (previewState) {
                 StatusImagePreviewState.Loading -> PreviewMessageCard(
@@ -100,8 +136,9 @@ fun ImagePreviewScreen(
                     body = stringResource(R.string.preview_unavailable_body)
                 )
 
-                is StatusImagePreviewState.Content -> PreviewContent(
-                    image = previewState.image,
+                is StatusImagePreviewState.Content -> PreviewPagerContent(
+                    images = previewItems.ifEmpty { listOf(previewState.image) },
+                    initialIndex = initialIndex,
                     saveState = saveState,
                     shareState = shareState,
                     onSaveImage = onSaveImage,
@@ -113,236 +150,466 @@ fun ImagePreviewScreen(
 }
 
 @Composable
+private fun ColumnScope.PreviewPagerContent(
+    images: List<StatusImage>,
+    initialIndex: Int,
+    saveState: SaveStatusImageUiState,
+    shareState: ShareStatusImageUiState,
+    onSaveImage: (StatusImage) -> Unit,
+    onShareImage: (StatusImage) -> Unit
+) {
+    if (images.isEmpty()) {
+        PreviewMessageCard(
+            title = stringResource(R.string.preview_unavailable_title),
+            body = stringResource(R.string.preview_unavailable_body)
+        )
+        return
+    }
+
+    val pageKeys = remember(images) { images.joinToString(separator = "|") { image -> image.uri.toString() } }
+    val startPage = initialIndex.coerceIn(images.indices)
+    val pagerState = rememberPagerState(initialPage = startPage, pageCount = { images.size })
+
+    LaunchedEffect(pageKeys, startPage) {
+        if (pagerState.currentPage != startPage) {
+            pagerState.scrollToPage(startPage)
+        }
+    }
+
+    Text(
+        text = stringResource(R.string.preview_page_indicator, pagerState.currentPage + 1, images.size),
+        style = MaterialTheme.typography.labelLarge,
+        fontWeight = FontWeight.SemiBold,
+        color = PreviewBody
+    )
+
+    HorizontalPager(
+        state = pagerState,
+        modifier = Modifier
+            .fillMaxWidth()
+            .weight(1f),
+        userScrollEnabled = images.size > 1
+    ) { page ->
+        PreviewContent(
+            image = images[page],
+            isActivePage = page == pagerState.currentPage,
+            saveState = saveState,
+            shareState = shareState,
+            onSaveImage = onSaveImage,
+            onShareImage = onShareImage,
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+        )
+    }
+}
+
+@Composable
+private fun PreviewTopBar(onBack: () -> Unit) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Surface(
+            shape = RoundedCornerShape(999.dp),
+            color = PreviewSurface,
+            contentColor = PreviewActive,
+            border = BorderStroke(1.dp, PreviewBorder),
+            shadowElevation = 0.dp
+        ) {
+            TextButton(onClick = onBack) {
+                Text(
+                    text = stringResource(R.string.preview_action_back),
+                    color = PreviewActive,
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
+        }
+        Text(
+            text = stringResource(R.string.preview_title),
+            modifier = Modifier.weight(1f),
+            style = MaterialTheme.typography.headlineSmall,
+            fontWeight = FontWeight.Bold,
+            color = PreviewTitle,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
+    }
+}
+
+@Composable
 private fun PreviewContent(
+    image: StatusImage,
+    isActivePage: Boolean,
+    saveState: SaveStatusImageUiState,
+    shareState: ShareStatusImageUiState,
+    onSaveImage: (StatusImage) -> Unit,
+    onShareImage: (StatusImage) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    var failedToLoad by remember(image.uri) { mutableStateOf(false) }
+
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(14.dp)
+    ) {
+        PreviewMediaCard(
+            image = image,
+            isActivePage = isActivePage,
+            failedToLoad = failedToLoad,
+            onImageLoadFailed = { failedToLoad = true }
+        )
+
+        MediaInfoChips(image = image)
+
+        PreviewActionsCard(
+            image = image,
+            saveState = saveState,
+            shareState = shareState,
+            onSaveImage = onSaveImage,
+            onShareImage = onShareImage
+        )
+    }
+}
+
+@Composable
+private fun PreviewMediaCard(
+    image: StatusImage,
+    isActivePage: Boolean,
+    failedToLoad: Boolean,
+    onImageLoadFailed: () -> Unit
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .shadow(6.dp, RoundedCornerShape(24.dp), clip = false),
+        colors = CardDefaults.cardColors(containerColor = PreviewSurface),
+        border = BorderStroke(1.dp, PreviewBorder),
+        shape = RoundedCornerShape(24.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+    ) {
+        Box(
+            modifier = Modifier
+                .previewMediaFrame(image)
+                .padding(8.dp)
+                .clip(RoundedCornerShape(20.dp))
+                .background(Color.Black),
+            contentAlignment = Alignment.Center
+        ) {
+            if (image.mediaType == StatusMediaType.Video) {
+                if (isActivePage) {
+                    VideoPlayerPreview(
+                        uri = image.uri,
+                        modifier = Modifier.fillMaxSize(),
+                        showPlaybackStatus = true,
+                        errorMessage = stringResource(R.string.preview_video_load_error_body)
+                    )
+                } else {
+                    Icon(
+                        painter = painterResource(R.drawable.ic_play_arrow),
+                        contentDescription = stringResource(R.string.preview_video_inactive_description),
+                        modifier = Modifier.size(46.dp),
+                        tint = Color.White.copy(alpha = 0.82f)
+                    )
+                }
+            } else if (failedToLoad) {
+                Text(
+                    text = stringResource(R.string.preview_load_error_body),
+                    modifier = Modifier.padding(20.dp),
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = Color.White.copy(alpha = 0.86f)
+                )
+            } else {
+                AsyncImage(
+                    model = ImageRequest.Builder(LocalContext.current)
+                        .data(image.uri)
+                        .build(),
+                    contentDescription = stringResource(R.string.preview_image_content_description),
+                    contentScale = ContentScale.Fit,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Color.Black),
+                    onError = { onImageLoadFailed() }
+                )
+            }
+        }
+    }
+}
+
+private fun Modifier.previewMediaFrame(image: StatusImage): Modifier {
+    return if (image.mediaType == StatusMediaType.Image) {
+        val width = image.widthPixels?.takeIf { it > 0 }
+        val height = image.heightPixels?.takeIf { it > 0 }
+        if (width != null && height != null) {
+            fillMaxWidth()
+                .aspectRatio(width.toFloat() / height.toFloat())
+                .heightIn(min = 220.dp, max = 720.dp)
+        } else {
+            fillMaxWidth().heightIn(min = 420.dp, max = 720.dp)
+        }
+    } else {
+        fillMaxWidth().heightIn(min = 380.dp, max = 660.dp)
+    }
+}
+@Composable
+private fun MediaInfoChips(image: StatusImage) {
+    val formatter = remember { StatusImagePresentationFormatter() }
+    val formattedDate = image.lastModifiedMillis?.formatDate()
+    val formatValue = formatter.formatValue(image.mimeType)
+    val typeText = stringResource(
+        if (image.mediaType == StatusMediaType.Video) R.string.preview_video_status_label else R.string.preview_image_status_label
+    )
+
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            InfoChip(text = typeText, iconRes = if (image.mediaType == StatusMediaType.Video) R.drawable.ic_video else R.drawable.ic_image)
+            formatValue?.let { value ->
+                InfoChip(text = stringResource(R.string.preview_info_chip, stringResource(R.string.status_file_format_label), value))
+            }
+        }
+        formattedDate?.let { date ->
+            Row(modifier = Modifier.fillMaxWidth()) {
+                InfoChip(text = stringResource(R.string.preview_media_date, date))
+            }
+        }
+    }
+}
+
+@Composable
+private fun InfoChip(
+    text: String,
+    iconRes: Int? = null
+) {
+    Surface(
+        shape = RoundedCornerShape(999.dp),
+        color = PreviewSurface,
+        contentColor = PreviewTitle,
+        border = BorderStroke(1.dp, PreviewBorder),
+        shadowElevation = 0.dp
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 7.dp),
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            iconRes?.let { res ->
+                Icon(
+                    painter = painterResource(res),
+                    contentDescription = null,
+                    modifier = Modifier.size(16.dp),
+                    tint = PreviewActive
+                )
+            }
+            Text(
+                text = text,
+                style = MaterialTheme.typography.labelMedium,
+                color = PreviewTitle,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
+    }
+}
+
+@Composable
+private fun PreviewActionsCard(
     image: StatusImage,
     saveState: SaveStatusImageUiState,
     shareState: ShareStatusImageUiState,
     onSaveImage: (StatusImage) -> Unit,
     onShareImage: (StatusImage) -> Unit
 ) {
-    var failedToLoad by remember(image.uri) { mutableStateOf(false) }
-
     Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
-        ),
-        border = brandGradientBorder(),
-        shape = RoundedCornerShape(8.dp)
+        modifier = Modifier
+            .fillMaxWidth()
+            .animateContentSize(),
+        colors = CardDefaults.cardColors(containerColor = PreviewSurface),
+        border = BorderStroke(1.dp, PreviewBorder),
+        shape = RoundedCornerShape(20.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Column(
             modifier = Modifier.padding(12.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp)
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .heightIn(min = 300.dp, max = 620.dp)
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(MaterialTheme.colorScheme.surfaceVariant),
-                contentAlignment = Alignment.Center
-            ) {
-                if (image.mediaType == StatusMediaType.Video) {
-                    VideoPlayerPreview(
-                        uri = image.uri,
-                        modifier = Modifier.fillMaxSize()
-                    )
-                } else if (failedToLoad) {
-                    Text(
-                        text = stringResource(R.string.preview_load_error_body),
-                        modifier = Modifier.padding(20.dp),
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                } else {
-                    AsyncImage(
-                        model = ImageRequest.Builder(LocalContext.current)
-                            .data(image.uri)
-                            .build(),
-                        contentDescription = stringResource(
-                            R.string.preview_image_description,
-                            image.displayTitle()
-                        ),
-                        contentScale = ContentScale.Fit,
-                        modifier = Modifier.fillMaxSize(),
-                        onError = { failedToLoad = true }
-                    )
-                }
-            }
-
-            Row(
+            Column(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                Button(
+                GradientActionButton(
+                    text = stringResource(R.string.preview_action_save_short),
+                    iconRes = R.drawable.ic_nav_saved,
                     onClick = { onSaveImage(image) },
                     enabled = saveState != SaveStatusImageUiState.Saving,
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Text(text = stringResource(if (image.mediaType == StatusMediaType.Video) R.string.preview_action_save_video else R.string.preview_action_save_image))
-                }
+                    modifier = Modifier.fillMaxWidth()
+                )
 
-                Button(
+                SecondaryActionButton(
+                    text = stringResource(R.string.preview_action_share_short),
+                    iconRes = R.drawable.ic_share,
                     onClick = { onShareImage(image) },
                     enabled = shareState != ShareStatusImageUiState.Sharing,
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Text(text = stringResource(if (image.mediaType == StatusMediaType.Video) R.string.preview_action_share_video else R.string.preview_action_share_image))
-                }
+                    modifier = Modifier.fillMaxWidth()
+                )
             }
 
-            SaveStatusMessage(saveState = saveState)
-            ShareStatusMessage(shareState = shareState)
-            FileDetailsCard(image = image)
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                SaveStatusMessage(saveState = saveState)
+                ShareStatusMessage(shareState = shareState)
+                PreviewOriginalNotice()
+            }
         }
+    }
+}
+
+@Composable
+private fun PreviewOriginalNotice() {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(14.dp),
+        color = PreviewMutedSurface,
+        border = BorderStroke(1.dp, PreviewBorder),
+        contentColor = PreviewBody,
+        shadowElevation = 0.dp
+    ) {
+        Text(
+            text = stringResource(R.string.preview_original_unchanged_notice),
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+            style = MaterialTheme.typography.bodyMedium,
+            color = PreviewBody
+        )
+    }
+}
+@Composable
+private fun GradientActionButton(
+    text: String,
+    iconRes: Int,
+    onClick: () -> Unit,
+    enabled: Boolean,
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier
+            .heightIn(min = 54.dp)
+            .clip(RoundedCornerShape(16.dp))
+            .background(if (enabled) PreviewGradient else Brush.horizontalGradient(listOf(PreviewBorder, PreviewBorder)))
+            .clickable(enabled = enabled, role = Role.Button, onClick = onClick)
+            .padding(horizontal = 16.dp, vertical = 14.dp),
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(
+            painter = painterResource(iconRes),
+            contentDescription = null,
+            modifier = Modifier.size(20.dp),
+            tint = Color.White
+        )
+        Text(
+            modifier = Modifier.padding(start = 8.dp),
+            text = text,
+            style = MaterialTheme.typography.labelLarge,
+            fontWeight = FontWeight.Bold,
+            color = Color.White,
+            maxLines = 1
+        )
+    }
+}
+
+@Composable
+private fun SecondaryActionButton(
+    text: String,
+    iconRes: Int,
+    onClick: () -> Unit,
+    enabled: Boolean,
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier
+            .heightIn(min = 54.dp)
+            .clip(RoundedCornerShape(16.dp))
+            .background(if (enabled) PreviewMutedSurface else PreviewMutedSurface.copy(alpha = 0.54f))
+            .border(1.dp, if (enabled) PreviewActive.copy(alpha = 0.72f) else PreviewBorder, RoundedCornerShape(16.dp))
+            .clickable(enabled = enabled, role = Role.Button, onClick = onClick)
+            .padding(horizontal = 16.dp, vertical = 14.dp),
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(
+            painter = painterResource(iconRes),
+            contentDescription = null,
+            modifier = Modifier.size(20.dp),
+            tint = if (enabled) PreviewActive else PreviewBody
+        )
+        Text(
+            modifier = Modifier.padding(start = 8.dp),
+            text = text,
+            style = MaterialTheme.typography.labelLarge,
+            fontWeight = FontWeight.Bold,
+            color = if (enabled) PreviewActive else PreviewBody,
+            maxLines = 1
+        )
     }
 }
 
 @Composable
 private fun SaveStatusMessage(saveState: SaveStatusImageUiState) {
-    when (saveState) {
-        SaveStatusImageUiState.Idle -> Unit
-        SaveStatusImageUiState.Saving -> Text(
-            text = stringResource(R.string.save_status_saving),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-
-        SaveStatusImageUiState.Duplicate -> Text(
-            text = stringResource(R.string.save_status_duplicate_video),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.primary
-        )
-
-        SaveStatusImageUiState.Error -> Text(
-            text = stringResource(R.string.save_status_error),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.error
-        )
-
-        is SaveStatusImageUiState.Success -> Text(
-            text = stringResource(R.string.save_status_success, saveState.displayName),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.primary
-        )
-    }
+    StatusText(
+        message = when (saveState) {
+            SaveStatusImageUiState.Idle -> null
+            SaveStatusImageUiState.Saving -> stringResource(R.string.save_status_saving)
+            SaveStatusImageUiState.Duplicate -> stringResource(R.string.save_status_duplicate_video)
+            SaveStatusImageUiState.DestinationPermissionLost -> stringResource(R.string.save_status_destination_permission_lost)
+            SaveStatusImageUiState.DestinationUnavailable -> stringResource(R.string.save_status_destination_error)
+            SaveStatusImageUiState.Error -> stringResource(R.string.save_status_error)
+            is SaveStatusImageUiState.Success -> stringResource(R.string.save_status_success, saveState.displayName)
+        },
+        isError = saveState == SaveStatusImageUiState.Error ||
+            saveState == SaveStatusImageUiState.DestinationPermissionLost ||
+            saveState == SaveStatusImageUiState.DestinationUnavailable
+    )
 }
 
 @Composable
 private fun ShareStatusMessage(shareState: ShareStatusImageUiState) {
-    when (shareState) {
-        ShareStatusImageUiState.Idle -> Unit
-        ShareStatusImageUiState.Sharing -> Text(
-            text = stringResource(R.string.share_status_opening),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-
-        ShareStatusImageUiState.ChooserOpened -> Text(
-            text = stringResource(R.string.share_status_chooser_opened),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.primary
-        )
-
-        ShareStatusImageUiState.NoCompatibleApp -> Text(
-            text = stringResource(R.string.share_status_no_app),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.error
-        )
-
-        ShareStatusImageUiState.Error -> Text(
-            text = stringResource(R.string.share_status_error),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.error
-        )
-    }
+    StatusText(
+        message = when (shareState) {
+            ShareStatusImageUiState.Idle -> null
+            ShareStatusImageUiState.Sharing -> stringResource(R.string.share_status_opening)
+            ShareStatusImageUiState.ChooserOpened -> stringResource(R.string.share_status_chooser_opened)
+            ShareStatusImageUiState.NoCompatibleApp -> stringResource(R.string.share_status_no_app)
+            ShareStatusImageUiState.Error -> stringResource(R.string.share_status_error)
+        },
+        isError = shareState == ShareStatusImageUiState.Error || shareState == ShareStatusImageUiState.NoCompatibleApp
+    )
 }
 
 @Composable
-private fun FileDetailsCard(image: StatusImage) {
-    val formatter = remember { StatusImagePresentationFormatter() }
-    val formattedDate = image.lastModifiedMillis?.formatDate()
-    val size = formatter.sizeValue(image.sizeBytes)
-    val format = formatter.formatValue(image.mimeType)
-    val dimensions = formatter.dimensionsValue(image.widthPixels, image.heightPixels)
-    val rows = buildList {
-        image.name.trim().takeIf { it.isNotBlank() }?.let { name ->
-            add(R.string.status_file_name_label to name)
-        }
-        formattedDate?.let { date -> add(R.string.status_file_date_label to date) }
-        size?.let { value -> add(R.string.status_file_size_label to value) }
-        format?.let { value -> add(R.string.status_file_format_label to value) }
-        dimensions?.let { value -> add(R.string.status_file_dimensions_label to value) }
-    }
-
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
-        ),
-        border = brandGradientBorder(),
-        shape = RoundedCornerShape(8.dp)
-    ) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+private fun StatusText(
+    message: String?,
+    isError: Boolean
+) {
+    AnimatedVisibility(visible = message != null) {
+        Surface(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(14.dp),
+            color = if (isError) PreviewErrorSurface else PreviewMutedSurface,
+            border = BorderStroke(1.dp, if (isError) PreviewErrorBorder else PreviewBorder)
         ) {
             Text(
-                text = stringResource(R.string.status_file_details_title),
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold
-            )
-            Text(
-                text = stringResource(if (image.mediaType == StatusMediaType.Video) R.string.status_video_file_details_body else R.string.status_file_details_body),
+                text = message.orEmpty(),
+                modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            if (rows.isEmpty()) {
-                Text(
-                    text = stringResource(R.string.status_file_unknown),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            } else {
-                rows.forEach { (labelRes, value) ->
-                    FileDetailRow(
-                        label = stringResource(labelRes),
-                        value = value
-                    )
-                }
-            }
-            Text(
-                text = stringResource(R.string.status_privacy_notice),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = if (isError) PreviewErrorText else PreviewBody
             )
         }
-    }
-}
-
-@Composable
-private fun FileDetailRow(
-    label: String,
-    value: String
-) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-        verticalAlignment = Alignment.Top
-    ) {
-        Text(
-            text = label,
-            modifier = Modifier.weight(0.42f),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-        Text(
-            text = value,
-            modifier = Modifier.weight(0.58f),
-            style = MaterialTheme.typography.bodyMedium,
-            maxLines = 2,
-            overflow = TextOverflow.Ellipsis
-        )
     }
 }
 
@@ -353,11 +620,10 @@ private fun PreviewMessageCard(
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
-        ),
-        border = brandGradientBorder(),
-        shape = RoundedCornerShape(8.dp)
+        colors = CardDefaults.cardColors(containerColor = PreviewSurface),
+        border = BorderStroke(1.dp, PreviewBorder),
+        shape = RoundedCornerShape(18.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Column(
             modifier = Modifier.padding(20.dp),
@@ -366,19 +632,16 @@ private fun PreviewMessageCard(
             Text(
                 text = title,
                 style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold
+                fontWeight = FontWeight.SemiBold,
+                color = PreviewTitle
             )
             Text(
                 text = body,
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = PreviewBody
             )
         }
     }
-}
-
-private fun StatusImage.displayTitle(): String {
-    return name.ifBlank { uri.toString() }
 }
 
 private fun Long.formatDate(): String {

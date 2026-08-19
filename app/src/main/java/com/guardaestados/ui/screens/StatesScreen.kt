@@ -1,4 +1,4 @@
-﻿package com.guardaestados.ui.screens
+package com.guardaestados.ui.screens
 
 import androidx.annotation.StringRes
 import androidx.compose.foundation.BorderStroke
@@ -17,27 +17,27 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.lazy.grid.itemsIndexed
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Tab
-import androidx.compose.material3.PrimaryTabRow
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -49,44 +49,60 @@ import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
 import coil3.size.Size
+import com.guardaestados.ui.theme.LocalGuardaEstadosColors
 import com.guardaestados.R
 import com.guardaestados.domain.status.StatusGalleryState
 import com.guardaestados.domain.status.StatusImage
 import com.guardaestados.domain.status.StatusMediaType
-import com.guardaestados.ui.status.StatusImagePresentationFormatter
-import com.guardaestados.ui.theme.BrandGradientButton
-import com.guardaestados.ui.theme.brandGradientBorder
+import com.guardaestados.ui.components.VideoThumbnail
 import java.text.DateFormat
 import java.util.Date
 
 private const val ThumbnailPixelSize = 420
+private val StatesBackground: Color
+    @Composable get() = LocalGuardaEstadosColors.current.background
+private val StatesSurface: Color
+    @Composable get() = LocalGuardaEstadosColors.current.surface
+private val StatesSurfaceSoft: Color
+    @Composable get() = LocalGuardaEstadosColors.current.surfaceSoft
+private val StatesTitle: Color
+    @Composable get() = LocalGuardaEstadosColors.current.title
+private val StatesBody: Color
+    @Composable get() = LocalGuardaEstadosColors.current.body
+private val StatesActive: Color
+    @Composable get() = LocalGuardaEstadosColors.current.active
+private val StatesBadgeOverlay: Color
+    @Composable get() = LocalGuardaEstadosColors.current.badgeOverlay
+private val StatesThumbnailBackground: Color
+    @Composable get() = LocalGuardaEstadosColors.current.thumbnailBackground
+private val StatesBorder: Color
+    @Composable get() = LocalGuardaEstadosColors.current.border
 
 @Composable
 fun StatesScreen(
     statusGalleryState: StatusGalleryState,
     onRefresh: () -> Unit,
-    onImageSelected: (StatusImage) -> Unit,
+    onImageSelected: (List<StatusImage>, Int) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    var selectedTabIndex by remember { mutableIntStateOf(0) }
+    var selectedTabIndex by rememberSaveable { mutableIntStateOf(0) }
     val selectedMediaType = if (selectedTabIndex == 0) StatusMediaType.Image else StatusMediaType.Video
+    val gridState = rememberLazyGridState()
 
     Surface(
         modifier = modifier.fillMaxSize(),
-        color = MaterialTheme.colorScheme.background
+        color = StatesBackground
     ) {
         LazyVerticalGrid(
             columns = GridCells.Adaptive(minSize = 156.dp),
-            modifier = modifier.fillMaxSize(),
-            contentPadding = PaddingValues(20.dp),
-            horizontalArrangement = Arrangement.spacedBy(14.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            state = gridState,
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(start = 16.dp, top = 18.dp, end = 16.dp, bottom = 22.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
             item(span = { GridItemSpan(maxLineSpan) }) {
-                StatesHeader(
-                    statusGalleryState = statusGalleryState,
-                    onRefresh = onRefresh
-                )
+                StatesHeader(onRefresh = onRefresh)
             }
 
             when (statusGalleryState) {
@@ -128,7 +144,7 @@ fun StatesScreen(
                         )
                     }
                     item(span = { GridItemSpan(maxLineSpan) }) {
-                        StatesCountCard(
+                        StatesCountRow(
                             itemCount = selectedItems.size,
                             selectedMediaType = selectedMediaType
                         )
@@ -139,17 +155,21 @@ fun StatesScreen(
                             bodyRes = if (selectedMediaType == StatusMediaType.Video) R.string.states_empty_videos_body else R.string.states_empty_images_body
                         )
                     } else {
-                        items(
+                        itemsIndexed(
                             items = selectedItems,
-                            key = { image -> image.uri.toString() }
-                        ) { image ->
+                            key = { _, image -> image.uri.toString() }
+                        ) { index, image ->
                             StatusImageGridCard(
                                 image = image,
-                                onImageSelected = onImageSelected
+                                onImageSelected = { onImageSelected(selectedItems, index) }
                             )
                         }
                     }
                 }
+            }
+
+            item(span = { GridItemSpan(maxLineSpan) }) {
+                RefreshFooter(onRefresh = onRefresh)
             }
         }
     }
@@ -157,45 +177,53 @@ fun StatesScreen(
 
 @Composable
 private fun StatesHeader(
-    statusGalleryState: StatusGalleryState,
     onRefresh: () -> Unit
 ) {
-    Card(
+    Row(
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.primaryContainer,
-            contentColor = MaterialTheme.colorScheme.onPrimaryContainer
-        ),
-        border = brandGradientBorder(highlight = true),
-        shape = RoundedCornerShape(8.dp)
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalAlignment = Alignment.CenterVertically
     ) {
         Column(
-            modifier = Modifier.padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(4.dp)
         ) {
             Text(
-                text = stringResource(R.string.states_header_badge),
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.SemiBold
-            )
-            Text(
                 text = stringResource(R.string.states_title),
-                style = MaterialTheme.typography.headlineMedium
+                style = MaterialTheme.typography.headlineLarge,
+                fontWeight = FontWeight.Bold,
+                color = StatesTitle,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
             )
             Text(
                 text = stringResource(R.string.states_subtitle),
-                style = MaterialTheme.typography.bodyLarge
+                style = MaterialTheme.typography.bodyMedium,
+                color = StatesBody,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis
             )
-            if (statusGalleryState is StatusGalleryState.Content) {
-                Text(
-                    text = stringResource(R.string.states_header_note),
-                    style = MaterialTheme.typography.bodyMedium
+        }
+        Surface(
+            modifier = Modifier.size(48.dp),
+            shape = RoundedCornerShape(16.dp),
+            color = StatesSurface,
+            contentColor = StatesActive,
+            border = BorderStroke(1.dp, StatesBorder),
+            shadowElevation = 0.dp
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .clickable(role = Role.Button, onClick = onRefresh),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    painter = painterResource(R.drawable.ic_refresh),
+                    contentDescription = stringResource(R.string.states_action_refresh),
+                    tint = StatesActive
                 )
             }
-            BrandGradientButton(
-                text = stringResource(R.string.states_action_refresh),
-                onClick = onRefresh
-            )
         }
     }
 }
@@ -207,49 +235,117 @@ private fun StatesMediaTabs(
     videoCount: Int,
     onTabSelected: (Int) -> Unit
 ) {
-    PrimaryTabRow(selectedTabIndex = selectedTabIndex) {
-        Tab(
-            selected = selectedTabIndex == 0,
-            onClick = { onTabSelected(0) },
-            text = { Text(text = stringResource(R.string.states_tab_images, imageCount)) }
-        )
-        Tab(
-            selected = selectedTabIndex == 1,
-            onClick = { onTabSelected(1) },
-            text = { Text(text = stringResource(R.string.states_tab_videos, videoCount)) }
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(18.dp),
+        color = StatesSurface,
+        border = BorderStroke(1.dp, StatesBorder),
+        shadowElevation = 0.dp
+    ) {
+        Row(
+            modifier = Modifier.padding(4.dp),
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            StatesTab(
+                selected = selectedTabIndex == 0,
+                text = stringResource(R.string.states_tab_images, imageCount),
+                iconRes = R.drawable.ic_image,
+                onClick = { onTabSelected(0) },
+                modifier = Modifier.weight(1f)
+            )
+            StatesTab(
+                selected = selectedTabIndex == 1,
+                text = stringResource(R.string.states_tab_videos, videoCount),
+                iconRes = R.drawable.ic_video,
+                onClick = { onTabSelected(1) },
+                modifier = Modifier.weight(1f)
+            )
+        }
+    }
+}
+
+@Composable
+private fun StatesTab(
+    selected: Boolean,
+    text: String,
+    iconRes: Int,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val contentColor = if (selected) StatesActive else StatesBody
+    Column(
+        modifier = modifier
+            .clip(RoundedCornerShape(14.dp))
+            .background(if (selected) StatesSurfaceSoft else Color.Transparent)
+            .clickable(role = Role.Tab, onClick = onClick)
+            .padding(horizontal = 10.dp, vertical = 10.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(6.dp)
+    ) {
+        Row(
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                painter = painterResource(iconRes),
+                contentDescription = null,
+                modifier = Modifier.size(18.dp),
+                tint = contentColor
+            )
+            Text(
+                text = text,
+                modifier = Modifier.padding(start = 6.dp),
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium,
+                color = contentColor,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
+        Box(
+            modifier = Modifier
+                .fillMaxWidth(0.34f)
+                .size(width = 1.dp, height = 3.dp)
+                .clip(RoundedCornerShape(2.dp))
+                .background(if (selected) StatesActive else Color.Transparent)
         )
     }
 }
 
 @Composable
-private fun StatesCountCard(
+private fun StatesCountRow(
     itemCount: Int,
     selectedMediaType: StatusMediaType
 ) {
-    Card(
+    Row(
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
-        ),
-        border = brandGradientBorder(),
-        shape = RoundedCornerShape(8.dp)
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Row(
-            modifier = Modifier.padding(16.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+        Text(
+            text = stringResource(
+                if (selectedMediaType == StatusMediaType.Video) R.string.states_found_videos_title else R.string.states_found_title
+            ),
+            modifier = Modifier.weight(1f),
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.SemiBold,
+            color = StatesTitle,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
+        Surface(
+            shape = RoundedCornerShape(999.dp),
+            color = StatesSurface,
+            border = BorderStroke(1.dp, StatesBorder)
         ) {
             Text(
-                text = stringResource(
-                    if (selectedMediaType == StatusMediaType.Video) R.string.states_found_videos_title else R.string.states_found_title
-                ),
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold
-            )
-            Text(
                 text = stringResource(R.string.states_count_badge, itemCount),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                style = MaterialTheme.typography.labelMedium,
+                color = StatesBody,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
             )
         }
     }
@@ -257,7 +353,7 @@ private fun StatesCountCard(
 
 private fun androidx.compose.foundation.lazy.grid.LazyGridScope.fullWidthMessage(
     @StringRes titleRes: Int,
-    @StringRes bodyRes: Int
+    bodyRes: Int
 ) {
     item(span = { GridItemSpan(maxLineSpan) }) {
         GalleryMessageCard(
@@ -274,25 +370,25 @@ private fun GalleryMessageCard(
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
-        ),
-        border = brandGradientBorder(),
-        shape = RoundedCornerShape(8.dp)
+        colors = CardDefaults.cardColors(containerColor = StatesSurface),
+        border = BorderStroke(1.dp, StatesBorder),
+        shape = RoundedCornerShape(18.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Column(
-            modifier = Modifier.padding(20.dp),
+            modifier = Modifier.padding(18.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Text(
                 text = title,
                 style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold
+                fontWeight = FontWeight.SemiBold,
+                color = StatesTitle
             )
             Text(
                 text = body,
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = StatesBody
             )
         }
     }
@@ -304,96 +400,73 @@ private fun StatusImageGridCard(
     onImageSelected: (StatusImage) -> Unit
 ) {
     val context = LocalContext.current
-    val formatter = remember { StatusImagePresentationFormatter() }
     val formattedDate = image.lastModifiedMillis?.formatDate()
-    val unavailable = stringResource(R.string.status_image_value_unavailable)
-    val title = formatter.title(image.name, formattedDate)
-    val displayTitle = if (title.isBlank()) unavailable else title
-    val sizeValue = formatter.sizeValue(image.sizeBytes)
-    val formatValue = formatter.formatValue(image.mimeType)
     var failedToLoad by remember(image.uri) { mutableStateOf(false) }
 
     Card(
-        modifier = Modifier.clickable(
-            onClickLabel = stringResource(
-                if (image.mediaType == StatusMediaType.Video) R.string.status_video_open_action else R.string.status_image_open_action,
-                displayTitle
+        modifier = Modifier
+            .shadow(4.dp, RoundedCornerShape(20.dp), clip = false)
+            .clickable(
+                onClickLabel = stringResource(
+                    if (image.mediaType == StatusMediaType.Video) R.string.status_video_open_action_simple else R.string.status_image_open_action_simple
+                ),
+                role = Role.Button,
+                onClick = { onImageSelected(image) }
             ),
-            role = Role.Button,
-            onClick = { onImageSelected(image) }
-        ),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
-        ),
-        border = brandGradientBorder(),
-        shape = RoundedCornerShape(8.dp)
+        colors = CardDefaults.cardColors(containerColor = StatesSurface),
+        border = BorderStroke(1.dp, StatesBorder),
+        shape = RoundedCornerShape(20.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
-        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .aspectRatio(0.86f)
-                    .padding(8.dp)
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(MaterialTheme.colorScheme.surfaceVariant),
-                contentAlignment = Alignment.Center
-            ) {
-                if (image.mediaType == StatusMediaType.Video) {
-                    VideoThumbnail(
-                        image = image,
-                        displayTitle = displayTitle,
-                        failedToLoad = failedToLoad,
-                        onLoading = { failedToLoad = false },
-                        onError = { failedToLoad = true }
-                    )
-                } else if (failedToLoad) {
-                    Text(
-                        text = stringResource(R.string.status_image_thumbnail_error),
-                        modifier = Modifier.padding(12.dp),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                } else {
-                    AsyncImage(
-                        model = ImageRequest.Builder(context)
-                            .data(image.uri)
-                            .size(Size(ThumbnailPixelSize, ThumbnailPixelSize))
-                            .build(),
-                        contentDescription = stringResource(
-                            R.string.status_image_thumbnail_description,
-                            displayTitle
-                        ),
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier.fillMaxSize(),
-                        onError = { failedToLoad = true }
-                    )
-                }
-            }
-
-            Column(
-                modifier = Modifier.padding(start = 12.dp, end = 12.dp, bottom = 12.dp),
-                verticalArrangement = Arrangement.spacedBy(6.dp)
-            ) {
-                Text(
-                    text = displayTitle,
-                    style = MaterialTheme.typography.titleMedium,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .aspectRatio(0.82f)
+                .padding(7.dp)
+                .clip(RoundedCornerShape(16.dp))
+                .background(StatesThumbnailBackground),
+            contentAlignment = Alignment.Center
+        ) {
+            if (image.mediaType == StatusMediaType.Video) {
+                VideoThumbnail(
+                    uri = image.uri,
+                    contentDescription = stringResource(R.string.status_video_card_description)
                 )
+                MediaTypeBadge(
+                    text = stringResource(R.string.states_video_badge),
+                    iconRes = R.drawable.ic_play_arrow,
+                    modifier = Modifier
+                        .align(Alignment.BottomStart)
+                        .padding(8.dp)
+                )
+            } else if (failedToLoad) {
                 Text(
-                    text = formattedDate ?: unavailable,
+                    text = stringResource(R.string.status_image_thumbnail_error),
+                    modifier = Modifier.padding(12.dp),
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
+                    color = StatesBody
                 )
-                if (sizeValue != null || formatValue != null) {
-                    Text(
-                        text = listOfNotNull(formatValue, sizeValue).joinToString(" - "),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
+            } else {
+                AsyncImage(
+                    model = ImageRequest.Builder(context)
+                        .data(image.uri)
+                        .size(Size(ThumbnailPixelSize, ThumbnailPixelSize))
+                        .build(),
+                    contentDescription = stringResource(
+                        R.string.status_image_thumbnail_description,
+                        stringResource(R.string.status_image_card_description)
+                    ),
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize(),
+                    onError = { failedToLoad = true }
+                )
+                if (formattedDate != null) {
+                    MediaTypeBadge(
+                        text = formattedDate,
+                        iconRes = R.drawable.ic_image,
+                        modifier = Modifier
+                            .align(Alignment.BottomStart)
+                            .padding(8.dp)
                     )
                 }
             }
@@ -402,78 +475,80 @@ private fun StatusImageGridCard(
 }
 
 @Composable
-private fun VideoThumbnail(
-    image: StatusImage,
-    displayTitle: String,
-    failedToLoad: Boolean,
-    onLoading: () -> Unit,
-    onError: () -> Unit
+private fun MediaTypeBadge(
+    text: String,
+    iconRes: Int,
+    modifier: Modifier = Modifier
 ) {
-    val context = LocalContext.current
-    var loaded by remember(image.uri) { mutableStateOf(false) }
+    Surface(
+        modifier = modifier,
+        shape = RoundedCornerShape(999.dp),
+        color = StatesBadgeOverlay,
+        contentColor = StatesTitle,
+        border = BorderStroke(1.dp, StatesBorder),
+        shadowElevation = 0.dp
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 5.dp),
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                painter = painterResource(iconRes),
+                contentDescription = null,
+                modifier = Modifier.size(13.dp),
+                tint = StatesActive
+            )
+            Text(
+                text = text,
+                style = MaterialTheme.typography.labelSmall,
+                color = StatesTitle,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
+    }
+}
 
-    VideoFallbackThumbnail()
-    if (!failedToLoad) {
-        AsyncImage(
-            model = ImageRequest.Builder(context)
-                .data(image.uri)
-                .size(Size(ThumbnailPixelSize, ThumbnailPixelSize))
-                .build(),
-            contentDescription = stringResource(R.string.status_video_thumbnail_description, displayTitle),
-            contentScale = ContentScale.Crop,
+@Composable
+private fun RefreshFooter(
+    onRefresh: () -> Unit
+) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(999.dp),
+        color = StatesSurface,
+        contentColor = StatesActive,
+        border = BorderStroke(1.dp, StatesBorder),
+        shadowElevation = 0.dp
+    ) {
+        Row(
             modifier = Modifier
-                .fillMaxSize()
-                .alpha(if (loaded) 1f else 0f),
-            onLoading = {
-                loaded = false
-                onLoading()
-            },
-            onSuccess = { loaded = true },
-            onError = {
-                loaded = false
-                onError()
-            }
-        )
-    }
-    VideoPlayIndicator()
-}
-
-@Composable
-private fun VideoFallbackThumbnail() {
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.surfaceContainerHighest),
-        contentAlignment = Alignment.Center
-    ) {
-        Icon(
-            painter = painterResource(R.drawable.ic_video),
-            contentDescription = null,
-            modifier = Modifier.size(40.dp),
-            tint = MaterialTheme.colorScheme.onSurfaceVariant
-        )
+                .fillMaxWidth()
+                .clickable(role = Role.Button, onClick = onRefresh)
+                .padding(horizontal = 16.dp, vertical = 13.dp),
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                painter = painterResource(R.drawable.ic_refresh),
+                contentDescription = null,
+                modifier = Modifier.size(18.dp),
+                tint = StatesActive
+            )
+            Text(
+                text = stringResource(R.string.states_refresh_footer),
+                modifier = Modifier.padding(start = 8.dp),
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.SemiBold,
+                color = StatesActive,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
     }
 }
 
-@Composable
-private fun VideoPlayIndicator() {
-    Box(
-        modifier = Modifier
-            .size(48.dp)
-            .background(
-                color = MaterialTheme.colorScheme.inverseSurface.copy(alpha = 0.72f),
-                shape = CircleShape
-            ),
-        contentAlignment = Alignment.Center
-    ) {
-        Icon(
-            painter = painterResource(R.drawable.ic_play_arrow),
-            contentDescription = null,
-            modifier = Modifier.size(30.dp),
-            tint = MaterialTheme.colorScheme.inverseOnSurface
-        )
-    }
-}
 private fun Long.formatDate(): String {
     return DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.SHORT).format(Date(this))
 }

@@ -1,4 +1,4 @@
-﻿package com.guardaestados.domain.status
+package com.guardaestados.domain.status
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -48,6 +48,24 @@ class StatusImageClassifierTest {
         assertFalse(classifier.isAccepted(candidate(name = "", mimeType = "image/jpeg")))
     }
 
+    @Test
+    fun `accepts supported videos by extension when mime type is missing`() {
+        assertTrue(classifier.isAccepted(candidate(name = "status.MP4", mimeType = null)))
+        assertTrue(classifier.isAccepted(candidate(name = "status.3gp", mimeType = null)))
+        assertTrue(classifier.isAccepted(candidate(name = "status.webm", mimeType = null)))
+    }
+
+    @Test
+    fun `uses supported mime type before extension fallback`() {
+        assertEquals("video/webm", classifier.resolveMimeType("video/webm", "status.mp4"))
+    }
+
+    @Test
+    fun `falls back to extension when mime type is unsupported`() {
+        assertEquals("video/mp4", classifier.resolveMimeType("application/octet-stream", "status.mp4"))
+        assertEquals("video/3gpp", classifier.resolveMimeType("application/octet-stream", "status.3gp"))
+        assertEquals("video/webm", classifier.resolveMimeType("application/octet-stream", "status.webm"))
+    }
     private fun candidate(
         name: String?,
         mimeType: String?,

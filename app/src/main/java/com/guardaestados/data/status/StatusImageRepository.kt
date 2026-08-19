@@ -1,4 +1,4 @@
-﻿package com.guardaestados.data.status
+package com.guardaestados.data.status
 
 import android.content.ContentResolver
 import android.content.Context
@@ -47,14 +47,15 @@ class StatusImageRepository(
     }
 
     private fun DocumentFile.toStatusImage(): StatusImage? {
-        val normalizedMimeType = classifier.normalizeMimeType(type) ?: return null
-        val resolvedType = contentResolver.getType(uri)?.let(classifier::normalizeMimeType)
-        val mimeType = resolvedType ?: normalizedMimeType
+        val fileName = name.orEmpty()
+        val documentMimeType = classifier.resolveMimeType(type, fileName)
+        val resolvedMimeType = classifier.resolveMimeType(contentResolver.getType(uri), fileName)
+        val mimeType = resolvedMimeType ?: documentMimeType ?: return null
         val mediaType = StatusMediaType.fromMimeType(mimeType)
         val dimensions = if (mediaType == StatusMediaType.Image) contentResolver.readImageDimensions(uri) else null
         return StatusImage(
             uri = uri,
-            name = name.orEmpty(),
+            name = fileName,
             mimeType = mimeType,
             lastModifiedMillis = lastModified().takeIf { it > 0L },
             sizeBytes = length().takeIf { it > 0L },

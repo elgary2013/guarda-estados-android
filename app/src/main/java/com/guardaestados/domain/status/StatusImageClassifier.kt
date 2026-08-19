@@ -1,4 +1,4 @@
-﻿package com.guardaestados.domain.status
+package com.guardaestados.domain.status
 
 class StatusImageClassifier {
     fun isAccepted(candidate: StatusImageCandidate): Boolean {
@@ -6,7 +6,7 @@ class StatusImageClassifier {
         if (candidate.name.isNullOrBlank()) return false
         if (candidate.isTemporaryFile()) return false
         if (candidate.sizeBytes != null && candidate.sizeBytes <= 0L) return false
-        return normalizeMimeType(candidate.mimeType) != null
+        return resolveMimeType(candidate.mimeType, candidate.name) != null
     }
 
     fun normalizeMimeType(mimeType: String?): String? {
@@ -15,8 +15,24 @@ class StatusImageClassifier {
             "image/png" -> "image/png"
             "image/webp" -> "image/webp"
             "video/mp4" -> "video/mp4"
-            "video/3gpp" -> "video/3gpp"
+            "video/3gp", "video/3gpp", "video/3gpp2" -> "video/3gpp"
             "video/webm" -> "video/webm"
+            else -> null
+        }
+    }
+
+    fun resolveMimeType(mimeType: String?, name: String?): String? {
+        return normalizeMimeType(mimeType) ?: normalizeMimeTypeFromExtension(name)
+    }
+
+    private fun normalizeMimeTypeFromExtension(name: String?): String? {
+        return when (name?.substringAfterLast('.', missingDelimiterValue = "")?.trim()?.lowercase()) {
+            "jpg", "jpeg" -> "image/jpeg"
+            "png" -> "image/png"
+            "webp" -> "image/webp"
+            "mp4" -> "video/mp4"
+            "3gp", "3gpp", "3g2" -> "video/3gpp"
+            "webm" -> "video/webm"
             else -> null
         }
     }

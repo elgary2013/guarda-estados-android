@@ -1,4 +1,4 @@
-﻿package com.guardaestados.domain.save
+package com.guardaestados.domain.save
 
 import com.guardaestados.domain.status.StatusImage
 
@@ -17,5 +17,7 @@ interface StatusImageSaverRepository {
 sealed interface SaveStatusImageResult {
     data class Success(val displayName: String) : SaveStatusImageResult
     data object Duplicate : SaveStatusImageResult
+    data object DestinationPermissionLost : SaveStatusImageResult
+    data object DestinationUnavailable : SaveStatusImageResult
     data object Error : SaveStatusImageResult
 }
