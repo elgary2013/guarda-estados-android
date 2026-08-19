@@ -17,7 +17,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.grid.itemsIndexed
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -36,6 +37,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -99,14 +101,15 @@ fun SavedImagesScreen(
     deleteState: SavedImageDeleteState,
     isRefreshing: Boolean,
     onRefresh: () -> Unit,
-    onImageSelected: (SavedImage) -> Unit,
+    onImageSelected: (List<SavedImage>, Int) -> Unit,
     onDeleteImage: (SavedImage) -> Unit,
     onDeleteMessageDismissed: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    var selectedTabIndex by remember { mutableIntStateOf(0) }
+    var selectedTabIndex by rememberSaveable { mutableIntStateOf(0) }
     val selectedMediaType = if (selectedTabIndex == 0) SavedMediaType.Image else SavedMediaType.Video
     val lifecycleOwner = LocalLifecycleOwner.current
+    val gridState = rememberLazyGridState()
 
     DisposableEffect(lifecycleOwner, onRefresh) {
         val observer = LifecycleEventObserver { _, event ->
@@ -124,6 +127,7 @@ fun SavedImagesScreen(
     ) {
         LazyVerticalGrid(
             columns = GridCells.Adaptive(minSize = 148.dp),
+            state = gridState,
             modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(start = 16.dp, top = 18.dp, end = 16.dp, bottom = 22.dp),
             horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -184,13 +188,13 @@ fun SavedImagesScreen(
                             bodyRes = if (selectedMediaType == SavedMediaType.Video) R.string.saved_empty_videos_body else R.string.saved_empty_images_body
                         )
                     } else {
-                        items(
+                        itemsIndexed(
                             items = selectedItems,
-                            key = { image -> image.uri.toString() }
-                        ) { image ->
+                            key = { _, image -> image.uri.toString() }
+                        ) { index, image ->
                             SavedImageGridCard(
                                 image = image,
-                                onImageSelected = onImageSelected,
+                                onImageSelected = { onImageSelected(selectedItems, index) },
                                 onDeleteImage = onDeleteImage,
                                 deleting = deleteState == SavedImageDeleteState.Deleting
                             )

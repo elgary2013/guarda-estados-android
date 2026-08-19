@@ -9,6 +9,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -17,6 +18,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -93,6 +96,8 @@ private val SavedPreviewDangerSoft: Color
 @Composable
 fun SavedImagePreviewScreen(
     previewState: SavedImagePreviewState,
+    previewItems: List<SavedImage>,
+    initialIndex: Int,
     deleteState: SavedImageDeleteState,
     shareState: SavedImageShareState,
     openState: SavedImageOpenState,
@@ -117,7 +122,6 @@ fun SavedImagePreviewScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .verticalScroll(rememberScrollState())
                 .statusBarsPadding()
                 .padding(horizontal = 16.dp, vertical = 18.dp)
                 .navigationBarsPadding(),
@@ -159,8 +163,9 @@ fun SavedImagePreviewScreen(
                     body = stringResource(R.string.saved_preview_unavailable_body)
                 )
 
-                is SavedImagePreviewState.Content -> SavedPreviewContent(
-                    image = previewState.image,
+                is SavedImagePreviewState.Content -> SavedPreviewPagerContent(
+                    images = previewItems.ifEmpty { listOf(previewState.image) },
+                    initialIndex = initialIndex,
                     deleteState = deleteState,
                     shareState = shareState,
                     openState = openState,
@@ -170,6 +175,65 @@ fun SavedImagePreviewScreen(
                 )
             }
         }
+    }
+}
+
+@Composable
+private fun ColumnScope.SavedPreviewPagerContent(
+    images: List<SavedImage>,
+    initialIndex: Int,
+    deleteState: SavedImageDeleteState,
+    shareState: SavedImageShareState,
+    openState: SavedImageOpenState,
+    onDeleteImage: (SavedImage) -> Unit,
+    onShareImage: (SavedImage) -> Unit,
+    onOpenImage: (SavedImage) -> Unit
+) {
+    if (images.isEmpty()) {
+        SavedPreviewMessageCard(
+            title = stringResource(R.string.saved_preview_unavailable_title),
+            body = stringResource(R.string.saved_preview_unavailable_body)
+        )
+        return
+    }
+
+    val pageKeys = remember(images) { images.joinToString(separator = "|") { image -> image.uri.toString() } }
+    val startPage = initialIndex.coerceIn(images.indices)
+    val pagerState = rememberPagerState(initialPage = startPage, pageCount = { images.size })
+
+    LaunchedEffect(pageKeys, startPage) {
+        if (pagerState.currentPage != startPage) {
+            pagerState.scrollToPage(startPage)
+        }
+    }
+
+    Text(
+        text = stringResource(R.string.preview_page_indicator, pagerState.currentPage + 1, images.size),
+        style = MaterialTheme.typography.labelLarge,
+        fontWeight = FontWeight.SemiBold,
+        color = SavedPreviewBody
+    )
+
+    HorizontalPager(
+        state = pagerState,
+        modifier = Modifier
+            .fillMaxWidth()
+            .weight(1f),
+        userScrollEnabled = images.size > 1
+    ) { page ->
+        SavedPreviewContent(
+            image = images[page],
+            isActivePage = page == pagerState.currentPage,
+            deleteState = deleteState,
+            shareState = shareState,
+            openState = openState,
+            onDeleteImage = onDeleteImage,
+            onShareImage = onShareImage,
+            onOpenImage = onOpenImage,
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+        )
     }
 }
 
@@ -210,12 +274,14 @@ private fun SavedPreviewTopBar(onBack: () -> Unit) {
 @Composable
 private fun SavedPreviewContent(
     image: SavedImage,
+    isActivePage: Boolean,
     deleteState: SavedImageDeleteState,
     shareState: SavedImageShareState,
     openState: SavedImageOpenState,
     onDeleteImage: (SavedImage) -> Unit,
     onShareImage: (SavedImage) -> Unit,
-    onOpenImage: (SavedImage) -> Unit
+    onOpenImage: (SavedImage) -> Unit,
+    modifier: Modifier = Modifier
 ) {
     var failedToLoad by remember(image.uri) { mutableStateOf(false) }
     var showDeleteDialog by remember(image.uri) { mutableStateOf(false) }
@@ -237,11 +303,12 @@ private fun SavedPreviewContent(
     }
 
     Column(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
         SavedPreviewMediaCard(
             image = image,
+            isActivePage = isActivePage,
             failedToLoad = failedToLoad,
             onImageLoadFailed = { failedToLoad = true }
         )
@@ -269,6 +336,7 @@ private fun SavedPreviewContent(
 @Composable
 private fun SavedPreviewMediaCard(
     image: SavedImage,
+    isActivePage: Boolean,
     failedToLoad: Boolean,
     onImageLoadFailed: () -> Unit
 ) {
@@ -291,10 +359,21 @@ private fun SavedPreviewMediaCard(
             contentAlignment = Alignment.Center
         ) {
             if (image.mediaType == SavedMediaType.Video) {
-                VideoPlayerPreview(
-                    uri = image.uri,
-                    modifier = Modifier.fillMaxSize()
-                )
+                if (isActivePage) {
+                    VideoPlayerPreview(
+                        uri = image.uri,
+                        modifier = Modifier.fillMaxSize(),
+                        showPlaybackStatus = true,
+                        errorMessage = stringResource(R.string.preview_video_load_error_body)
+                    )
+                } else {
+                    Icon(
+                        painter = painterResource(R.drawable.ic_play_arrow),
+                        contentDescription = stringResource(R.string.preview_video_inactive_description),
+                        modifier = Modifier.size(46.dp),
+                        tint = SavedPreviewBody
+                    )
+                }
             } else if (failedToLoad) {
                 Text(
                     text = stringResource(R.string.preview_load_error_body),

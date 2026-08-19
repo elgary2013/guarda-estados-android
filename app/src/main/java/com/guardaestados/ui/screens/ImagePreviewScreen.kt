@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -18,6 +19,8 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -29,6 +32,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -87,6 +91,8 @@ private val PreviewGradient: Brush
 @Composable
 fun ImagePreviewScreen(
     previewState: StatusImagePreviewState,
+    previewItems: List<StatusImage>,
+    initialIndex: Int,
     saveState: SaveStatusImageUiState,
     shareState: ShareStatusImageUiState,
     onSaveImage: (StatusImage) -> Unit,
@@ -102,7 +108,6 @@ fun ImagePreviewScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .verticalScroll(rememberScrollState())
                 .statusBarsPadding()
                 .padding(horizontal = 16.dp, vertical = 18.dp)
                 .navigationBarsPadding(),
@@ -131,8 +136,9 @@ fun ImagePreviewScreen(
                     body = stringResource(R.string.preview_unavailable_body)
                 )
 
-                is StatusImagePreviewState.Content -> PreviewContent(
-                    image = previewState.image,
+                is StatusImagePreviewState.Content -> PreviewPagerContent(
+                    images = previewItems.ifEmpty { listOf(previewState.image) },
+                    initialIndex = initialIndex,
                     saveState = saveState,
                     shareState = shareState,
                     onSaveImage = onSaveImage,
@@ -140,6 +146,61 @@ fun ImagePreviewScreen(
                 )
             }
         }
+    }
+}
+
+@Composable
+private fun ColumnScope.PreviewPagerContent(
+    images: List<StatusImage>,
+    initialIndex: Int,
+    saveState: SaveStatusImageUiState,
+    shareState: ShareStatusImageUiState,
+    onSaveImage: (StatusImage) -> Unit,
+    onShareImage: (StatusImage) -> Unit
+) {
+    if (images.isEmpty()) {
+        PreviewMessageCard(
+            title = stringResource(R.string.preview_unavailable_title),
+            body = stringResource(R.string.preview_unavailable_body)
+        )
+        return
+    }
+
+    val pageKeys = remember(images) { images.joinToString(separator = "|") { image -> image.uri.toString() } }
+    val startPage = initialIndex.coerceIn(images.indices)
+    val pagerState = rememberPagerState(initialPage = startPage, pageCount = { images.size })
+
+    LaunchedEffect(pageKeys, startPage) {
+        if (pagerState.currentPage != startPage) {
+            pagerState.scrollToPage(startPage)
+        }
+    }
+
+    Text(
+        text = stringResource(R.string.preview_page_indicator, pagerState.currentPage + 1, images.size),
+        style = MaterialTheme.typography.labelLarge,
+        fontWeight = FontWeight.SemiBold,
+        color = PreviewBody
+    )
+
+    HorizontalPager(
+        state = pagerState,
+        modifier = Modifier
+            .fillMaxWidth()
+            .weight(1f),
+        userScrollEnabled = images.size > 1
+    ) { page ->
+        PreviewContent(
+            image = images[page],
+            isActivePage = page == pagerState.currentPage,
+            saveState = saveState,
+            shareState = shareState,
+            onSaveImage = onSaveImage,
+            onShareImage = onShareImage,
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+        )
     }
 }
 
@@ -180,19 +241,22 @@ private fun PreviewTopBar(onBack: () -> Unit) {
 @Composable
 private fun PreviewContent(
     image: StatusImage,
+    isActivePage: Boolean,
     saveState: SaveStatusImageUiState,
     shareState: ShareStatusImageUiState,
     onSaveImage: (StatusImage) -> Unit,
-    onShareImage: (StatusImage) -> Unit
+    onShareImage: (StatusImage) -> Unit,
+    modifier: Modifier = Modifier
 ) {
     var failedToLoad by remember(image.uri) { mutableStateOf(false) }
 
     Column(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
         PreviewMediaCard(
             image = image,
+            isActivePage = isActivePage,
             failedToLoad = failedToLoad,
             onImageLoadFailed = { failedToLoad = true }
         )
@@ -212,6 +276,7 @@ private fun PreviewContent(
 @Composable
 private fun PreviewMediaCard(
     image: StatusImage,
+    isActivePage: Boolean,
     failedToLoad: Boolean,
     onImageLoadFailed: () -> Unit
 ) {
@@ -233,12 +298,21 @@ private fun PreviewMediaCard(
             contentAlignment = Alignment.Center
         ) {
             if (image.mediaType == StatusMediaType.Video) {
-                VideoPlayerPreview(
-                    uri = image.uri,
-                    modifier = Modifier.fillMaxSize(),
-                    showPlaybackStatus = true,
-                    errorMessage = stringResource(R.string.preview_video_load_error_body)
-                )
+                if (isActivePage) {
+                    VideoPlayerPreview(
+                        uri = image.uri,
+                        modifier = Modifier.fillMaxSize(),
+                        showPlaybackStatus = true,
+                        errorMessage = stringResource(R.string.preview_video_load_error_body)
+                    )
+                } else {
+                    Icon(
+                        painter = painterResource(R.drawable.ic_play_arrow),
+                        contentDescription = stringResource(R.string.preview_video_inactive_description),
+                        modifier = Modifier.size(46.dp),
+                        tint = Color.White.copy(alpha = 0.82f)
+                    )
+                }
             } else if (failedToLoad) {
                 Text(
                     text = stringResource(R.string.preview_load_error_body),

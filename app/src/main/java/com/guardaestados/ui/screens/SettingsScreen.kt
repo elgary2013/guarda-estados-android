@@ -93,6 +93,7 @@ fun SettingsScreen(
     saveDestinationState: SaveDestinationState,
     appVersion: String,
     homeBackgroundUri: String?,
+    onSelectRecommendedFolder: () -> Unit,
     onSelectFolder: () -> Unit,
     onSelectHomeBackground: () -> Unit,
     onClearHomeBackground: () -> Unit,
@@ -106,7 +107,7 @@ fun SettingsScreen(
     modifier: Modifier = Modifier
 ) {
     var showResetDialog by remember { mutableStateOf(false) }
-    var expandedSection by remember { mutableStateOf<SettingsSectionKey?>(null) }
+    var expandedSection by remember { mutableStateOf<SettingsSectionKey?>(SettingsSectionKey.SourceFolder) }
 
     Surface(
         modifier = modifier.fillMaxSize(),
@@ -117,7 +118,7 @@ fun SettingsScreen(
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
                 .statusBarsPadding()
-                .padding(horizontal = 20.dp, vertical = 18.dp)
+                .padding(start = 20.dp, top = 30.dp, end = 20.dp, bottom = 18.dp)
                 .navigationBarsPadding(),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
@@ -139,21 +140,34 @@ fun SettingsScreen(
                 expanded = expandedSection == SettingsSectionKey.SourceFolder,
                 onToggle = { expandedSection = expandedSection.toggle(SettingsSectionKey.SourceFolder) }
             ) {
-                Text(
-                    text = folderStatusText(folderSelectionState),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = SettingsBody
-                )
+                if (folderSelectionState !is FolderSelectionState.Selected) {
+                    Text(
+                        text = folderStatusText(folderSelectionState),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = SettingsBody
+                    )
+                }
                 Text(
                     text = stringResource(R.string.settings_folder_description),
                     style = MaterialTheme.typography.bodyMedium,
                     color = SettingsBody
                 )
                 FolderDetail(folderSelectionState = folderSelectionState)
-                BrandGradientButton(
-                    text = folderActionText(folderSelectionState),
-                    onClick = onSelectFolder
-                )
+                if (folderSelectionState is FolderSelectionState.Selected) {
+                    BrandGradientButton(
+                        text = stringResource(R.string.folder_action_change),
+                        onClick = onSelectFolder
+                    )
+                } else {
+                    FolderSelectionGuide()
+                    BrandGradientButton(
+                        text = stringResource(R.string.folder_action_open_recommended),
+                        onClick = onSelectRecommendedFolder
+                    )
+                    TextButton(onClick = onSelectFolder) {
+                        Text(text = stringResource(R.string.folder_action_select_manual), color = SettingsIconTint)
+                    }
+                }
             }
 
             ExpandableSettingsSection(
@@ -305,6 +319,38 @@ fun SettingsScreen(
                 showResetDialog = false
                 onResetSettings()
             }
+        )
+    }
+}
+
+@Composable
+private fun FolderSelectionGuide() {
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Text(
+            text = stringResource(R.string.folder_selection_guide_title),
+            style = MaterialTheme.typography.titleSmall,
+            fontWeight = FontWeight.SemiBold,
+            color = SettingsTitle
+        )
+        Text(
+            text = stringResource(R.string.folder_selection_guide_menu),
+            style = MaterialTheme.typography.bodyMedium,
+            color = SettingsBody
+        )
+        Text(
+            text = stringResource(R.string.folder_selection_guide_hidden),
+            style = MaterialTheme.typography.bodyMedium,
+            color = SettingsBody
+        )
+        Text(
+            text = stringResource(R.string.folder_selection_guide_statuses),
+            style = MaterialTheme.typography.bodyMedium,
+            color = SettingsBody
+        )
+        Text(
+            text = stringResource(R.string.folder_selection_guide_confirm),
+            style = MaterialTheme.typography.bodyMedium,
+            color = SettingsBody
         )
     }
 }
@@ -523,16 +569,16 @@ private fun FolderDetail(folderSelectionState: FolderSelectionState) {
     val folderName = uriString?.friendlyFolderName()
     if (folderName != null) {
         Text(
-            text = stringResource(R.string.settings_folder_name, folderName),
+            text = stringResource(
+                if (folderSelectionState is FolderSelectionState.Selected) {
+                    R.string.settings_folder_authorized_name
+                } else {
+                    R.string.settings_folder_name
+                },
+                folderName
+            ),
             style = MaterialTheme.typography.bodyMedium,
             fontWeight = FontWeight.SemiBold
-        )
-    }
-    if (uriString != null) {
-        Text(
-            text = stringResource(R.string.folder_selected_uri, uriString),
-            style = MaterialTheme.typography.bodySmall,
-            color = SettingsBody
         )
     }
 }
@@ -554,15 +600,6 @@ private fun folderStatusText(folderSelectionState: FolderSelectionState): String
         FolderSelectionState.NotSelected -> stringResource(R.string.folder_status_not_selected)
         is FolderSelectionState.PermissionLost -> stringResource(R.string.folder_status_permission_lost)
         is FolderSelectionState.Selected -> stringResource(R.string.folder_status_selected)
-    }
-}
-
-@Composable
-private fun folderActionText(folderSelectionState: FolderSelectionState): String {
-    return when (folderSelectionState) {
-        FolderSelectionState.NotSelected -> stringResource(R.string.folder_action_select)
-        is FolderSelectionState.PermissionLost -> stringResource(R.string.folder_action_select_again)
-        else -> stringResource(R.string.folder_action_change)
     }
 }
 

@@ -3,6 +3,8 @@ package com.guardaestados.ui
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import android.provider.DocumentsContract
+import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -44,11 +46,16 @@ fun GuardaEstadosApp() {
     val folderPicker = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocumentTree()
     ) { uri ->
-        if (uri != null) {
-            context.takeSelectedFolderPermission(uri)
-            coroutineScope.launch {
-                repository.saveSelectedFolder(uri)
-            }
+        if (uri == null) {
+            return@rememberLauncherForActivityResult
+        }
+        if (uri.isRecommendedStatusesParentFolder()) {
+            Toast.makeText(context, R.string.folder_media_selection_rejected, Toast.LENGTH_LONG).show()
+            return@rememberLauncherForActivityResult
+        }
+        context.takeSelectedFolderPermission(uri)
+        coroutineScope.launch {
+            repository.saveSelectedFolder(uri)
         }
     }
     val homeBackgroundPicker = rememberLauncherForActivityResult(
@@ -81,6 +88,7 @@ fun GuardaEstadosApp() {
             saveDestinationState = saveDestinationState,
             appVersion = appVersion,
             homeBackgroundUri = homeBackgroundUri,
+            onSelectRecommendedFolder = { folderPicker.launch(recommendedStatusesParentUri()) },
             onSelectFolder = { folderPicker.launch(null) },
             onSelectHomeBackground = { homeBackgroundPicker.launch(arrayOf("image/*")) },
             onClearHomeBackground = settingsViewModel::clearHomeBackground,
@@ -94,6 +102,23 @@ fun GuardaEstadosApp() {
             onHomePhotoSystemBarsStateChanged = { drawHomePhotoBehindSystemBars = it }
         )
     }
+}
+
+private const val ExternalStorageDocumentsAuthority = "com.android.externalstorage.documents"
+private const val RecommendedStatusesParentDocumentId =
+    "primary:Android/media/com.whatsapp/WhatsApp/Media"
+
+private fun recommendedStatusesParentUri(): Uri {
+    return DocumentsContract.buildTreeDocumentUri(
+        ExternalStorageDocumentsAuthority,
+        RecommendedStatusesParentDocumentId
+    )
+}
+
+private fun Uri.isRecommendedStatusesParentFolder(): Boolean {
+    return runCatching { DocumentsContract.getTreeDocumentId(this) }
+        .getOrNull()
+        .equals(RecommendedStatusesParentDocumentId, ignoreCase = true)
 }
 
 private fun Context.takeHomeBackgroundImagePermission(uri: Uri) {

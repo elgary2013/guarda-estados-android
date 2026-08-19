@@ -32,7 +32,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
@@ -57,12 +59,13 @@ import androidx.navigation.navArgument
 import com.guardaestados.data.folder.FolderSelectionState
 import com.guardaestados.data.settings.AppThemePreference
 import com.guardaestados.data.settings.SaveDestinationState
+import com.guardaestados.domain.saved.SavedImage
 import com.guardaestados.domain.status.StatusGalleryState
+import com.guardaestados.domain.status.StatusImage
 import com.guardaestados.ui.save.SaveStatusImageViewModel
 import com.guardaestados.ui.save.SaveStatusImageViewModelFactory
 import com.guardaestados.ui.saved.SavedImageDeleteState
 import com.guardaestados.ui.saved.SavedImagePreviewResolver
-import com.guardaestados.ui.saved.SavedImagePreviewState
 import com.guardaestados.ui.saved.SavedImagesViewModel
 import com.guardaestados.ui.saved.SavedImagesViewModelFactory
 import com.guardaestados.ui.settings.SettingsResetState
@@ -89,6 +92,7 @@ fun AppNavigation(
     saveDestinationState: SaveDestinationState,
     appVersion: String,
     homeBackgroundUri: String?,
+    onSelectRecommendedFolder: () -> Unit,
     onSelectFolder: () -> Unit,
     onSelectHomeBackground: () -> Unit,
     onClearHomeBackground: () -> Unit,
@@ -127,8 +131,11 @@ fun AppNavigation(
     val deleteSavedImageState by savedImagesViewModel.deleteState.collectAsState()
     val shareSavedImageState by savedImagesViewModel.shareState.collectAsState()
     val openSavedImageState by savedImagesViewModel.openState.collectAsState()
-    val selectedSavedPreviewImage by savedImagesViewModel.selectedPreviewImage.collectAsState()
     val videoSplitterState by videoSplitterViewModel.uiState.collectAsState()
+    var selectedStatusPreviewItems by remember { mutableStateOf<List<StatusImage>>(emptyList()) }
+    var selectedStatusPreviewInitialIndex by remember { mutableStateOf(0) }
+    var selectedSavedPreviewItems by remember { mutableStateOf<List<SavedImage>>(emptyList()) }
+    var selectedSavedPreviewInitialIndex by remember { mutableStateOf(0) }
     val navController = rememberNavController()
     val routes = listOf(
         AppRoute.Home,
@@ -234,7 +241,10 @@ fun AppNavigation(
                     StatesScreen(
                         statusGalleryState = statusGalleryState,
                         onRefresh = statusGalleryViewModel::refresh,
-                        onImageSelected = { image ->
+                        onImageSelected = { images, initialIndex ->
+                            val image = images.getOrNull(initialIndex) ?: return@StatesScreen
+                            selectedStatusPreviewItems = images
+                            selectedStatusPreviewInitialIndex = initialIndex
                             navController.navigate(AppRoute.ImagePreview.createRoute(image.uri.toString())) {
                                 launchSingleTop = true
                             }
@@ -249,7 +259,10 @@ fun AppNavigation(
                         deleteState = deleteSavedImageState,
                         isRefreshing = savedImagesRefreshing,
                         onRefresh = savedImagesViewModel::refresh,
-                        onImageSelected = { image ->
+                        onImageSelected = { images, initialIndex ->
+                            val image = images.getOrNull(initialIndex) ?: return@SavedImagesScreen
+                            selectedSavedPreviewItems = images
+                            selectedSavedPreviewInitialIndex = initialIndex
                             savedImagesViewModel.selectForPreview(image)
                             navController.navigate(AppRoute.SavedImagePreview.createRoute(image.uri.toString())) {
                                 launchSingleTop = true
@@ -285,6 +298,7 @@ fun AppNavigation(
                         saveDestinationState = saveDestinationState,
                         appVersion = appVersion,
                         homeBackgroundUri = homeBackgroundUri,
+                        onSelectRecommendedFolder = onSelectRecommendedFolder,
                         onSelectFolder = onSelectFolder,
                         onSelectHomeBackground = onSelectHomeBackground,
                         onClearHomeBackground = onClearHomeBackground,
@@ -307,8 +321,11 @@ fun AppNavigation(
                 )
             ) { backStackEntry ->
                 val imageUri = backStackEntry.arguments?.getString(AppRoute.ImagePreview.ImageUriArgument)
+                val previewItems = selectedStatusPreviewItems.forStatusPreviewRoute(imageUri)
                 ImagePreviewScreen(
                     previewState = previewResolver.resolve(statusGalleryState, imageUri),
+                    previewItems = previewItems,
+                    initialIndex = previewItems.initialStatusPreviewIndex(imageUri, selectedStatusPreviewInitialIndex),
                     saveState = saveStatusImageState,
                     shareState = shareStatusImageState,
                     onSaveImage = saveStatusImageViewModel::save,
@@ -327,11 +344,11 @@ fun AppNavigation(
                 val imageUri = backStackEntry.arguments?.getString(
                     AppRoute.SavedImagePreview.SavedImageUriArgument
                 )
+                val previewItems = selectedSavedPreviewItems.forSavedPreviewRoute(imageUri)
                 SavedImagePreviewScreen(
-                    previewState = selectedSavedPreviewImage
-                        ?.takeIf { image -> image.uri.toString() == imageUri }
-                        ?.let(SavedImagePreviewState::Content)
-                        ?: savedPreviewResolver.resolve(savedImagesState, imageUri),
+                    previewState = savedPreviewResolver.resolve(savedImagesState, imageUri),
+                    previewItems = previewItems,
+                    initialIndex = previewItems.initialSavedPreviewIndex(imageUri, selectedSavedPreviewInitialIndex),
                     deleteState = deleteSavedImageState,
                     shareState = shareSavedImageState,
                     openState = openSavedImageState,
@@ -359,6 +376,28 @@ private fun PaddedNavigationContent(
     ) {
         content()
     }
+}
+
+private fun List<StatusImage>.forStatusPreviewRoute(routeUri: String?): List<StatusImage> {
+    if (routeUri.isNullOrBlank()) return emptyList()
+    return takeIf { images -> images.any { image -> image.uri.toString() == routeUri } }.orEmpty()
+}
+
+private fun List<SavedImage>.forSavedPreviewRoute(routeUri: String?): List<SavedImage> {
+    if (routeUri.isNullOrBlank()) return emptyList()
+    return takeIf { images -> images.any { image -> image.uri.toString() == routeUri } }.orEmpty()
+}
+
+private fun List<StatusImage>.initialStatusPreviewIndex(routeUri: String?, fallbackIndex: Int): Int {
+    if (isEmpty()) return 0
+    val routeIndex = indexOfFirst { image -> image.uri.toString() == routeUri }
+    return if (routeIndex >= 0) routeIndex else fallbackIndex.coerceIn(indices)
+}
+
+private fun List<SavedImage>.initialSavedPreviewIndex(routeUri: String?, fallbackIndex: Int): Int {
+    if (isEmpty()) return 0
+    val routeIndex = indexOfFirst { image -> image.uri.toString() == routeUri }
+    return if (routeIndex >= 0) routeIndex else fallbackIndex.coerceIn(indices)
 }
 
 @Composable
