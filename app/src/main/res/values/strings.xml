@@ -228,8 +228,11 @@
     <string name="settings_appearance_title">Apariencia</string>
     <string name="settings_home_background_title">Fondo de Inicio</string>
     <string name="settings_home_background_body">Elegí una foto para usar como fondo de la pantalla de Inicio.</string>
+    <string name="settings_home_background_status_default">Fondo predeterminado</string>
+    <string name="settings_home_background_status_custom">Foto de fondo personalizada</string>
     <string name="settings_home_background_load">Cargar foto de fondo</string>
     <string name="settings_home_background_remove">Quitar foto de fondo</string>
+    <string name="settings_home_background_use_default">Usar fondo predeterminado</string>
     <string name="settings_theme_title">Tema</string>
     <string name="settings_theme_summary_system">Usar tema del sistema</string>
     <string name="settings_theme_summary_light">Claro</string>
@@ -280,6 +283,7 @@
     <string name="home_background_change">Cambiar fondo</string>
     <string name="home_background_choose">Elegir imagen de galería</string>
     <string name="home_background_remove">Quitar fondo</string>
+    <string name="home_background_permission_lost">No se pudo acceder a tu foto de fondo. Se restauró el fondo predeterminado.</string>
     <string name="home_video_splitter_title">Dividir video</string>
     <string name="home_video_splitter_body">Prepará clips para compartir</string>
     <string name="home_video_splitter_action">Dividir</string>

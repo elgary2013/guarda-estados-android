@@ -103,6 +103,7 @@ fun AppNavigation(
     onResetSettings: () -> Unit,
     onResetMessageDismissed: () -> Unit,
     onOpenPrivacyPolicy: () -> Unit,
+    onValidateHomeBackground: () -> Unit,
     onHomePhotoSystemBarsStateChanged: (Boolean) -> Unit
 ) {
     val context = LocalContext.current
@@ -180,6 +181,12 @@ fun AppNavigation(
 
     LaunchedEffect(glassOnHomePhoto) {
         onHomePhotoSystemBarsStateChanged(glassOnHomePhoto)
+    }
+
+    LaunchedEffect(currentRoute, homeBackgroundUri) {
+        if (currentRoute == AppRoute.Home.route && homeBackgroundUri != null) {
+            onValidateHomeBackground()
+        }
     }
 
     LaunchedEffect(currentRoute) {

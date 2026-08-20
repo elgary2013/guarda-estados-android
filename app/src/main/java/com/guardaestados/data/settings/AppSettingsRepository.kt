@@ -55,10 +55,42 @@ class AppSettingsRepository(
         return saveDestinationState.first()
     }
 
-    suspend fun saveHomeBackground(uri: Uri) {
-        appContext.appSettingsDataStore.edit { preferences ->
-            preferences[HOME_BACKGROUND_URI] = uri.toString()
+    suspend fun saveHomeBackground(uri: Uri): HomeBackgroundUpdateResult {
+        val previousUriString = currentHomeBackgroundUriString()
+        val newUriString = uri.toString()
+        val permissionTaken = appContext.takePersistedReadPermission(uri)
+        val readable = permissionTaken && appContext.canReadPersistedUri(uri)
+
+        if (!readable) {
+            if (permissionTaken && previousUriString != newUriString) {
+                appContext.releasePersistedReadPermission(uri)
+            }
+            return HomeBackgroundUpdateResult.PermissionDenied
         }
+
+        appContext.appSettingsDataStore.edit { preferences ->
+            preferences[HOME_BACKGROUND_URI] = newUriString
+        }
+
+        previousUriString
+            ?.takeIf { uriString -> uriString != newUriString }
+            ?.let { uriString -> appContext.releasePersistedReadPermission(Uri.parse(uriString)) }
+
+        return HomeBackgroundUpdateResult.Saved
+    }
+
+    suspend fun clearUnreadableHomeBackground(): Boolean {
+        val uriString = currentHomeBackgroundUriString() ?: return false
+        val uri = Uri.parse(uriString)
+        if (appContext.canReadPersistedUri(uri)) return false
+
+        appContext.appSettingsDataStore.edit { preferences ->
+            if (preferences[HOME_BACKGROUND_URI] == uriString) {
+                preferences.remove(HOME_BACKGROUND_URI)
+            }
+        }
+        appContext.releasePersistedReadPermission(uri)
+        return true
     }
 
     suspend fun clearHomeBackground() {
@@ -96,12 +128,42 @@ class AppSettingsRepository(
         }
     }
 
+    private suspend fun currentHomeBackgroundUriString(): String? {
+        return appContext.appSettingsDataStore.data.first()[HOME_BACKGROUND_URI]
+    }
+
+    private fun Context.takePersistedReadPermission(uri: Uri): Boolean {
+        return try {
+            contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            true
+        } catch (exception: SecurityException) {
+            false
+        } catch (exception: IllegalArgumentException) {
+            false
+        }
+    }
+
     private fun Context.releasePersistedReadPermission(uri: Uri) {
         val permission = contentResolver.persistedUriPermissions.firstOrNull { permission ->
             permission.uri == uri && permission.isReadPermission
         } ?: return
         runCatching {
             contentResolver.releasePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        }
+    }
+
+    private fun Context.canReadPersistedUri(uri: Uri): Boolean {
+        val hasPermission = contentResolver.persistedUriPermissions.any { permission ->
+            permission.uri == uri && permission.isReadPermission
+        }
+        if (!hasPermission) return false
+
+        return try {
+            contentResolver.openInputStream(uri)?.use { true } == true
+        } catch (exception: SecurityException) {
+            false
+        } catch (exception: Exception) {
+            false
         }
     }
 
@@ -123,4 +185,9 @@ sealed interface SaveDestinationState {
     data class Custom(val uriString: String, val folderName: String) : SaveDestinationState
     data class PermissionLost(val uriString: String, val folderName: String) : SaveDestinationState
     data class Unavailable(val uriString: String, val folderName: String) : SaveDestinationState
+}
+
+sealed interface HomeBackgroundUpdateResult {
+    data object Saved : HomeBackgroundUpdateResult
+    data object PermissionDenied : HomeBackgroundUpdateResult
 }

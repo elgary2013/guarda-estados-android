@@ -229,13 +229,19 @@ fun SettingsScreen(
                     style = MaterialTheme.typography.bodyMedium,
                     color = SettingsBody
                 )
+                Text(
+                    text = homeBackgroundStatusText(homeBackgroundUri),
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = SettingsTitle
+                )
                 BrandGradientButton(
                     text = stringResource(R.string.settings_home_background_load),
                     onClick = onSelectHomeBackground
                 )
                 if (homeBackgroundUri != null) {
                     TextButton(onClick = onClearHomeBackground) {
-                        Text(text = stringResource(R.string.settings_home_background_remove), color = SettingsDanger)
+                        Text(text = stringResource(R.string.settings_home_background_use_default), color = SettingsDanger)
                     }
                 }
             }
@@ -639,6 +645,17 @@ private fun themeSummaryText(themePreference: AppThemePreference): String {
         AppThemePreference.Light -> stringResource(R.string.settings_theme_summary_light)
         AppThemePreference.Dark -> stringResource(R.string.settings_theme_summary_dark)
     }
+}
+
+@Composable
+private fun homeBackgroundStatusText(homeBackgroundUri: String?): String {
+    return stringResource(
+        if (homeBackgroundUri == null) {
+            R.string.settings_home_background_status_default
+        } else {
+            R.string.settings_home_background_status_custom
+        }
+    )
 }
 
 @Composable

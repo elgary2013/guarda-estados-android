@@ -9,6 +9,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -23,6 +24,7 @@ import com.guardaestados.data.folder.FolderSelectionState
 import com.guardaestados.data.folder.takeSaveDestinationFolderPermission
 import com.guardaestados.data.folder.takeSelectedFolderPermission
 import com.guardaestados.ui.navigation.AppNavigation
+import com.guardaestados.ui.settings.HomeBackgroundNotice
 import com.guardaestados.ui.settings.SettingsViewModel
 import com.guardaestados.ui.settings.SettingsViewModelFactory
 import com.guardaestados.ui.theme.GuardaEstadosTheme
@@ -42,6 +44,7 @@ fun GuardaEstadosApp() {
     val resetState by settingsViewModel.resetState.collectAsState()
     val saveDestinationState by settingsViewModel.saveDestinationState.collectAsState()
     val homeBackgroundUri by settingsViewModel.homeBackgroundUri.collectAsState()
+    val homeBackgroundNotice by settingsViewModel.homeBackgroundNotice.collectAsState()
     val coroutineScope = rememberCoroutineScope()
     val folderPicker = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocumentTree()
@@ -62,7 +65,6 @@ fun GuardaEstadosApp() {
         contract = ActivityResultContracts.OpenDocument()
     ) { uri ->
         if (uri != null) {
-            context.takeHomeBackgroundImagePermission(uri)
             settingsViewModel.selectHomeBackground(uri)
         }
     }
@@ -77,6 +79,13 @@ fun GuardaEstadosApp() {
     val appVersion = remember(context) { context.installedVersionName() }
     val systemDarkTheme = isSystemInDarkTheme()
     var drawHomePhotoBehindSystemBars by remember { mutableStateOf(false) }
+
+    LaunchedEffect(homeBackgroundNotice) {
+        if (homeBackgroundNotice == HomeBackgroundNotice.PermissionLost) {
+            Toast.makeText(context, R.string.home_background_permission_lost, Toast.LENGTH_SHORT).show()
+            settingsViewModel.clearHomeBackgroundNotice()
+        }
+    }
 
     GuardaEstadosTheme(
         themeMode = themePreference.toThemeMode(systemDarkTheme),
@@ -99,6 +108,7 @@ fun GuardaEstadosApp() {
             onResetSettings = settingsViewModel::resetSettings,
             onResetMessageDismissed = settingsViewModel::clearResetMessage,
             onOpenPrivacyPolicy = { context.openPrivacyPolicy() },
+            onValidateHomeBackground = settingsViewModel::validateHomeBackground,
             onHomePhotoSystemBarsStateChanged = { drawHomePhotoBehindSystemBars = it }
         )
     }
@@ -119,11 +129,6 @@ private fun Uri.isRecommendedStatusesParentFolder(): Boolean {
     return runCatching { DocumentsContract.getTreeDocumentId(this) }
         .getOrNull()
         .equals(RecommendedStatusesParentDocumentId, ignoreCase = true)
-}
-
-private fun Context.takeHomeBackgroundImagePermission(uri: Uri) {
-    val flags = Intent.FLAG_GRANT_READ_URI_PERMISSION
-    runCatching { contentResolver.takePersistableUriPermission(uri, flags) }
 }
 
 private fun Context.installedVersionName(): String {
