@@ -42,6 +42,9 @@ class SettingsViewModel(
     private val _resetState = MutableStateFlow<SettingsResetState>(SettingsResetState.Idle)
     val resetState: StateFlow<SettingsResetState> = _resetState.asStateFlow()
 
+    private val _homeBackgroundNotice = MutableStateFlow<HomeBackgroundNotice?>(null)
+    val homeBackgroundNotice: StateFlow<HomeBackgroundNotice?> = _homeBackgroundNotice.asStateFlow()
+
     fun selectHomeBackground(uri: Uri) {
         viewModelScope.launch(Dispatchers.IO) {
             appSettingsRepository.saveHomeBackground(uri)
@@ -52,6 +55,21 @@ class SettingsViewModel(
         viewModelScope.launch(Dispatchers.IO) {
             appSettingsRepository.clearHomeBackground()
         }
+    }
+
+    fun validateHomeBackground() {
+        if (homeBackgroundUri.value == null) return
+
+        viewModelScope.launch(Dispatchers.IO) {
+            val restoredDefault = appSettingsRepository.clearUnreadableHomeBackground()
+            if (restoredDefault && _homeBackgroundNotice.value == null) {
+                _homeBackgroundNotice.value = HomeBackgroundNotice.PermissionLost
+            }
+        }
+    }
+
+    fun clearHomeBackgroundNotice() {
+        _homeBackgroundNotice.value = null
     }
 
     fun selectTheme(themePreference: AppThemePreference) {
@@ -93,6 +111,10 @@ sealed interface SettingsResetState {
     data object Idle : SettingsResetState
     data object Resetting : SettingsResetState
     data object Success : SettingsResetState
+}
+
+sealed interface HomeBackgroundNotice {
+    data object PermissionLost : HomeBackgroundNotice
 }
 
 class SettingsViewModelFactory(
