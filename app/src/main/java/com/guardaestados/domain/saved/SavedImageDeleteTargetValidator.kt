@@ -15,9 +15,9 @@ class SavedImageDeleteTargetValidator {
     }
 
     private companion object {
-        const val IMAGE_SAVE_RELATIVE_PATH = "Pictures/GuardaEstados"
-        const val VIDEO_SAVE_RELATIVE_PATH = "Movies/GuardaEstados"
-        const val VIDEO_PARTS_RELATIVE_PATH = "Movies/GuardaEstados/Partes"
+        const val IMAGE_SAVE_RELATIVE_PATH = "Pictures/EstadoGo/Im\u00E1genes"
+        const val VIDEO_SAVE_RELATIVE_PATH = "Movies/EstadoGo/Videos"
+        const val VIDEO_PARTS_RELATIVE_PATH = "Movies/EstadoGo/Videos/Partes"
         const val IMAGE_MIME_PREFIX = "image/"
         const val VIDEO_MIME_PREFIX = "video/"
     }

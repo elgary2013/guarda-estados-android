@@ -74,7 +74,7 @@ class MediaStoreSavedImagesRepository(
             is SavedImageTargetValidation.Valid -> Unit
             SavedImageTargetValidation.Missing -> return@withContext DeleteSavedImageResult.AlreadyMissing
             SavedImageTargetValidation.Invalid -> {
-                Log.w(TAG, "Delete rejected: URI is not a saved SocialSaverFull media item")
+                Log.w(TAG, "Delete rejected: URI is not a saved EstadoGo media item")
                 return@withContext DeleteSavedImageResult.InvalidTarget
             }
             SavedImageTargetValidation.Error -> return@withContext DeleteSavedImageResult.Error
@@ -109,7 +109,7 @@ class MediaStoreSavedImagesRepository(
             is SavedImageTargetValidation.Valid -> Unit
             SavedImageTargetValidation.Missing -> return@withContext ShareSavedImageResult.AlreadyMissing
             SavedImageTargetValidation.Invalid -> {
-                Log.w(TAG, "Share rejected: URI is not a saved SocialSaverFull media item")
+                Log.w(TAG, "Share rejected: URI is not a saved EstadoGo media item")
                 return@withContext ShareSavedImageResult.InvalidTarget
             }
             SavedImageTargetValidation.Error -> return@withContext ShareSavedImageResult.Error
@@ -476,14 +476,14 @@ class MediaStoreSavedImagesRepository(
 
     private companion object {
         const val TAG = "SavedMedia"
-        const val IMAGE_SAVE_RELATIVE_PATH = "Pictures/GuardaEstados/"
-        const val VIDEO_SAVE_RELATIVE_PATH = "Movies/GuardaEstados/"
-        const val VIDEO_PARTS_RELATIVE_PATH = "Movies/GuardaEstados/Partes/"
+        const val IMAGE_SAVE_RELATIVE_PATH = "Pictures/EstadoGo/Im\u00E1genes/"
+        const val VIDEO_SAVE_RELATIVE_PATH = "Movies/EstadoGo/Videos/"
+        const val VIDEO_PARTS_RELATIVE_PATH = "Movies/EstadoGo/Videos/Partes/"
         const val IMAGE_MIME_PREFIX = "image/"
         const val VIDEO_MIME_PREFIX = "video/"
         const val MEDIA_AUTHORITY = "media"
         const val MILLIS_PER_SECOND = 1000L
-        const val APP_DESTINATION_FOLDER = "SocialSaverFull"
+        const val APP_DESTINATION_FOLDER = "EstadoGo"
         const val IMAGE_DESTINATION_FOLDER = "Im\u00E1genes"
         const val VIDEO_DESTINATION_FOLDER = "Videos"
     }

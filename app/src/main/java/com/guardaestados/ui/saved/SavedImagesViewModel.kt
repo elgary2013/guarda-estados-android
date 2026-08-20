@@ -2,10 +2,14 @@ package com.guardaestados.ui.saved
 
 import android.content.Context
 import android.content.IntentSender
+import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import com.guardaestados.data.save.MediaStoreStatusImageSaverRepository
 import com.guardaestados.data.saved.MediaStoreSavedImagesRepository
+import com.guardaestados.domain.save.ImportSavedMediaResult
+import com.guardaestados.domain.save.ImportSavedMediaUseCase
 import com.guardaestados.domain.saved.DeleteSavedImageResult
 import com.guardaestados.domain.saved.DeleteSavedImageUseCase
 import com.guardaestados.domain.saved.LoadSavedImagesUseCase
@@ -33,6 +37,7 @@ class SavedImagesViewModel(
     private val shareSavedImage: ShareSavedImageUseCase,
     private val shareSavedImages: ShareSavedImagesUseCase,
     private val openSavedImage: OpenSavedImageUseCase,
+    private val importSavedMedia: ImportSavedMediaUseCase,
     private val summaryCalculator: SavedMultiActionSummaryCalculator = SavedMultiActionSummaryCalculator()
 ) : ViewModel() {
     private val _uiState = MutableStateFlow<SavedImagesState>(SavedImagesState.Loading)
@@ -55,6 +60,9 @@ class SavedImagesViewModel(
 
     private val _openState = MutableStateFlow<SavedImageOpenState>(SavedImageOpenState.Idle)
     val openState: StateFlow<SavedImageOpenState> = _openState.asStateFlow()
+
+    private val _importState = MutableStateFlow<SavedMediaImportState>(SavedMediaImportState.Idle)
+    val importState: StateFlow<SavedMediaImportState> = _importState.asStateFlow()
 
     private val _selectedPreviewImage = MutableStateFlow<SavedImage?>(null)
     val selectedPreviewImage: StateFlow<SavedImage?> = _selectedPreviewImage.asStateFlow()
@@ -204,6 +212,20 @@ class SavedImagesViewModel(
         }
     }
 
+    fun importMedia(uri: Uri?) {
+        if (uri == null) return
+        if (_importState.value == SavedMediaImportState.Importing) return
+
+        viewModelScope.launch(Dispatchers.IO) {
+            _importState.value = SavedMediaImportState.Importing
+            val result = importSavedMedia.execute(uri)
+            _importState.value = result.toImportState()
+            if (result is ImportSavedMediaResult.Success) {
+                refreshSavedImagesAfterDelete()
+            }
+        }
+    }
+
     fun onSystemDeleteConfirmationLaunched() {
         _deleteState.value = SavedImageDeleteState.Deleting
     }
@@ -236,6 +258,12 @@ class SavedImagesViewModel(
 
     fun clearOpenMessage() {
         _openState.value = SavedImageOpenState.Idle
+    }
+
+    fun clearImportMessage() {
+        if (_importState.value != SavedMediaImportState.Importing) {
+            _importState.value = SavedMediaImportState.Idle
+        }
     }
 
     private suspend fun handleDeleteResult(
@@ -271,6 +299,17 @@ class SavedImagesViewModel(
 }
 
 private fun Int?.orZero(): Int = this ?: 0
+
+private fun ImportSavedMediaResult.toImportState(): SavedMediaImportState {
+    return when (this) {
+        is ImportSavedMediaResult.Success -> SavedMediaImportState.Success(displayName)
+        ImportSavedMediaResult.Unsupported -> SavedMediaImportState.Unsupported
+        ImportSavedMediaResult.Missing -> SavedMediaImportState.Missing
+        ImportSavedMediaResult.DestinationPermissionLost -> SavedMediaImportState.DestinationPermissionLost
+        ImportSavedMediaResult.DestinationUnavailable -> SavedMediaImportState.DestinationUnavailable
+        ImportSavedMediaResult.Error -> SavedMediaImportState.Error
+    }
+}
 
 sealed interface SavedImageDeleteState {
     data object Idle : SavedImageDeleteState
@@ -321,6 +360,17 @@ sealed interface SavedImageOpenState {
     data object Error : SavedImageOpenState
 }
 
+sealed interface SavedMediaImportState {
+    data object Idle : SavedMediaImportState
+    data object Importing : SavedMediaImportState
+    data class Success(val displayName: String) : SavedMediaImportState
+    data object Unsupported : SavedMediaImportState
+    data object Missing : SavedMediaImportState
+    data object DestinationPermissionLost : SavedMediaImportState
+    data object DestinationUnavailable : SavedMediaImportState
+    data object Error : SavedMediaImportState
+}
+
 class SavedImagesViewModelFactory(
     context: Context
 ) : ViewModelProvider.Factory {
@@ -335,12 +385,15 @@ class SavedImagesViewModelFactory(
             val shareUseCase = ShareSavedImageUseCase(repository)
             val shareImagesUseCase = ShareSavedImagesUseCase(repository)
             val openUseCase = OpenSavedImageUseCase(repository)
+            val importRepository = MediaStoreStatusImageSaverRepository(appContext)
+            val importUseCase = ImportSavedMediaUseCase(importRepository)
             return SavedImagesViewModel(
                 loadUseCase,
                 deleteUseCase,
                 shareUseCase,
                 shareImagesUseCase,
-                openUseCase
+                openUseCase,
+                importUseCase
             ) as T
         }
         throw IllegalArgumentException("Unknown ViewModel class")

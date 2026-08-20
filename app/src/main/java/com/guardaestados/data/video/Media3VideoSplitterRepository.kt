@@ -237,6 +237,6 @@ class Media3VideoSplitterRepository(
         const val DEFAULT_VIDEO_NAME = "video"
         const val DEFAULT_VIDEO_MIME_TYPE = "video/mp4"
         const val TEMP_DIRECTORY = "video_parts"
-        const val VIDEO_PARTS_RELATIVE_PATH = "Movies/GuardaEstados/Partes/"
+        const val VIDEO_PARTS_RELATIVE_PATH = "Movies/EstadoGo/Videos/Partes/"
     }
 }

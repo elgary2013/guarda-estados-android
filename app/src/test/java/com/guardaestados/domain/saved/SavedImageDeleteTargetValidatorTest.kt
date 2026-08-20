@@ -11,7 +11,7 @@ class SavedImageDeleteTargetValidatorTest {
     fun `accepts images in saved relative path`() {
         assertTrue(
             validator.isValid(
-                relativePath = "Pictures/GuardaEstados/",
+                relativePath = "Pictures/EstadoGo/Im\u00E1genes/",
                 mimeType = "image/jpeg"
             )
         )
@@ -21,7 +21,7 @@ class SavedImageDeleteTargetValidatorTest {
     fun `accepts saved relative path without trailing slash`() {
         assertTrue(
             validator.isValid(
-                relativePath = "Pictures/GuardaEstados",
+                relativePath = "Pictures/EstadoGo/Im\u00E1genes",
                 mimeType = "image/png"
             )
         )
@@ -31,7 +31,7 @@ class SavedImageDeleteTargetValidatorTest {
     fun `accepts saved status videos in app relative path`() {
         assertTrue(
             validator.isValid(
-                relativePath = "Movies/GuardaEstados/",
+                relativePath = "Movies/EstadoGo/Videos/",
                 mimeType = "video/mp4"
             )
         )
@@ -41,7 +41,7 @@ class SavedImageDeleteTargetValidatorTest {
     fun `accepts generated video parts in app relative path`() {
         assertTrue(
             validator.isValid(
-                relativePath = "Movies/GuardaEstados/Partes/",
+                relativePath = "Movies/EstadoGo/Videos/Partes/",
                 mimeType = "video/mp4"
             )
         )
@@ -61,25 +61,49 @@ class SavedImageDeleteTargetValidatorTest {
                 mimeType = "video/mp4"
             )
         )
+        assertFalse(
+            validator.isValid(
+                relativePath = "Pictures/GuardaEstados/",
+                mimeType = "image/jpeg"
+            )
+        )
+        assertFalse(
+            validator.isValid(
+                relativePath = "Pictures/EstadoGo/",
+                mimeType = "image/jpeg"
+            )
+        )
+        assertFalse(
+            validator.isValid(
+                relativePath = "Movies/EstadoGo/",
+                mimeType = "video/mp4"
+            )
+        )
+        assertFalse(
+            validator.isValid(
+                relativePath = "Android/media/com.whatsapp/WhatsApp/Media/.Statuses/",
+                mimeType = "image/jpeg"
+            )
+        )
     }
 
     @Test
     fun `rejects videos in image path and images in video paths`() {
         assertFalse(
             validator.isValid(
-                relativePath = "Pictures/GuardaEstados/",
+                relativePath = "Pictures/EstadoGo/Im\u00E1genes/",
                 mimeType = "video/mp4"
             )
         )
         assertFalse(
             validator.isValid(
-                relativePath = "Movies/GuardaEstados/",
+                relativePath = "Movies/EstadoGo/Videos/",
                 mimeType = "image/jpeg"
             )
         )
         assertFalse(
             validator.isValid(
-                relativePath = "Movies/GuardaEstados/Partes/",
+                relativePath = "Movies/EstadoGo/Videos/Partes/",
                 mimeType = "image/jpeg"
             )
         )

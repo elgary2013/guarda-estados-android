@@ -22,6 +22,13 @@ class SavedMultiActionSummaryCalculatorTest {
     }
 
     @Test
+    fun `summarizes multi delete successes omissions and failures`() {
+        val summary = calculator.summarize(successCount = 2, totalCount = 5)
+
+        assertEquals(SavedMultiActionSummary(successCount = 2, failedCount = 3), summary)
+    }
+
+    @Test
     fun `summarizes all failed actions`() {
         val summary = calculator.summarize(successCount = 0, totalCount = 2)
 
