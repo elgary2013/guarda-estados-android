@@ -22,6 +22,31 @@
     <string name="states_action_refresh">Actualizar</string>
     <string name="states_refresh_footer">Actualizar para buscar nuevos estados</string>
     <string name="states_video_badge">Video</string>
+    <string name="states_selection_cancel">Cancelar selección</string>
+    <string name="states_selection_start">Seleccionar elemento</string>
+    <string name="states_selection_select_item">Marcar elemento</string>
+    <string name="states_selection_unselect_item">Desmarcar elemento</string>
+    <string name="states_selection_item_selected">Elemento seleccionado</string>
+    <string name="states_selection_item_not_selected">Elemento no seleccionado</string>
+    <string name="states_selection_saving_progress">Guardando %1$d de %2$d</string>
+    <string name="states_selection_partial_summary">%1$s. %2$s.</string>
+    <string name="states_selection_save_all_failed">No se pudo guardar ningún elemento.</string>
+    <plurals name="states_selection_count">
+        <item quantity="one">%1$d seleccionado</item>
+        <item quantity="other">%1$d seleccionados</item>
+    </plurals>
+    <plurals name="states_selection_save_action">
+        <item quantity="one">Guardar %1$d elemento</item>
+        <item quantity="other">Guardar %1$d elementos</item>
+    </plurals>
+    <plurals name="states_selection_saved_summary">
+        <item quantity="one">Se guardó %1$d elemento</item>
+        <item quantity="other">Se guardaron %1$d elementos</item>
+    </plurals>
+    <plurals name="states_selection_failed_summary">
+        <item quantity="one">%1$d no se pudo guardar</item>
+        <item quantity="other">%1$d no se pudieron guardar</item>
+    </plurals>
     <string name="states_loading_title">Leyendo carpeta</string>
     <string name="states_loading_body">Buscando imágenes y videos compatibles...</string>
     <string name="states_empty_title">No encontramos estados todavía</string>
@@ -149,6 +174,39 @@
     <string name="saved_share_status_invalid">No se compartió la copia porque no pertenece a las carpetas locales de SocialSaverFull.</string>
     <string name="saved_share_status_no_app">No hay una aplicación compatible para compartir esta imagen guardada.</string>
     <string name="saved_share_status_error">No se pudo compartir la copia guardada. Probá de nuevo.</string>
+    <string name="saved_selection_sharing_progress">Preparando elementos para compartir...</string>
+    <string name="saved_selection_deleting_progress">Eliminando %1$d de %2$d</string>
+    <string name="saved_selection_delete_dialog_body">Esta acción no afecta los archivos originales.</string>
+    <string name="saved_selection_share_all_failed">No se pudo compartir ningún elemento.</string>
+    <string name="saved_selection_delete_all_failed">No se pudo eliminar ninguna copia.</string>
+    <plurals name="saved_selection_share_action">
+        <item quantity="one">Compartir %1$d elemento</item>
+        <item quantity="other">Compartir %1$d elementos</item>
+    </plurals>
+    <plurals name="saved_selection_delete_action">
+        <item quantity="one">Eliminar %1$d copia</item>
+        <item quantity="other">Eliminar %1$d copias</item>
+    </plurals>
+    <plurals name="saved_selection_delete_dialog_title">
+        <item quantity="one">¿Eliminar %1$d copia guardada?</item>
+        <item quantity="other">¿Eliminar %1$d copias guardadas?</item>
+    </plurals>
+    <plurals name="saved_selection_shared_summary">
+        <item quantity="one">Se preparó %1$d elemento para compartir</item>
+        <item quantity="other">Se prepararon %1$d elementos para compartir</item>
+    </plurals>
+    <plurals name="saved_selection_share_failed_summary">
+        <item quantity="one">%1$d no se pudo compartir</item>
+        <item quantity="other">%1$d no se pudieron compartir</item>
+    </plurals>
+    <plurals name="saved_selection_deleted_summary">
+        <item quantity="one">Se eliminó %1$d copia</item>
+        <item quantity="other">Se eliminaron %1$d copias</item>
+    </plurals>
+    <plurals name="saved_selection_delete_failed_summary">
+        <item quantity="one">%1$d no se pudo eliminar</item>
+        <item quantity="other">%1$d no se pudieron eliminar</item>
+    </plurals>
     <string name="settings_title">Configuración</string>
     <string name="settings_subtitle">Administrá la carpeta autorizada, el tema y la información de la aplicación.</string>
     <string name="settings_folder_title">Carpeta seleccionada</string>

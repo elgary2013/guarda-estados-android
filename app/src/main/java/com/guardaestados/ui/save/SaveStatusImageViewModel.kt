@@ -5,6 +5,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.guardaestados.data.save.MediaStoreStatusImageSaverRepository
+import com.guardaestados.domain.save.MultiSaveStatusSummary
+import com.guardaestados.domain.save.MultiSaveStatusSummaryCalculator
 import com.guardaestados.domain.save.SaveStatusImageResult
 import com.guardaestados.domain.save.SaveStatusImageUseCase
 import com.guardaestados.domain.status.StatusImage
@@ -14,10 +16,14 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
 class SaveStatusImageViewModel(
-    private val saveStatusImage: SaveStatusImageUseCase
+    private val saveStatusImage: SaveStatusImageUseCase,
+    private val multiSaveSummaryCalculator: MultiSaveStatusSummaryCalculator = MultiSaveStatusSummaryCalculator()
 ) : ViewModel() {
     private val _uiState = MutableStateFlow<SaveStatusImageUiState>(SaveStatusImageUiState.Idle)
     val uiState: StateFlow<SaveStatusImageUiState> = _uiState.asStateFlow()
+
+    private val _multiSaveState = MutableStateFlow<MultiSaveStatusUiState>(MultiSaveStatusUiState.Idle)
+    val multiSaveState: StateFlow<MultiSaveStatusUiState> = _multiSaveState.asStateFlow()
 
     fun save(image: StatusImage) {
         if (_uiState.value == SaveStatusImageUiState.Saving) return
@@ -33,6 +39,35 @@ class SaveStatusImageViewModel(
             }
         }
     }
+
+    fun saveAll(images: List<StatusImage>) {
+        if (images.isEmpty() || _multiSaveState.value is MultiSaveStatusUiState.Saving) return
+
+        viewModelScope.launch {
+            val results = mutableListOf<SaveStatusImageResult>()
+            _multiSaveState.value = MultiSaveStatusUiState.Saving(
+                processedCount = 0,
+                totalCount = images.size
+            )
+            images.forEach { image ->
+                val result = saveStatusImage.execute(image)
+                results += result
+                _multiSaveState.value = MultiSaveStatusUiState.Saving(
+                    processedCount = results.size,
+                    totalCount = images.size
+                )
+            }
+            _multiSaveState.value = MultiSaveStatusUiState.Finished(
+                multiSaveSummaryCalculator.summarize(results)
+            )
+        }
+    }
+
+    fun clearMultiSaveResult() {
+        if (_multiSaveState.value is MultiSaveStatusUiState.Finished) {
+            _multiSaveState.value = MultiSaveStatusUiState.Idle
+        }
+    }
 }
 
 sealed interface SaveStatusImageUiState {
@@ -43,6 +78,18 @@ sealed interface SaveStatusImageUiState {
     data object DestinationUnavailable : SaveStatusImageUiState
     data class Success(val displayName: String) : SaveStatusImageUiState
     data object Error : SaveStatusImageUiState
+}
+
+sealed interface MultiSaveStatusUiState {
+    data object Idle : MultiSaveStatusUiState
+    data class Saving(
+        val processedCount: Int,
+        val totalCount: Int
+    ) : MultiSaveStatusUiState
+
+    data class Finished(
+        val summary: MultiSaveStatusSummary
+    ) : MultiSaveStatusUiState
 }
 
 class SaveStatusImageViewModelFactory(

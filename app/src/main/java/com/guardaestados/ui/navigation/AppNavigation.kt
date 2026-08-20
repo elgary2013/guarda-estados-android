@@ -125,11 +125,14 @@ fun AppNavigation(
         initial = StatusGalleryState.Loading
     )
     val saveStatusImageState by saveStatusImageViewModel.uiState.collectAsState()
+    val multiSaveStatusImageState by saveStatusImageViewModel.multiSaveState.collectAsState()
     val shareStatusImageState by shareStatusImageViewModel.uiState.collectAsState()
     val savedImagesState by savedImagesViewModel.uiState.collectAsState()
     val savedImagesRefreshing by savedImagesViewModel.isRefreshing.collectAsState()
     val deleteSavedImageState by savedImagesViewModel.deleteState.collectAsState()
     val shareSavedImageState by savedImagesViewModel.shareState.collectAsState()
+    val multiShareSavedImageState by savedImagesViewModel.multiShareState.collectAsState()
+    val multiDeleteSavedImageState by savedImagesViewModel.multiDeleteState.collectAsState()
     val openSavedImageState by savedImagesViewModel.openState.collectAsState()
     val videoSplitterState by videoSplitterViewModel.uiState.collectAsState()
     var selectedStatusPreviewItems by remember { mutableStateOf<List<StatusImage>>(emptyList()) }
@@ -240,7 +243,10 @@ fun AppNavigation(
                 PaddedNavigationContent(innerPadding) {
                     StatesScreen(
                         statusGalleryState = statusGalleryState,
+                        multiSaveState = multiSaveStatusImageState,
                         onRefresh = statusGalleryViewModel::refresh,
+                        onSaveSelected = saveStatusImageViewModel::saveAll,
+                        onMultiSaveMessageShown = saveStatusImageViewModel::clearMultiSaveResult,
                         onImageSelected = { images, initialIndex ->
                             val image = images.getOrNull(initialIndex) ?: return@StatesScreen
                             selectedStatusPreviewItems = images
@@ -257,6 +263,8 @@ fun AppNavigation(
                     SavedImagesScreen(
                         savedImagesState = savedImagesState,
                         deleteState = deleteSavedImageState,
+                        multiShareState = multiShareSavedImageState,
+                        multiDeleteState = multiDeleteSavedImageState,
                         isRefreshing = savedImagesRefreshing,
                         onRefresh = savedImagesViewModel::refresh,
                         onImageSelected = { images, initialIndex ->
@@ -269,7 +277,11 @@ fun AppNavigation(
                             }
                         },
                         onDeleteImage = savedImagesViewModel::delete,
-                        onDeleteMessageDismissed = savedImagesViewModel::clearDeleteMessage
+                        onShareSelected = savedImagesViewModel::shareAll,
+                        onDeleteSelected = savedImagesViewModel::deleteAll,
+                        onDeleteMessageDismissed = savedImagesViewModel::clearDeleteMessage,
+                        onMultiShareMessageDismissed = savedImagesViewModel::clearMultiShareMessage,
+                        onMultiDeleteMessageDismissed = savedImagesViewModel::clearMultiDeleteMessage
                     )
                 }
             }
