@@ -215,6 +215,11 @@
     <string name="settings_folder_description">Esta carpeta se usa solo para leer los estados detectados.</string>
     <string name="settings_folder_name">Carpeta guardada: %1$s</string>
     <string name="settings_folder_authorized_name">Carpeta autorizada: %1$s</string>
+    <string name="settings_folder_recommended_label">Carpeta recomendada</string>
+    <string name="settings_folder_recommended_path">Android &gt; media &gt; com.whatsapp &gt; WhatsApp &gt; Media &gt; .Statuses</string>
+    <string name="settings_folder_manual_authorized">Carpeta manual autorizada</string>
+    <string name="settings_folder_statuses_name">.Statuses</string>
+    <string name="settings_folder_unknown_name">Carpeta seleccionada</string>
     <string name="settings_save_destination_title">Carpeta de destino</string>
     <string name="settings_save_destination_summary_default">Ubicación predeterminada</string>
     <string name="settings_save_destination_summary_attention">Requiere atención</string>
