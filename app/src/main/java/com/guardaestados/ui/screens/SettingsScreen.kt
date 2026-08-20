@@ -1,6 +1,7 @@
 package com.guardaestados.ui.screens
 
 import android.net.Uri
+import android.provider.DocumentsContract
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.BorderStroke
@@ -567,25 +568,62 @@ private fun ResetSuccessMessage(onDismiss: () -> Unit) {
 
 @Composable
 private fun FolderDetail(folderSelectionState: FolderSelectionState) {
-    val uriString = when (folderSelectionState) {
-        is FolderSelectionState.PermissionLost -> folderSelectionState.uriString
-        is FolderSelectionState.Selected -> folderSelectionState.uriString
-        else -> null
-    }
-    val folderName = uriString?.friendlyFolderName()
-    if (folderName != null) {
-        Text(
-            text = stringResource(
-                if (folderSelectionState is FolderSelectionState.Selected) {
-                    R.string.settings_folder_authorized_name
-                } else {
-                    R.string.settings_folder_name
-                },
-                folderName
-            ),
-            style = MaterialTheme.typography.bodyMedium,
-            fontWeight = FontWeight.SemiBold
-        )
+    when (folderSelectionState) {
+        FolderSelectionState.NotSelected -> {
+            Text(
+                text = stringResource(R.string.settings_folder_recommended_label),
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.SemiBold
+            )
+            Text(
+                text = stringResource(R.string.settings_folder_recommended_path),
+                style = MaterialTheme.typography.bodyMedium,
+                color = SettingsBody
+            )
+        }
+        is FolderSelectionState.Selected -> {
+            val folderName = folderSelectionState.uriString.friendlyFolderName()
+                ?: stringResource(R.string.settings_folder_unknown_name)
+            if (folderSelectionState.uriString.isRecommendedStatusesFolder()) {
+                Text(
+                    text = stringResource(
+                        R.string.settings_folder_authorized_name,
+                        stringResource(R.string.settings_folder_statuses_name)
+                    ),
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Text(
+                    text = stringResource(R.string.settings_folder_recommended_path),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = SettingsBody
+                )
+            } else {
+                Text(
+                    text = stringResource(R.string.settings_folder_manual_authorized),
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Text(
+                    text = folderName,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = SettingsBody
+                )
+            }
+        }
+        is FolderSelectionState.PermissionLost -> {
+            val folderName = folderSelectionState.uriString.friendlyFolderName()
+                ?: stringResource(R.string.settings_folder_unknown_name)
+            Text(
+                text = stringResource(
+                    R.string.settings_folder_name,
+                    folderName
+                ),
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.SemiBold
+            )
+        }
+        FolderSelectionState.Loading -> Unit
     }
 }
 
@@ -696,14 +734,34 @@ private fun SettingsSectionKey?.toggle(section: SettingsSectionKey): SettingsSec
     return if (this == section) null else section
 }
 
-private fun String.friendlyFolderName(): String {
-    val decoded = Uri.decode(this)
-    return decoded
+private fun String.friendlyFolderName(): String? {
+    val uri = runCatching { Uri.parse(this) }.getOrNull()
+    val documentId = uri
+        ?.let { parsedUri -> runCatching { DocumentsContract.getTreeDocumentId(parsedUri) }.getOrNull() }
+    return documentId
+        ?.visibleFolderName()
+        ?: uri?.lastPathSegment?.visibleFolderName()
+        ?: Uri.decode(this).visibleFolderName()
+}
+
+private fun String.isRecommendedStatusesFolder(): Boolean {
+    val uri = runCatching { Uri.parse(this) }.getOrNull() ?: return false
+    return runCatching { DocumentsContract.getTreeDocumentId(uri) }
+        .getOrNull()
+        .equals(RecommendedStatusesDocumentId, ignoreCase = true)
+}
+
+private fun String.visibleFolderName(): String? {
+    return Uri.decode(this)
         .substringBefore('?')
         .substringAfterLast(':')
         .substringAfterLast('/')
-        .ifBlank { this }
+        .takeUnless { it.startsWith("content://") }
+        ?.ifBlank { null }
 }
+
+private const val RecommendedStatusesDocumentId =
+    "primary:Android/media/com.whatsapp/WhatsApp/Media/.Statuses"
 
 private enum class SettingsSectionKey {
     SourceFolder,

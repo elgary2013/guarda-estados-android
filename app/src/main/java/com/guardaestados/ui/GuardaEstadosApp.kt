@@ -119,7 +119,7 @@ private const val RecommendedStatusesParentDocumentId =
     "primary:Android/media/com.whatsapp/WhatsApp/Media"
 
 private fun recommendedStatusesParentUri(): Uri {
-    return DocumentsContract.buildTreeDocumentUri(
+    return DocumentsContract.buildDocumentUri(
         ExternalStorageDocumentsAuthority,
         RecommendedStatusesParentDocumentId
     )
