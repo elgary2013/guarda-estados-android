@@ -71,10 +71,14 @@ import com.guardaestados.ui.saved.SavedImagesViewModelFactory
 import com.guardaestados.ui.settings.SettingsResetState
 import com.guardaestados.ui.share.ShareStatusImageViewModel
 import com.guardaestados.ui.share.ShareStatusImageViewModelFactory
+import com.guardaestados.ui.screens.AppearanceScreen
+import com.guardaestados.ui.screens.FolderSettingsScreen
 import com.guardaestados.ui.screens.HomeScreen
 import com.guardaestados.ui.screens.ImagePreviewScreen
+import com.guardaestados.ui.screens.PrivacyInfoScreen
 import com.guardaestados.ui.screens.SavedImagePreviewScreen
 import com.guardaestados.ui.screens.SavedImagesScreen
+import com.guardaestados.ui.screens.SaveDestinationScreen
 import com.guardaestados.ui.screens.SettingsScreen
 import com.guardaestados.ui.screens.StatesScreen
 import com.guardaestados.ui.screens.VideoSplitterScreen
@@ -84,6 +88,8 @@ import com.guardaestados.ui.status.StatusGalleryViewModelFactory
 import com.guardaestados.ui.status.StatusImagePreviewResolver
 import com.guardaestados.ui.video.VideoSplitterViewModel
 import com.guardaestados.ui.video.VideoSplitterViewModelFactory
+
+private val SavedImportMimeTypes = arrayOf("image/*", "video/*")
 
 @Composable
 fun AppNavigation(
@@ -135,6 +141,7 @@ fun AppNavigation(
     val multiShareSavedImageState by savedImagesViewModel.multiShareState.collectAsState()
     val multiDeleteSavedImageState by savedImagesViewModel.multiDeleteState.collectAsState()
     val openSavedImageState by savedImagesViewModel.openState.collectAsState()
+    val importSavedMediaState by savedImagesViewModel.importState.collectAsState()
     val videoSplitterState by videoSplitterViewModel.uiState.collectAsState()
     var selectedStatusPreviewItems by remember { mutableStateOf<List<StatusImage>>(emptyList()) }
     var selectedStatusPreviewInitialIndex by remember { mutableStateOf(0) }
@@ -172,6 +179,11 @@ fun AppNavigation(
                 launchSingleTop = true
             }
         }
+    }
+    val importSavedMediaLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument()
+    ) { uri ->
+        savedImagesViewModel.importMedia(uri)
     }
     val deleteConfirmationLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartIntentSenderForResult()
@@ -272,8 +284,10 @@ fun AppNavigation(
                         deleteState = deleteSavedImageState,
                         multiShareState = multiShareSavedImageState,
                         multiDeleteState = multiDeleteSavedImageState,
+                        importState = importSavedMediaState,
                         isRefreshing = savedImagesRefreshing,
                         onRefresh = savedImagesViewModel::refresh,
+                        onImportFile = { importSavedMediaLauncher.launch(SavedImportMimeTypes) },
                         onImageSelected = { images, initialIndex ->
                             val image = images.getOrNull(initialIndex) ?: return@SavedImagesScreen
                             selectedSavedPreviewItems = images
@@ -288,7 +302,8 @@ fun AppNavigation(
                         onDeleteSelected = savedImagesViewModel::deleteAll,
                         onDeleteMessageDismissed = savedImagesViewModel::clearDeleteMessage,
                         onMultiShareMessageDismissed = savedImagesViewModel::clearMultiShareMessage,
-                        onMultiDeleteMessageDismissed = savedImagesViewModel::clearMultiDeleteMessage
+                        onMultiDeleteMessageDismissed = savedImagesViewModel::clearMultiDeleteMessage,
+                        onImportMessageDismissed = savedImagesViewModel::clearImportMessage
                     )
                 }
             }
@@ -315,19 +330,71 @@ fun AppNavigation(
                         folderSelectionState = folderSelectionState,
                         themePreference = themePreference,
                         saveDestinationState = saveDestinationState,
-                        appVersion = appVersion,
                         homeBackgroundUri = homeBackgroundUri,
-                        onSelectRecommendedFolder = onSelectRecommendedFolder,
-                        onSelectFolder = onSelectFolder,
-                        onSelectHomeBackground = onSelectHomeBackground,
-                        onClearHomeBackground = onClearHomeBackground,
-                        onSelectSaveDestination = onSelectSaveDestination,
-                        onUseDefaultSaveDestination = onUseDefaultSaveDestination,
-                        onThemePreferenceSelected = onThemePreferenceSelected,
+                        onOpenFolderSettings = {
+                            navController.navigate(AppRoute.FolderSettings.route) {
+                                launchSingleTop = true
+                            }
+                        },
+                        onOpenSaveDestination = {
+                            navController.navigate(AppRoute.SaveDestinationSettings.route) {
+                                launchSingleTop = true
+                            }
+                        },
+                        onOpenAppearance = {
+                            navController.navigate(AppRoute.Appearance.route) {
+                                launchSingleTop = true
+                            }
+                        },
+                        onOpenPrivacyInfo = {
+                            navController.navigate(AppRoute.PrivacyInfoSettings.route) {
+                                launchSingleTop = true
+                            }
+                        },
                         resetState = resetState,
                         onResetSettings = onResetSettings,
-                        onResetMessageDismissed = onResetMessageDismissed,
-                        onOpenPrivacyPolicy = onOpenPrivacyPolicy
+                        onResetMessageDismissed = onResetMessageDismissed
+                    )
+                }
+            }
+            composable(AppRoute.FolderSettings.route) {
+                PaddedNavigationContent(innerPadding) {
+                    FolderSettingsScreen(
+                        folderSelectionState = folderSelectionState,
+                        onSelectRecommendedFolder = onSelectRecommendedFolder,
+                        onSelectFolder = onSelectFolder,
+                        onBack = { navController.popBackStack() }
+                    )
+                }
+            }
+            composable(AppRoute.SaveDestinationSettings.route) {
+                PaddedNavigationContent(innerPadding) {
+                    SaveDestinationScreen(
+                        saveDestinationState = saveDestinationState,
+                        onSelectSaveDestination = onSelectSaveDestination,
+                        onUseDefaultSaveDestination = onUseDefaultSaveDestination,
+                        onBack = { navController.popBackStack() }
+                    )
+                }
+            }
+            composable(AppRoute.Appearance.route) {
+                PaddedNavigationContent(innerPadding) {
+                    AppearanceScreen(
+                        themePreference = themePreference,
+                        homeBackgroundUri = homeBackgroundUri,
+                        onThemePreferenceSelected = onThemePreferenceSelected,
+                        onSelectHomeBackground = onSelectHomeBackground,
+                        onClearHomeBackground = onClearHomeBackground,
+                        onBack = { navController.popBackStack() }
+                    )
+                }
+            }
+            composable(AppRoute.PrivacyInfoSettings.route) {
+                PaddedNavigationContent(innerPadding) {
+                    PrivacyInfoScreen(
+                        appVersion = appVersion,
+                        onOpenPrivacyPolicy = onOpenPrivacyPolicy,
+                        onBack = { navController.popBackStack() }
                     )
                 }
             }

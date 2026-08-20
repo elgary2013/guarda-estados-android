@@ -92,23 +92,17 @@ fun SettingsScreen(
     folderSelectionState: FolderSelectionState,
     themePreference: AppThemePreference,
     saveDestinationState: SaveDestinationState,
-    appVersion: String,
     homeBackgroundUri: String?,
-    onSelectRecommendedFolder: () -> Unit,
-    onSelectFolder: () -> Unit,
-    onSelectHomeBackground: () -> Unit,
-    onClearHomeBackground: () -> Unit,
-    onSelectSaveDestination: () -> Unit,
-    onUseDefaultSaveDestination: () -> Unit,
-    onThemePreferenceSelected: (AppThemePreference) -> Unit,
+    onOpenFolderSettings: () -> Unit,
+    onOpenSaveDestination: () -> Unit,
+    onOpenAppearance: () -> Unit,
+    onOpenPrivacyInfo: () -> Unit,
     resetState: SettingsResetState,
     onResetSettings: () -> Unit,
     onResetMessageDismissed: () -> Unit,
-    onOpenPrivacyPolicy: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     var showResetDialog by remember { mutableStateOf(false) }
-    var expandedSection by remember { mutableStateOf<SettingsSectionKey?>(SettingsSectionKey.SourceFolder) }
 
     Surface(
         modifier = modifier.fillMaxSize(),
@@ -134,186 +128,42 @@ fun SettingsScreen(
                 color = SettingsBody
             )
 
-            ExpandableSettingsSection(
+            SettingsLinkSection(
                 title = stringResource(R.string.settings_folder_title),
                 summary = folderSummaryText(folderSelectionState),
                 icon = Icons.Filled.Folder,
-                expanded = expandedSection == SettingsSectionKey.SourceFolder,
-                onToggle = { expandedSection = expandedSection.toggle(SettingsSectionKey.SourceFolder) }
-            ) {
-                if (folderSelectionState !is FolderSelectionState.Selected) {
-                    Text(
-                        text = folderStatusText(folderSelectionState),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = SettingsBody
-                    )
-                }
-                Text(
-                    text = stringResource(R.string.settings_folder_description),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = SettingsBody
-                )
-                FolderDetail(folderSelectionState = folderSelectionState)
-                if (folderSelectionState is FolderSelectionState.Selected) {
-                    BrandGradientButton(
-                        text = stringResource(R.string.folder_action_change),
-                        onClick = onSelectFolder
-                    )
-                } else {
-                    FolderSelectionGuide()
-                    BrandGradientButton(
-                        text = stringResource(R.string.folder_action_open_recommended),
-                        onClick = onSelectRecommendedFolder
-                    )
-                    TextButton(onClick = onSelectFolder) {
-                        Text(text = stringResource(R.string.folder_action_select_manual), color = SettingsIconTint)
-                    }
-                }
-            }
+                onClick = onOpenFolderSettings
+            )
 
-            ExpandableSettingsSection(
+            SettingsLinkSection(
                 title = stringResource(R.string.settings_save_destination_title),
                 summary = saveDestinationSummaryText(saveDestinationState),
                 icon = Icons.Filled.Folder,
-                expanded = expandedSection == SettingsSectionKey.SaveDestination,
-                onToggle = { expandedSection = expandedSection.toggle(SettingsSectionKey.SaveDestination) }
-            ) {
-                Text(
-                    text = saveDestinationStatusText(saveDestinationState),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = SettingsBody
-                )
-                Text(
-                    text = stringResource(R.string.settings_save_destination_new_copies_note),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = SettingsBody
-                )
-                BrandGradientButton(
-                    text = stringResource(R.string.settings_save_destination_change),
-                    onClick = onSelectSaveDestination
-                )
-                TextButton(onClick = onUseDefaultSaveDestination) {
-                    Text(text = stringResource(R.string.settings_save_destination_default_action), color = SettingsIconTint)
-                }
-            }
+                onClick = onOpenSaveDestination
+            )
 
-            ExpandableSettingsSection(
+            SettingsLinkSection(
                 title = stringResource(R.string.settings_appearance_title),
-                summary = themeSummaryText(themePreference),
+                summary = appearanceSummaryText(themePreference, homeBackgroundUri),
                 icon = Icons.Filled.Image,
-                expanded = expandedSection == SettingsSectionKey.Appearance,
-                onToggle = { expandedSection = expandedSection.toggle(SettingsSectionKey.Appearance) }
-            ) {
-                ThemeOption(
-                    text = stringResource(R.string.settings_theme_system),
-                    selected = themePreference == AppThemePreference.System,
-                    onClick = { onThemePreferenceSelected(AppThemePreference.System) }
-                )
-                ThemeOption(
-                    text = stringResource(R.string.settings_theme_light),
-                    selected = themePreference == AppThemePreference.Light,
-                    onClick = { onThemePreferenceSelected(AppThemePreference.Light) }
-                )
-                ThemeOption(
-                    text = stringResource(R.string.settings_theme_dark),
-                    selected = themePreference == AppThemePreference.Dark,
-                    onClick = { onThemePreferenceSelected(AppThemePreference.Dark) }
-                )
-                Text(
-                    text = stringResource(R.string.settings_home_background_title),
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.SemiBold,
-                    color = SettingsTitle
-                )
-                Text(
-                    text = stringResource(R.string.settings_home_background_body),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = SettingsBody
-                )
-                Text(
-                    text = homeBackgroundStatusText(homeBackgroundUri),
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    color = SettingsTitle
-                )
-                BrandGradientButton(
-                    text = stringResource(R.string.settings_home_background_load),
-                    onClick = onSelectHomeBackground
-                )
-                if (homeBackgroundUri != null) {
-                    TextButton(onClick = onClearHomeBackground) {
-                        Text(text = stringResource(R.string.settings_home_background_use_default), color = SettingsDanger)
-                    }
-                }
-            }
+                onClick = onOpenAppearance
+            )
 
-            ExpandableSettingsSection(
+            SettingsLinkSection(
                 title = stringResource(R.string.settings_privacy_info_title),
                 summary = stringResource(R.string.settings_privacy_info_summary),
                 icon = Icons.Filled.Info,
-                expanded = expandedSection == SettingsSectionKey.PrivacyInfo,
-                onToggle = { expandedSection = expandedSection.toggle(SettingsSectionKey.PrivacyInfo) }
-            ) {
-                Text(
-                    text = stringResource(R.string.settings_privacy_local),
-                    style = MaterialTheme.typography.bodyMedium
-                )
-                Text(
-                    text = stringResource(R.string.settings_privacy_folder_access),
-                    style = MaterialTheme.typography.bodyMedium
-                )
-                Text(
-                    text = stringResource(R.string.settings_legal_affiliation),
-                    style = MaterialTheme.typography.bodyMedium
-                )
-                Text(
-                    text = stringResource(R.string.settings_legal_user_responsibility),
-                    style = MaterialTheme.typography.bodyMedium
-                )
-                PrivacyPolicyButton(onClick = onOpenPrivacyPolicy)
-                Spacer(modifier = Modifier.size(4.dp))
-                Text(
-                    text = stringResource(R.string.settings_about_app_name),
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.SemiBold
-                )
-                Text(
-                    text = stringResource(R.string.settings_about_version, appVersion),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = SettingsBody
-                )
-            }
+                onClick = onOpenPrivacyInfo
+            )
 
-            ExpandableSettingsSection(
+            SettingsLinkSection(
                 title = stringResource(R.string.settings_reset_title),
                 summary = stringResource(R.string.settings_reset_summary),
                 icon = Icons.Filled.Delete,
-                expanded = expandedSection == SettingsSectionKey.Reset,
-                onToggle = { expandedSection = expandedSection.toggle(SettingsSectionKey.Reset) }
-            ) {
-                Text(
-                    text = stringResource(R.string.settings_reset_body),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = SettingsBody
-                )
-                Text(
-                    text = stringResource(R.string.settings_reset_keeps_copies),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = SettingsBody
-                )
-                Button(
-                    onClick = { showResetDialog = true },
-                    enabled = resetState != SettingsResetState.Resetting,
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = SettingsDangerSoft,
-                        contentColor = SettingsDanger
-                    )
-                ) {
-                    Text(text = stringResource(R.string.settings_reset_action))
-                }
-                if (resetState == SettingsResetState.Success) {
-                    ResetSuccessMessage(onDismiss = onResetMessageDismissed)
-                }
+                onClick = { showResetDialog = true }
+            )
+            if (resetState == SettingsResetState.Success) {
+                ResetSuccessMessage(onDismiss = onResetMessageDismissed)
             }
         }
     }
@@ -446,6 +296,49 @@ private fun ExpandableSettingsSection(
                     modifier = Modifier.fillMaxWidth(),
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                     content = content
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun SettingsLinkSection(
+    title: String,
+    summary: String,
+    icon: ImageVector,
+    onClick: () -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = SettingsSurface
+        ),
+        border = BorderStroke(1.dp, SettingsBorder)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable(role = Role.Button, onClick = onClick)
+                .padding(horizontal = 16.dp, vertical = 14.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            SettingsSectionIcon(icon = icon)
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(2.dp)
+            ) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = SettingsTitle
+                )
+                Text(
+                    text = summary,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = SettingsBody
                 )
             }
         }
@@ -686,6 +579,18 @@ private fun themeSummaryText(themePreference: AppThemePreference): String {
 }
 
 @Composable
+private fun appearanceSummaryText(
+    themePreference: AppThemePreference,
+    homeBackgroundUri: String?
+): String {
+    return stringResource(
+        R.string.settings_appearance_summary,
+        themeSummaryText(themePreference),
+        homeBackgroundStatusText(homeBackgroundUri)
+    )
+}
+
+@Composable
 private fun homeBackgroundStatusText(homeBackgroundUri: String?): String {
     return stringResource(
         if (homeBackgroundUri == null) {
@@ -766,7 +671,6 @@ private const val RecommendedStatusesDocumentId =
 private enum class SettingsSectionKey {
     SourceFolder,
     SaveDestination,
-    Appearance,
     PrivacyInfo,
     Reset
 }

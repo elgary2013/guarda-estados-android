@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -82,12 +83,14 @@ import com.guardaestados.domain.saved.SavedImagesState
 import com.guardaestados.ui.saved.SavedImageDeleteState
 import com.guardaestados.ui.saved.SavedImagesMultiDeleteState
 import com.guardaestados.ui.saved.SavedImagesMultiShareState
+import com.guardaestados.ui.saved.SavedMediaImportState
 import com.guardaestados.domain.saved.SavedMediaOrigin
 import com.guardaestados.ui.components.VideoThumbnail
 import java.text.DateFormat
 import java.util.Date
 
 private const val ThumbnailPixelSize = 360
+private val SavedHeaderReservedHeight = 146.dp
 private val SavedSurfaceStrong: Color
     @Composable get() = LocalGuardaEstadosColors.current.surfaceStrong
 private val SavedThumbnailBackground: Color
@@ -119,8 +122,10 @@ fun SavedImagesScreen(
     deleteState: SavedImageDeleteState,
     multiShareState: SavedImagesMultiShareState,
     multiDeleteState: SavedImagesMultiDeleteState,
+    importState: SavedMediaImportState,
     isRefreshing: Boolean,
     onRefresh: () -> Unit,
+    onImportFile: () -> Unit,
     onImageSelected: (List<SavedImage>, Int) -> Unit,
     onDeleteImage: (SavedImage) -> Unit,
     onShareSelected: (List<SavedImage>) -> Unit,
@@ -128,6 +133,7 @@ fun SavedImagesScreen(
     onDeleteMessageDismissed: () -> Unit,
     onMultiShareMessageDismissed: () -> Unit,
     onMultiDeleteMessageDismissed: () -> Unit,
+    onImportMessageDismissed: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     var selectedTabIndex by rememberSaveable { mutableIntStateOf(0) }
@@ -137,18 +143,23 @@ fun SavedImagesScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     var selectedUris by rememberSaveable { mutableStateOf(emptySet<String>()) }
     var showMultiDeleteDialog by remember { mutableStateOf(false) }
+    var manualRefreshRequested by remember { mutableStateOf(false) }
     val selectionActive = selectedUris.isNotEmpty()
     val actionInProgress = multiShareState == SavedImagesMultiShareState.Sharing ||
-        multiDeleteState is SavedImagesMultiDeleteState.Deleting
+        multiDeleteState is SavedImagesMultiDeleteState.Deleting ||
+        importState == SavedMediaImportState.Importing
     val shareSummaryMessage = multiShareState.shareSummaryMessage()
     val deleteSummaryMessage = multiDeleteState.deleteSummaryMessage()
+    val deleteMessage = deleteState.deleteSnackbarMessage()
+    val importMessage = importState.importMessage()
+    val content = savedImagesState as? SavedImagesState.Content
+    val images = content?.images?.filter { it.mediaType == SavedMediaType.Image }.orEmpty()
+    val videos = content?.images?.filter { it.mediaType == SavedMediaType.Video }.orEmpty()
+    val selectedItems = if (selectedMediaType == SavedMediaType.Image) images else videos
     val currentTabItemKeys = remember(savedImagesState, selectedMediaType) {
-        val content = savedImagesState as? SavedImagesState.Content
-        content?.images
-            ?.filter { image -> image.mediaType == selectedMediaType }
-            ?.map { image -> image.uri.toString() }
-            ?.toSet()
-            .orEmpty()
+        selectedItems
+            .map { image -> image.uri.toString() }
+            .toSet()
     }
 
     LaunchedEffect(selectedTabIndex) {
@@ -178,6 +189,27 @@ fun SavedImagesScreen(
         onMultiDeleteMessageDismissed()
     }
 
+    LaunchedEffect(deleteMessage) {
+        val message = deleteMessage ?: return@LaunchedEffect
+        snackbarHostState.currentSnackbarData?.dismiss()
+        snackbarHostState.showSnackbar(message)
+        onDeleteMessageDismissed()
+    }
+
+    LaunchedEffect(importMessage) {
+        val message = importMessage ?: return@LaunchedEffect
+        selectedUris = emptySet()
+        snackbarHostState.currentSnackbarData?.dismiss()
+        snackbarHostState.showSnackbar(message)
+        onImportMessageDismissed()
+    }
+
+    LaunchedEffect(isRefreshing) {
+        if (!isRefreshing) {
+            manualRefreshRequested = false
+        }
+    }
+
     DisposableEffect(lifecycleOwner, onRefresh) {
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) {
@@ -195,124 +227,141 @@ fun SavedImagesScreen(
         Box(
             modifier = Modifier.fillMaxSize()
         ) {
-            LazyVerticalGrid(
-                columns = GridCells.Adaptive(minSize = 148.dp),
-                state = gridState,
+            Column(
                 modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(
-                    start = 16.dp,
-                    top = 18.dp,
-                    end = 16.dp,
-                    bottom = if (selectionActive) 148.dp else 22.dp
-                ),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
                 verticalArrangement = Arrangement.spacedBy(14.dp)
             ) {
-                item(span = { GridItemSpan(maxLineSpan) }) {
-                    if (selectionActive) {
-                        SavedSelectionHeader(
-                            selectedCount = selectedUris.size,
-                            actionInProgress = actionInProgress,
-                            onCancelSelection = {
-                                selectedUris = emptySet()
-                                showMultiDeleteDialog = false
-                            }
-                        )
-                    } else {
-                        SavedHeader(
-                            isRefreshing = isRefreshing,
-                            onRefresh = onRefresh
-                        )
-                    }
+                SavedHeader(
+                    onRefresh = {
+                        manualRefreshRequested = true
+                        onRefresh()
+                    },
+                    onImportFile = {
+                        if (importState != SavedMediaImportState.Importing) {
+                            onImportFile()
+                        }
+                    },
+                    modifier = Modifier
+                        .padding(start = 16.dp, top = 18.dp, end = 16.dp)
+                )
+                Box(modifier = Modifier.padding(horizontal = 16.dp)) {
+                    SavedMediaTabs(
+                        selectedTabIndex = selectedTabIndex,
+                        imageCount = images.size,
+                        videoCount = videos.size,
+                        onTabSelected = { tabIndex ->
+                            selectedUris = emptySet()
+                            showMultiDeleteDialog = false
+                            selectedTabIndex = tabIndex
+                        }
+                    )
                 }
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f)
+                ) {
+                    when (savedImagesState) {
+                        SavedImagesState.Loading -> SavedStateMessage(
+                            titleRes = R.string.saved_loading_title,
+                            bodyRes = R.string.saved_loading_body
+                        )
 
-                deleteState.statusMessageRes()?.let { messageRes ->
-                    if (!selectionActive) {
-                        item(span = { GridItemSpan(maxLineSpan) }) {
-                            SavedDeleteStatusCard(
-                                message = stringResource(messageRes),
-                                canDismiss = deleteState.canDismiss(),
-                                onDismiss = onDeleteMessageDismissed
-                            )
-                        }
-                    }
-                }
+                        SavedImagesState.Empty -> SavedStateMessage(
+                            titleRes = R.string.saved_empty_title,
+                            bodyRes = R.string.saved_empty_body
+                        )
 
-                when (savedImagesState) {
-                    SavedImagesState.Loading -> fullWidthSavedMessage(
-                        titleRes = R.string.saved_loading_title,
-                        bodyRes = R.string.saved_loading_body
-                    )
+                        SavedImagesState.RecoverableError -> SavedStateMessage(
+                            titleRes = R.string.saved_error_title,
+                            bodyRes = R.string.saved_error_body
+                        )
 
-                    SavedImagesState.Empty -> fullWidthSavedMessage(
-                        titleRes = R.string.saved_empty_title,
-                        bodyRes = R.string.saved_empty_body
-                    )
-
-                    SavedImagesState.RecoverableError -> fullWidthSavedMessage(
-                        titleRes = R.string.saved_error_title,
-                        bodyRes = R.string.saved_error_body
-                    )
-
-                    is SavedImagesState.Content -> {
-                        val images = savedImagesState.images.filter { it.mediaType == SavedMediaType.Image }
-                        val videos = savedImagesState.images.filter { it.mediaType == SavedMediaType.Video }
-                        val selectedItems = if (selectedMediaType == SavedMediaType.Image) images else videos
-
-                        item(span = { GridItemSpan(maxLineSpan) }) {
-                            SavedMediaTabs(
-                                selectedTabIndex = selectedTabIndex,
-                                imageCount = images.size,
-                                videoCount = videos.size,
-                                onTabSelected = { tabIndex ->
-                                    selectedUris = emptySet()
-                                    showMultiDeleteDialog = false
-                                    selectedTabIndex = tabIndex
-                                }
-                            )
-                        }
-                        item(span = { GridItemSpan(maxLineSpan) }) {
-                            SavedCountRow(itemCount = selectedItems.size)
-                        }
-                        if (selectedItems.isEmpty()) {
-                            fullWidthSavedMessage(
-                                titleRes = if (selectedMediaType == SavedMediaType.Video) R.string.saved_empty_videos_title else R.string.saved_empty_images_title,
-                                bodyRes = if (selectedMediaType == SavedMediaType.Video) R.string.saved_empty_videos_body else R.string.saved_empty_images_body
-                            )
-                        } else {
-                            itemsIndexed(
-                                items = selectedItems,
-                                key = { _, image -> image.uri.toString() }
-                            ) { index, image ->
-                                val imageKey = image.uri.toString()
-                                SavedImageGridCard(
-                                    image = image,
-                                    selected = imageKey in selectedUris,
-                                    selectionActive = selectionActive,
-                                    enabled = !actionInProgress && deleteState != SavedImageDeleteState.Deleting,
-                                    onImageSelected = {
-                                        if (selectionActive) {
-                                            selectedUris = selectedUris.toggle(imageKey)
-                                            if (selectedUris.isEmpty()) {
+                        is SavedImagesState.Content -> {
+                            LazyVerticalGrid(
+                                columns = GridCells.Adaptive(minSize = 148.dp),
+                                state = gridState,
+                                modifier = Modifier.fillMaxSize(),
+                                contentPadding = PaddingValues(
+                                    start = 16.dp,
+                                    top = 0.dp,
+                                    end = 16.dp,
+                                    bottom = if (selectionActive) 148.dp else 22.dp
+                                ),
+                                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                verticalArrangement = Arrangement.spacedBy(14.dp)
+                            ) {
+                                if (selectionActive) {
+                                    item(span = { GridItemSpan(maxLineSpan) }) {
+                                        SavedSelectionHeader(
+                                            selectedCount = selectedUris.size,
+                                            actionInProgress = actionInProgress,
+                                            onCancelSelection = {
+                                                selectedUris = emptySet()
                                                 showMultiDeleteDialog = false
                                             }
-                                        } else {
-                                            onImageSelected(selectedItems, index)
+                                        )
+                                    }
+                                }
+
+                                deleteState.statusMessageRes()?.let { messageRes ->
+                                    if (!selectionActive) {
+                                        item(span = { GridItemSpan(maxLineSpan) }) {
+                                            SavedDeleteStatusCard(
+                                                message = stringResource(messageRes),
+                                                canDismiss = deleteState.canDismiss(),
+                                                onDismiss = onDeleteMessageDismissed
+                                            )
                                         }
-                                    },
-                                    onSelectionStarted = {
-                                        selectedUris = setOf(imageKey)
-                                    },
-                                    onDeleteImage = onDeleteImage,
-                                    deleting = deleteState == SavedImageDeleteState.Deleting
-                                )
+                                    }
+                                }
+
+                                item(span = { GridItemSpan(maxLineSpan) }) {
+                                    SavedCountRow(itemCount = selectedItems.size)
+                                }
+                                if (selectedItems.isEmpty()) {
+                                    fullWidthSavedMessage(
+                                        titleRes = if (selectedMediaType == SavedMediaType.Video) R.string.saved_empty_videos_title else R.string.saved_empty_images_title,
+                                        bodyRes = if (selectedMediaType == SavedMediaType.Video) R.string.saved_empty_videos_body else R.string.saved_empty_images_body
+                                    )
+                                } else {
+                                    itemsIndexed(
+                                        items = selectedItems,
+                                        key = { _, image -> image.uri.toString() }
+                                    ) { index, image ->
+                                        val imageKey = image.uri.toString()
+                                        SavedImageGridCard(
+                                            image = image,
+                                            selected = imageKey in selectedUris,
+                                            selectionActive = selectionActive,
+                                            enabled = !actionInProgress && deleteState != SavedImageDeleteState.Deleting,
+                                            onImageSelected = {
+                                                if (selectionActive) {
+                                                    selectedUris = selectedUris.toggle(imageKey)
+                                                    if (selectedUris.isEmpty()) {
+                                                        showMultiDeleteDialog = false
+                                                    }
+                                                } else {
+                                                    onImageSelected(selectedItems, index)
+                                                }
+                                            },
+                                            onSelectionStarted = {
+                                                selectedUris = setOf(imageKey)
+                                            },
+                                            onDeleteImage = onDeleteImage,
+                                            deleting = deleteState == SavedImageDeleteState.Deleting
+                                        )
+                                    }
+                                }
                             }
                         }
+                    }
+                    if (manualRefreshRequested && isRefreshing) {
+                        SavedRefreshOverlay(modifier = Modifier.align(Alignment.TopCenter))
                     }
                 }
             }
 
-            val content = savedImagesState as? SavedImagesState.Content
             if (selectionActive && content != null) {
                 val selectedItems = content.images
                     .filter { image -> image.mediaType == selectedMediaType }
@@ -352,55 +401,55 @@ fun SavedImagesScreen(
 
 @Composable
 private fun SavedHeader(
-    isRefreshing: Boolean,
-    onRefresh: () -> Unit
+    onRefresh: () -> Unit,
+    onImportFile: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-        verticalAlignment = Alignment.CenterVertically
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(SavedHeaderReservedHeight),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        Column(
-            modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(4.dp)
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(
-                text = stringResource(R.string.saved_title),
-                style = MaterialTheme.typography.headlineLarge,
-                fontWeight = FontWeight.Bold,
-                color = SavedTitle,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-            Text(
-                text = stringResource(R.string.saved_subtitle),
-                style = MaterialTheme.typography.bodyMedium,
-                color = SavedBody,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis
-            )
-        }
-        Surface(
-            modifier = Modifier.size(48.dp),
-            shape = RoundedCornerShape(16.dp),
-            color = SavedSurface,
-            contentColor = SavedActive,
-            border = BorderStroke(1.dp, SavedBorder),
-            shadowElevation = 0.dp
-        ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .clickable(enabled = !isRefreshing, role = Role.Button, onClick = onRefresh),
-                contentAlignment = Alignment.Center
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
-                if (isRefreshing) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(22.dp),
-                        strokeWidth = 2.dp,
-                        color = SavedActive
-                    )
-                } else {
+                Text(
+                    text = stringResource(R.string.saved_title),
+                    style = MaterialTheme.typography.headlineLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = SavedTitle,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Text(
+                    text = stringResource(R.string.saved_subtitle),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = SavedBody,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+            Surface(
+                modifier = Modifier.size(48.dp),
+                shape = RoundedCornerShape(16.dp),
+                color = SavedSurface,
+                contentColor = SavedActive,
+                border = BorderStroke(1.dp, SavedBorder),
+                shadowElevation = 0.dp
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .clickable(role = Role.Button, onClick = onRefresh),
+                    contentAlignment = Alignment.Center
+                ) {
                     Icon(
                         painter = painterResource(R.drawable.ic_refresh),
                         contentDescription = stringResource(R.string.saved_action_refresh),
@@ -408,6 +457,28 @@ private fun SavedHeader(
                     )
                 }
             }
+        }
+        Button(
+            onClick = onImportFile,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(52.dp),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = SavedActive,
+                contentColor = Color.White
+            )
+        ) {
+            Icon(
+                painter = painterResource(R.drawable.ic_nav_saved),
+                contentDescription = null,
+                modifier = Modifier.size(18.dp)
+            )
+            Text(
+                text = stringResource(R.string.saved_import_action),
+                modifier = Modifier.padding(start = 8.dp),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
         }
     }
 }
@@ -529,6 +600,43 @@ private fun androidx.compose.foundation.lazy.grid.LazyGridScope.fullWidthSavedMe
         SavedMessageCard(
             title = stringResource(titleRes),
             body = stringResource(bodyRes)
+        )
+    }
+}
+
+@Composable
+private fun SavedStateMessage(
+    @StringRes titleRes: Int,
+    @StringRes bodyRes: Int
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(horizontal = 16.dp),
+        contentAlignment = Alignment.TopCenter
+    ) {
+        SavedMessageCard(
+            title = stringResource(titleRes),
+            body = stringResource(bodyRes)
+        )
+    }
+}
+
+@Composable
+private fun SavedRefreshOverlay(modifier: Modifier = Modifier) {
+    Surface(
+        modifier = modifier.padding(top = 8.dp),
+        shape = RoundedCornerShape(999.dp),
+        color = SavedSurfaceStrong,
+        border = BorderStroke(1.dp, SavedBorder),
+        shadowElevation = 4.dp
+    ) {
+        CircularProgressIndicator(
+            modifier = Modifier
+                .padding(10.dp)
+                .size(20.dp),
+            strokeWidth = 2.dp,
+            color = SavedActive
         )
     }
 }
@@ -1136,6 +1244,20 @@ private fun SavedImagesMultiDeleteState.deleteSummaryMessage(): String? {
     }
 }
 
+@Composable
+private fun SavedMediaImportState.importMessage(): String? {
+    return when (this) {
+        SavedMediaImportState.Idle,
+        SavedMediaImportState.Importing -> null
+        is SavedMediaImportState.Success -> stringResource(R.string.saved_import_success, displayName)
+        SavedMediaImportState.Unsupported -> stringResource(R.string.saved_import_unsupported)
+        SavedMediaImportState.Missing -> stringResource(R.string.saved_import_missing)
+        SavedMediaImportState.DestinationPermissionLost -> stringResource(R.string.saved_import_destination_permission_lost)
+        SavedMediaImportState.DestinationUnavailable -> stringResource(R.string.saved_import_destination_unavailable)
+        SavedMediaImportState.Error -> stringResource(R.string.saved_import_error)
+    }
+}
+
 private fun SavedImageDeleteState.statusMessageRes(): Int? {
     return when (this) {
         SavedImageDeleteState.Idle -> null
@@ -1145,6 +1267,19 @@ private fun SavedImageDeleteState.statusMessageRes(): Int? {
         SavedImageDeleteState.InvalidTarget -> R.string.saved_delete_status_invalid
         SavedImageDeleteState.Error -> R.string.saved_delete_status_error
         is SavedImageDeleteState.NeedsSystemConfirmation -> R.string.saved_delete_system_confirmation
+    }
+}
+
+@Composable
+private fun SavedImageDeleteState.deleteSnackbarMessage(): String? {
+    return when (this) {
+        SavedImageDeleteState.Idle,
+        SavedImageDeleteState.Deleting,
+        is SavedImageDeleteState.NeedsSystemConfirmation -> null
+        SavedImageDeleteState.Success -> stringResource(R.string.saved_delete_status_success)
+        SavedImageDeleteState.AlreadyMissing -> stringResource(R.string.saved_delete_status_missing)
+        SavedImageDeleteState.InvalidTarget -> stringResource(R.string.saved_delete_status_invalid)
+        SavedImageDeleteState.Error -> stringResource(R.string.saved_delete_status_error)
     }
 }
 
