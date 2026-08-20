@@ -1,9 +1,11 @@
 package com.guardaestados.ui.screens
 
 import androidx.annotation.StringRes
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -12,6 +14,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -27,12 +30,21 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Snackbar
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -46,12 +58,16 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.pluralStringResource
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -64,6 +80,8 @@ import com.guardaestados.domain.saved.SavedImage
 import com.guardaestados.domain.saved.SavedMediaType
 import com.guardaestados.domain.saved.SavedImagesState
 import com.guardaestados.ui.saved.SavedImageDeleteState
+import com.guardaestados.ui.saved.SavedImagesMultiDeleteState
+import com.guardaestados.ui.saved.SavedImagesMultiShareState
 import com.guardaestados.domain.saved.SavedMediaOrigin
 import com.guardaestados.ui.components.VideoThumbnail
 import java.text.DateFormat
@@ -99,17 +117,66 @@ private val SavedBorder: Color
 fun SavedImagesScreen(
     savedImagesState: SavedImagesState,
     deleteState: SavedImageDeleteState,
+    multiShareState: SavedImagesMultiShareState,
+    multiDeleteState: SavedImagesMultiDeleteState,
     isRefreshing: Boolean,
     onRefresh: () -> Unit,
     onImageSelected: (List<SavedImage>, Int) -> Unit,
     onDeleteImage: (SavedImage) -> Unit,
+    onShareSelected: (List<SavedImage>) -> Unit,
+    onDeleteSelected: (List<SavedImage>) -> Unit,
     onDeleteMessageDismissed: () -> Unit,
+    onMultiShareMessageDismissed: () -> Unit,
+    onMultiDeleteMessageDismissed: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     var selectedTabIndex by rememberSaveable { mutableIntStateOf(0) }
     val selectedMediaType = if (selectedTabIndex == 0) SavedMediaType.Image else SavedMediaType.Video
     val lifecycleOwner = LocalLifecycleOwner.current
     val gridState = rememberLazyGridState()
+    val snackbarHostState = remember { SnackbarHostState() }
+    var selectedUris by rememberSaveable { mutableStateOf(emptySet<String>()) }
+    var showMultiDeleteDialog by remember { mutableStateOf(false) }
+    val selectionActive = selectedUris.isNotEmpty()
+    val actionInProgress = multiShareState == SavedImagesMultiShareState.Sharing ||
+        multiDeleteState is SavedImagesMultiDeleteState.Deleting
+    val shareSummaryMessage = multiShareState.shareSummaryMessage()
+    val deleteSummaryMessage = multiDeleteState.deleteSummaryMessage()
+    val currentTabItemKeys = remember(savedImagesState, selectedMediaType) {
+        val content = savedImagesState as? SavedImagesState.Content
+        content?.images
+            ?.filter { image -> image.mediaType == selectedMediaType }
+            ?.map { image -> image.uri.toString() }
+            ?.toSet()
+            .orEmpty()
+    }
+
+    LaunchedEffect(selectedTabIndex) {
+        selectedUris = emptySet()
+        showMultiDeleteDialog = false
+    }
+
+    LaunchedEffect(currentTabItemKeys) {
+        if (selectedUris.isNotEmpty()) {
+            selectedUris = selectedUris.intersect(currentTabItemKeys)
+        }
+    }
+
+    LaunchedEffect(shareSummaryMessage) {
+        val message = shareSummaryMessage ?: return@LaunchedEffect
+        selectedUris = emptySet()
+        snackbarHostState.currentSnackbarData?.dismiss()
+        snackbarHostState.showSnackbar(message)
+        onMultiShareMessageDismissed()
+    }
+
+    LaunchedEffect(deleteSummaryMessage) {
+        val message = deleteSummaryMessage ?: return@LaunchedEffect
+        selectedUris = emptySet()
+        snackbarHostState.currentSnackbarData?.dismiss()
+        snackbarHostState.showSnackbar(message)
+        onMultiDeleteMessageDismissed()
+    }
 
     DisposableEffect(lifecycleOwner, onRefresh) {
         val observer = LifecycleEventObserver { _, event ->
@@ -125,83 +192,160 @@ fun SavedImagesScreen(
         modifier = modifier.fillMaxSize(),
         color = SavedBackground
     ) {
-        LazyVerticalGrid(
-            columns = GridCells.Adaptive(minSize = 148.dp),
-            state = gridState,
-            modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(start = 16.dp, top = 18.dp, end = 16.dp, bottom = 22.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp)
+        Box(
+            modifier = Modifier.fillMaxSize()
         ) {
-            item(span = { GridItemSpan(maxLineSpan) }) {
-                SavedHeader(
-                    isRefreshing = isRefreshing,
-                    onRefresh = onRefresh
-                )
-            }
-
-            deleteState.statusMessageRes()?.let { messageRes ->
+            LazyVerticalGrid(
+                columns = GridCells.Adaptive(minSize = 148.dp),
+                state = gridState,
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(
+                    start = 16.dp,
+                    top = 18.dp,
+                    end = 16.dp,
+                    bottom = if (selectionActive) 148.dp else 22.dp
+                ),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalArrangement = Arrangement.spacedBy(14.dp)
+            ) {
                 item(span = { GridItemSpan(maxLineSpan) }) {
-                    SavedDeleteStatusCard(
-                        message = stringResource(messageRes),
-                        canDismiss = deleteState.canDismiss(),
-                        onDismiss = onDeleteMessageDismissed
-                    )
-                }
-            }
-
-            when (savedImagesState) {
-                SavedImagesState.Loading -> fullWidthSavedMessage(
-                    titleRes = R.string.saved_loading_title,
-                    bodyRes = R.string.saved_loading_body
-                )
-
-                SavedImagesState.Empty -> fullWidthSavedMessage(
-                    titleRes = R.string.saved_empty_title,
-                    bodyRes = R.string.saved_empty_body
-                )
-
-                SavedImagesState.RecoverableError -> fullWidthSavedMessage(
-                    titleRes = R.string.saved_error_title,
-                    bodyRes = R.string.saved_error_body
-                )
-
-                is SavedImagesState.Content -> {
-                    val images = savedImagesState.images.filter { it.mediaType == SavedMediaType.Image }
-                    val videos = savedImagesState.images.filter { it.mediaType == SavedMediaType.Video }
-                    val selectedItems = if (selectedMediaType == SavedMediaType.Image) images else videos
-
-                    item(span = { GridItemSpan(maxLineSpan) }) {
-                        SavedMediaTabs(
-                            selectedTabIndex = selectedTabIndex,
-                            imageCount = images.size,
-                            videoCount = videos.size,
-                            onTabSelected = { selectedTabIndex = it }
-                        )
-                    }
-                    item(span = { GridItemSpan(maxLineSpan) }) {
-                        SavedCountRow(itemCount = selectedItems.size)
-                    }
-                    if (selectedItems.isEmpty()) {
-                        fullWidthSavedMessage(
-                            titleRes = if (selectedMediaType == SavedMediaType.Video) R.string.saved_empty_videos_title else R.string.saved_empty_images_title,
-                            bodyRes = if (selectedMediaType == SavedMediaType.Video) R.string.saved_empty_videos_body else R.string.saved_empty_images_body
+                    if (selectionActive) {
+                        SavedSelectionHeader(
+                            selectedCount = selectedUris.size,
+                            actionInProgress = actionInProgress,
+                            onCancelSelection = {
+                                selectedUris = emptySet()
+                                showMultiDeleteDialog = false
+                            }
                         )
                     } else {
-                        itemsIndexed(
-                            items = selectedItems,
-                            key = { _, image -> image.uri.toString() }
-                        ) { index, image ->
-                            SavedImageGridCard(
-                                image = image,
-                                onImageSelected = { onImageSelected(selectedItems, index) },
-                                onDeleteImage = onDeleteImage,
-                                deleting = deleteState == SavedImageDeleteState.Deleting
+                        SavedHeader(
+                            isRefreshing = isRefreshing,
+                            onRefresh = onRefresh
+                        )
+                    }
+                }
+
+                deleteState.statusMessageRes()?.let { messageRes ->
+                    if (!selectionActive) {
+                        item(span = { GridItemSpan(maxLineSpan) }) {
+                            SavedDeleteStatusCard(
+                                message = stringResource(messageRes),
+                                canDismiss = deleteState.canDismiss(),
+                                onDismiss = onDeleteMessageDismissed
                             )
                         }
                     }
                 }
+
+                when (savedImagesState) {
+                    SavedImagesState.Loading -> fullWidthSavedMessage(
+                        titleRes = R.string.saved_loading_title,
+                        bodyRes = R.string.saved_loading_body
+                    )
+
+                    SavedImagesState.Empty -> fullWidthSavedMessage(
+                        titleRes = R.string.saved_empty_title,
+                        bodyRes = R.string.saved_empty_body
+                    )
+
+                    SavedImagesState.RecoverableError -> fullWidthSavedMessage(
+                        titleRes = R.string.saved_error_title,
+                        bodyRes = R.string.saved_error_body
+                    )
+
+                    is SavedImagesState.Content -> {
+                        val images = savedImagesState.images.filter { it.mediaType == SavedMediaType.Image }
+                        val videos = savedImagesState.images.filter { it.mediaType == SavedMediaType.Video }
+                        val selectedItems = if (selectedMediaType == SavedMediaType.Image) images else videos
+
+                        item(span = { GridItemSpan(maxLineSpan) }) {
+                            SavedMediaTabs(
+                                selectedTabIndex = selectedTabIndex,
+                                imageCount = images.size,
+                                videoCount = videos.size,
+                                onTabSelected = { tabIndex ->
+                                    selectedUris = emptySet()
+                                    showMultiDeleteDialog = false
+                                    selectedTabIndex = tabIndex
+                                }
+                            )
+                        }
+                        item(span = { GridItemSpan(maxLineSpan) }) {
+                            SavedCountRow(itemCount = selectedItems.size)
+                        }
+                        if (selectedItems.isEmpty()) {
+                            fullWidthSavedMessage(
+                                titleRes = if (selectedMediaType == SavedMediaType.Video) R.string.saved_empty_videos_title else R.string.saved_empty_images_title,
+                                bodyRes = if (selectedMediaType == SavedMediaType.Video) R.string.saved_empty_videos_body else R.string.saved_empty_images_body
+                            )
+                        } else {
+                            itemsIndexed(
+                                items = selectedItems,
+                                key = { _, image -> image.uri.toString() }
+                            ) { index, image ->
+                                val imageKey = image.uri.toString()
+                                SavedImageGridCard(
+                                    image = image,
+                                    selected = imageKey in selectedUris,
+                                    selectionActive = selectionActive,
+                                    enabled = !actionInProgress && deleteState != SavedImageDeleteState.Deleting,
+                                    onImageSelected = {
+                                        if (selectionActive) {
+                                            selectedUris = selectedUris.toggle(imageKey)
+                                            if (selectedUris.isEmpty()) {
+                                                showMultiDeleteDialog = false
+                                            }
+                                        } else {
+                                            onImageSelected(selectedItems, index)
+                                        }
+                                    },
+                                    onSelectionStarted = {
+                                        selectedUris = setOf(imageKey)
+                                    },
+                                    onDeleteImage = onDeleteImage,
+                                    deleting = deleteState == SavedImageDeleteState.Deleting
+                                )
+                            }
+                        }
+                    }
+                }
             }
+
+            val content = savedImagesState as? SavedImagesState.Content
+            if (selectionActive && content != null) {
+                val selectedItems = content.images
+                    .filter { image -> image.mediaType == selectedMediaType }
+                    .filter { image -> image.uri.toString() in selectedUris }
+                if (showMultiDeleteDialog) {
+                    ConfirmSavedImagesDeleteDialog(
+                        selectedCount = selectedItems.size,
+                        onDismiss = { showMultiDeleteDialog = false },
+                        onConfirm = {
+                            showMultiDeleteDialog = false
+                            onDeleteSelected(selectedItems)
+                        }
+                    )
+                }
+                SavedSelectionActionBar(
+                    selectedCount = selectedItems.size,
+                    multiShareState = multiShareState,
+                    multiDeleteState = multiDeleteState,
+                    onShareSelected = { onShareSelected(selectedItems) },
+                    onDeleteSelected = { showMultiDeleteDialog = true },
+                    modifier = Modifier.align(Alignment.BottomCenter)
+                )
+            }
+
+            SnackbarHost(
+                hostState = snackbarHostState,
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(horizontal = 16.dp, vertical = 18.dp),
+                snackbar = { snackbarData ->
+                    Snackbar(snackbarData = snackbarData)
+                }
+            )
         }
     }
 }
@@ -452,15 +596,22 @@ private fun SavedMessageCard(
 }
 
 @Composable
+@OptIn(ExperimentalFoundationApi::class)
 private fun SavedImageGridCard(
     image: SavedImage,
-    onImageSelected: (SavedImage) -> Unit,
+    selected: Boolean,
+    selectionActive: Boolean,
+    enabled: Boolean,
+    onImageSelected: () -> Unit,
+    onSelectionStarted: () -> Unit,
     onDeleteImage: (SavedImage) -> Unit,
     deleting: Boolean
 ) {
     val context = LocalContext.current
     val formattedDate = image.dateAddedMillis?.formatDate()
     val unavailable = stringResource(R.string.status_image_value_unavailable)
+    val selectedDescription = stringResource(R.string.states_selection_item_selected)
+    val notSelectedDescription = stringResource(R.string.states_selection_item_not_selected)
     var failedToLoad by remember(image.uri) { mutableStateOf(false) }
     var showDeleteDialog by remember(image.uri) { mutableStateOf(false) }
 
@@ -475,9 +626,40 @@ private fun SavedImageGridCard(
     }
 
     Card(
-        onClick = { onImageSelected(image) },
-        modifier = Modifier.shadow(6.dp, RoundedCornerShape(20.dp), clip = false),
-        enabled = !deleting,
+        modifier = Modifier
+            .shadow(6.dp, RoundedCornerShape(20.dp), clip = false)
+            .combinedClickable(
+                enabled = enabled,
+                onClickLabel = stringResource(
+                    if (selectionActive) {
+                        if (selected) R.string.states_selection_unselect_item else R.string.states_selection_select_item
+                    } else if (image.mediaType == SavedMediaType.Video) {
+                        R.string.saved_video_open_action_simple
+                    } else {
+                        R.string.saved_image_open_action_simple
+                    }
+                ),
+                onLongClickLabel = stringResource(R.string.states_selection_start),
+                role = Role.Button,
+                onLongClick = {
+                    if (selectionActive) {
+                        onImageSelected()
+                    } else {
+                        onSelectionStarted()
+                    }
+                },
+                onClick = onImageSelected
+            )
+            .semantics {
+                this.selected = selected
+                if (selectionActive) {
+                    contentDescription = if (selected) {
+                        selectedDescription
+                    } else {
+                        notSelectedDescription
+                    }
+                }
+            },
         colors = CardDefaults.cardColors(containerColor = SavedSurface),
         border = BorderStroke(1.dp, SavedBorder),
         shape = RoundedCornerShape(20.dp),
@@ -527,28 +709,61 @@ private fun SavedImageGridCard(
                 )
             }
 
-            Surface(
-                modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .padding(7.dp),
-                shape = RoundedCornerShape(999.dp),
-                color = SavedSurfaceStrong,
-                contentColor = SavedDanger,
-                border = BorderStroke(1.dp, SavedBorder),
-                shadowElevation = 0.dp
-            ) {
+            if (selectionActive) {
                 Box(
                     modifier = Modifier
-                        .size(34.dp)
-                        .clickable(enabled = !deleting, role = Role.Button) { showDeleteDialog = true },
-                    contentAlignment = Alignment.Center
+                        .matchParentSize()
+                        .background(if (selected) SavedActive.copy(alpha = 0.32f) else Color.Black.copy(alpha = 0.18f))
+                )
+                Surface(
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(8.dp),
+                    shape = RoundedCornerShape(999.dp),
+                    color = if (selected) SavedActive else SavedSurfaceStrong,
+                    contentColor = Color.White,
+                    border = BorderStroke(1.dp, Color.White.copy(alpha = 0.72f)),
+                    shadowElevation = 0.dp
                 ) {
                     Icon(
-                        painter = painterResource(R.drawable.ic_delete),
-                        contentDescription = stringResource(R.string.saved_delete_media_description),
-                        modifier = Modifier.size(18.dp),
-                        tint = SavedDanger
+                        imageVector = Icons.Filled.Check,
+                        contentDescription = stringResource(
+                            if (selected) {
+                                R.string.states_selection_item_selected
+                            } else {
+                                R.string.states_selection_item_not_selected
+                            }
+                        ),
+                        modifier = Modifier
+                            .padding(6.dp)
+                            .size(18.dp),
+                        tint = if (selected) Color.White else Color.Transparent
                     )
+                }
+            } else {
+                Surface(
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(7.dp),
+                    shape = RoundedCornerShape(999.dp),
+                    color = SavedSurfaceStrong,
+                    contentColor = SavedDanger,
+                    border = BorderStroke(1.dp, SavedBorder),
+                    shadowElevation = 0.dp
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(34.dp)
+                            .clickable(enabled = !deleting, role = Role.Button) { showDeleteDialog = true },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            painter = painterResource(R.drawable.ic_delete),
+                            contentDescription = stringResource(R.string.saved_delete_media_description),
+                            modifier = Modifier.size(18.dp),
+                            tint = SavedDanger
+                        )
+                    }
                 }
             }
         }
@@ -566,6 +781,195 @@ private fun SavedImageGridCard(
                 iconRes = R.drawable.ic_image
             )
         }
+    }
+}
+
+@Composable
+private fun SavedSelectionHeader(
+    selectedCount: Int,
+    actionInProgress: Boolean,
+    onCancelSelection: () -> Unit
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Surface(
+            modifier = Modifier.size(48.dp),
+            shape = RoundedCornerShape(16.dp),
+            color = SavedSurface,
+            contentColor = SavedActive,
+            border = BorderStroke(1.dp, SavedBorder),
+            shadowElevation = 0.dp
+        ) {
+            IconButton(
+                onClick = onCancelSelection,
+                enabled = !actionInProgress
+            ) {
+                Icon(
+                    imageVector = Icons.Filled.Close,
+                    contentDescription = stringResource(R.string.states_selection_cancel),
+                    tint = SavedActive
+                )
+            }
+        }
+        Text(
+            text = pluralStringResource(
+                R.plurals.states_selection_count,
+                selectedCount,
+                selectedCount
+            ),
+            modifier = Modifier.weight(1f),
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.Bold,
+            color = SavedTitle,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
+    }
+}
+
+@Composable
+private fun SavedSelectionActionBar(
+    selectedCount: Int,
+    multiShareState: SavedImagesMultiShareState,
+    multiDeleteState: SavedImagesMultiDeleteState,
+    onShareSelected: () -> Unit,
+    onDeleteSelected: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val deleting = multiDeleteState as? SavedImagesMultiDeleteState.Deleting
+    val sharing = multiShareState == SavedImagesMultiShareState.Sharing
+    val actionInProgress = sharing || deleting != null
+    val progress = deleting?.let { state ->
+        if (state.totalCount > 0) state.processedCount.toFloat() / state.totalCount.toFloat() else 0f
+    } ?: 0f
+
+    Surface(
+        modifier = modifier
+            .fillMaxWidth()
+            .navigationBarsPadding()
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        shape = RoundedCornerShape(18.dp),
+        color = SavedSurface,
+        border = BorderStroke(1.dp, SavedBorder),
+        shadowElevation = 8.dp
+    ) {
+        Column(
+            modifier = Modifier.padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            when {
+                deleting != null -> {
+                    LinearProgressIndicator(
+                        progress = { progress },
+                        modifier = Modifier.fillMaxWidth(),
+                        color = SavedActive,
+                        trackColor = SavedSurfaceSoft
+                    )
+                    Text(
+                        text = stringResource(
+                            R.string.saved_selection_deleting_progress,
+                            deleting.processedCount,
+                            deleting.totalCount
+                        ),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = SavedBody,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+
+                sharing -> Text(
+                    text = stringResource(R.string.saved_selection_sharing_progress),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = SavedBody,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                SavedSelectionActionButton(
+                    text = pluralStringResource(
+                        R.plurals.saved_selection_share_action,
+                        selectedCount,
+                        selectedCount
+                    ),
+                    iconRes = R.drawable.ic_share,
+                    enabled = !actionInProgress && selectedCount > 0,
+                    danger = false,
+                    onClick = onShareSelected,
+                    modifier = Modifier.weight(1f)
+                )
+                SavedSelectionActionButton(
+                    text = pluralStringResource(
+                        R.plurals.saved_selection_delete_action,
+                        selectedCount,
+                        selectedCount
+                    ),
+                    iconRes = R.drawable.ic_delete,
+                    enabled = !actionInProgress && selectedCount > 0,
+                    danger = true,
+                    onClick = onDeleteSelected,
+                    modifier = Modifier.weight(1f)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun SavedSelectionActionButton(
+    text: String,
+    iconRes: Int,
+    enabled: Boolean,
+    danger: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val background = when {
+        !enabled -> SavedSurfaceSoft
+        danger -> SavedDangerSoft
+        else -> SavedActive
+    }
+    val contentColor = when {
+        !enabled -> SavedBody
+        danger -> SavedDanger
+        else -> Color.White
+    }
+    Row(
+        modifier = modifier
+            .clip(RoundedCornerShape(14.dp))
+            .background(background)
+            .clickable(
+                enabled = enabled,
+                role = Role.Button,
+                onClick = onClick
+            )
+            .padding(horizontal = 12.dp, vertical = 14.dp),
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(
+            painter = painterResource(iconRes),
+            contentDescription = null,
+            modifier = Modifier.size(20.dp),
+            tint = contentColor
+        )
+        Text(
+            text = text,
+            modifier = Modifier.padding(start = 8.dp),
+            style = MaterialTheme.typography.labelLarge,
+            fontWeight = FontWeight.Bold,
+            color = contentColor,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
     }
 }
 
@@ -636,6 +1040,102 @@ fun ConfirmSavedImageDeleteDialog(
     )
 }
 
+@Composable
+private fun ConfirmSavedImagesDeleteDialog(
+    selectedCount: Int,
+    onDismiss: () -> Unit,
+    onConfirm: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        containerColor = SavedSurfaceStrong,
+        titleContentColor = SavedTitle,
+        textContentColor = SavedBody,
+        title = {
+            Text(
+                text = pluralStringResource(
+                    R.plurals.saved_selection_delete_dialog_title,
+                    selectedCount,
+                    selectedCount
+                )
+            )
+        },
+        text = { Text(text = stringResource(R.string.saved_selection_delete_dialog_body)) },
+        confirmButton = {
+            Button(
+                onClick = onConfirm,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = SavedDangerSoft,
+                    contentColor = SavedDanger
+                )
+            ) {
+                Text(text = stringResource(R.string.saved_delete_dialog_confirm))
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(text = stringResource(R.string.saved_delete_dialog_cancel), color = SavedActive)
+            }
+        }
+    )
+}
+
+@Composable
+private fun SavedImagesMultiShareState.shareSummaryMessage(): String? {
+    val finished = this as? SavedImagesMultiShareState.Finished ?: return null
+    val summary = finished.summary
+    return when {
+        summary.failedCount == 0 -> pluralStringResource(
+            R.plurals.saved_selection_shared_summary,
+            summary.successCount,
+            summary.successCount
+        )
+
+        summary.successCount == 0 -> stringResource(R.string.saved_selection_share_all_failed)
+        else -> {
+            val sharedText = pluralStringResource(
+                R.plurals.saved_selection_shared_summary,
+                summary.successCount,
+                summary.successCount
+            )
+            val failedText = pluralStringResource(
+                R.plurals.saved_selection_share_failed_summary,
+                summary.failedCount,
+                summary.failedCount
+            )
+            stringResource(R.string.states_selection_partial_summary, sharedText, failedText)
+        }
+    }
+}
+
+@Composable
+private fun SavedImagesMultiDeleteState.deleteSummaryMessage(): String? {
+    val finished = this as? SavedImagesMultiDeleteState.Finished ?: return null
+    val summary = finished.summary
+    return when {
+        summary.failedCount == 0 -> pluralStringResource(
+            R.plurals.saved_selection_deleted_summary,
+            summary.successCount,
+            summary.successCount
+        )
+
+        summary.successCount == 0 -> stringResource(R.string.saved_selection_delete_all_failed)
+        else -> {
+            val deletedText = pluralStringResource(
+                R.plurals.saved_selection_deleted_summary,
+                summary.successCount,
+                summary.successCount
+            )
+            val failedText = pluralStringResource(
+                R.plurals.saved_selection_delete_failed_summary,
+                summary.failedCount,
+                summary.failedCount
+            )
+            stringResource(R.string.states_selection_partial_summary, deletedText, failedText)
+        }
+    }
+}
+
 private fun SavedImageDeleteState.statusMessageRes(): Int? {
     return when (this) {
         SavedImageDeleteState.Idle -> null
@@ -650,6 +1150,10 @@ private fun SavedImageDeleteState.statusMessageRes(): Int? {
 
 private fun SavedImageDeleteState.canDismiss(): Boolean {
     return this != SavedImageDeleteState.Deleting && this !is SavedImageDeleteState.NeedsSystemConfirmation
+}
+
+private fun Set<String>.toggle(value: String): Set<String> {
+    return if (value in this) this - value else this + value
 }
 
 private fun SavedMediaOrigin.labelRes(): Int {

@@ -35,6 +35,14 @@ class ShareSavedImageUseCase(
     }
 }
 
+class ShareSavedImagesUseCase(
+    private val repository: SavedImagesRepository
+) {
+    suspend fun execute(images: List<SavedImage>): ShareSavedImagesResult {
+        return repository.shareImages(images)
+    }
+}
+
 class OpenSavedImageUseCase(
     private val repository: SavedImagesRepository
 ) {
@@ -47,6 +55,7 @@ interface SavedImagesRepository {
     suspend fun loadImages(): Result<List<SavedImage>>
     suspend fun deleteImage(uri: Uri): DeleteSavedImageResult
     suspend fun shareImage(image: SavedImage): ShareSavedImageResult
+    suspend fun shareImages(images: List<SavedImage>): ShareSavedImagesResult
     suspend fun openImage(image: SavedImage): OpenSavedImageResult
 }
 
@@ -74,6 +83,20 @@ sealed interface ShareSavedImageResult {
     data object InvalidTarget : ShareSavedImageResult
     data object NoCompatibleApp : ShareSavedImageResult
     data object Error : ShareSavedImageResult
+}
+
+sealed interface ShareSavedImagesResult {
+    data class ChooserOpened(
+        val sharedCount: Int,
+        val failedCount: Int
+    ) : ShareSavedImagesResult
+
+    data class NothingToShare(
+        val failedCount: Int
+    ) : ShareSavedImagesResult
+
+    data object NoCompatibleApp : ShareSavedImagesResult
+    data object Error : ShareSavedImagesResult
 }
 
 sealed interface OpenSavedImageResult {

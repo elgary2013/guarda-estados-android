@@ -23,6 +23,7 @@ import com.guardaestados.domain.saved.SavedImageDeleteTargetValidator
 import com.guardaestados.domain.saved.SavedImagesRepository
 import com.guardaestados.domain.saved.SavedMediaOrigin
 import com.guardaestados.domain.saved.ShareSavedImageResult
+import com.guardaestados.domain.saved.ShareSavedImagesResult
 import com.guardaestados.domain.share.ShareImageMimeTypeResolver
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -155,6 +156,87 @@ class MediaStoreSavedImagesRepository(
         } catch (exception: Exception) {
             Log.e(TAG, "Share failed while opening Android chooser", exception)
             ShareSavedImageResult.Error
+        }
+    }
+
+    override suspend fun shareImages(images: List<SavedImage>): ShareSavedImagesResult = withContext(Dispatchers.IO) {
+        if (images.isEmpty()) {
+            return@withContext ShareSavedImagesResult.NothingToShare(failedCount = 0)
+        }
+
+        val shareableImages = mutableListOf<ShareableSavedImage>()
+        var failedCount = 0
+        images.forEach { image ->
+            val validation = validateSavedImageTarget(image.uri)
+            when (validation) {
+                is SavedImageTargetValidation.Valid -> {
+                    val readable = try {
+                        contentResolver.openInputStream(image.uri)?.use {
+                            // Verifies that the saved media still exists and is readable before sharing.
+                        } != null
+                    } catch (exception: Exception) {
+                        Log.w(TAG, "Saved media skipped from multi-share because it could not be opened", exception)
+                        false
+                    }
+                    if (readable) {
+                        shareableImages += ShareableSavedImage(
+                            uri = image.uri,
+                            name = image.name,
+                            mimeType = validation.mimeType
+                        )
+                    } else {
+                        failedCount++
+                    }
+                }
+
+                SavedImageTargetValidation.Missing,
+                SavedImageTargetValidation.Invalid,
+                SavedImageTargetValidation.Error -> failedCount++
+            }
+        }
+
+        if (shareableImages.isEmpty()) {
+            return@withContext ShareSavedImagesResult.NothingToShare(failedCount = failedCount)
+        }
+
+        try {
+            val uris = ArrayList(shareableImages.map { image -> image.uri })
+            val sendIntent = Intent(Intent.ACTION_SEND_MULTIPLE).apply {
+                type = shareableImages.combinedMimeType()
+                putParcelableArrayListExtra(Intent.EXTRA_STREAM, uris)
+                clipData = shareableImages.toClipData()
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            }
+            if (sendIntent.resolveActivity(appContext.packageManager) == null) {
+                Log.w(TAG, "Multi-share rejected: no compatible app found")
+                return@withContext ShareSavedImagesResult.NoCompatibleApp
+            }
+
+            val chooser = Intent.createChooser(
+                sendIntent,
+                appContext.getString(R.string.share_chooser_title)
+            ).apply {
+                clipData = sendIntent.clipData
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            }
+
+            withContext(Dispatchers.Main) {
+                appContext.startActivity(chooser)
+            }
+            ShareSavedImagesResult.ChooserOpened(
+                sharedCount = shareableImages.size,
+                failedCount = failedCount
+            )
+        } catch (exception: ActivityNotFoundException) {
+            Log.w(TAG, "Multi-share rejected: no compatible app found", exception)
+            ShareSavedImagesResult.NoCompatibleApp
+        } catch (exception: SecurityException) {
+            Log.e(TAG, "Multi-share failed because saved media read permission was denied", exception)
+            ShareSavedImagesResult.Error
+        } catch (exception: Exception) {
+            Log.e(TAG, "Multi-share failed while opening Android chooser", exception)
+            ShareSavedImagesResult.Error
         }
     }
 
@@ -367,6 +449,29 @@ class MediaStoreSavedImagesRepository(
         data object Missing : SavedImageTargetValidation
         data object Invalid : SavedImageTargetValidation
         data object Error : SavedImageTargetValidation
+    }
+
+    private data class ShareableSavedImage(
+        val uri: Uri,
+        val name: String,
+        val mimeType: String
+    )
+
+    private fun List<ShareableSavedImage>.combinedMimeType(): String {
+        return when {
+            all { image -> image.mimeType.startsWith(IMAGE_MIME_PREFIX) } -> "$IMAGE_MIME_PREFIX*"
+            all { image -> image.mimeType.startsWith(VIDEO_MIME_PREFIX) } -> "$VIDEO_MIME_PREFIX*"
+            else -> "*/*"
+        }
+    }
+
+    private fun List<ShareableSavedImage>.toClipData(): ClipData {
+        val firstImage = first()
+        return ClipData.newUri(contentResolver, firstImage.name, firstImage.uri).also { clipData ->
+            drop(1).forEach { image ->
+                clipData.addItem(ClipData.Item(image.uri))
+            }
+        }
     }
 
     private companion object {
