@@ -225,20 +225,10 @@ private fun ImmersiveVideoControls(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .clickable(enabled = !isLoading, onClick = onTogglePlayback)
+                .clickable(enabled = !isLoading && isPlaying, onClick = onTogglePlayback)
         )
 
-        if (!isLoading) {
-            val playbackActionRes = if (isPlaying) {
-                R.string.preview_video_pause
-            } else {
-                R.string.preview_video_play
-            }
-            val playbackIconRes = if (isPlaying) {
-                R.drawable.ic_pause
-            } else {
-                R.drawable.ic_play_arrow
-            }
+        if (!isLoading && !isPlaying) {
             Surface(
                 modifier = Modifier
                     .align(Alignment.Center)
@@ -250,8 +240,8 @@ private fun ImmersiveVideoControls(
             ) {
                 Box(contentAlignment = Alignment.Center) {
                     Icon(
-                        painter = painterResource(playbackIconRes),
-                        contentDescription = stringResource(playbackActionRes),
+                        painter = painterResource(R.drawable.ic_play_arrow),
+                        contentDescription = stringResource(R.string.preview_video_play),
                         modifier = Modifier.size(46.dp),
                         tint = Color.White
                     )

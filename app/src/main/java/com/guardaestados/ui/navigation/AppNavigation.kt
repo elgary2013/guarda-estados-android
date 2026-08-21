@@ -62,6 +62,8 @@ import com.guardaestados.data.settings.SaveDestinationState
 import com.guardaestados.domain.saved.SavedImage
 import com.guardaestados.domain.status.StatusGalleryState
 import com.guardaestados.domain.status.StatusImage
+import com.guardaestados.ui.media.MediaDetailsViewModel
+import com.guardaestados.ui.media.MediaDetailsViewModelFactory
 import com.guardaestados.ui.save.SaveStatusImageViewModel
 import com.guardaestados.ui.save.SaveStatusImageViewModelFactory
 import com.guardaestados.ui.saved.SavedImageDeleteState
@@ -125,6 +127,9 @@ fun AppNavigation(
     val savedImagesViewModel: SavedImagesViewModel = viewModel(
         factory = remember(context) { SavedImagesViewModelFactory(context) }
     )
+    val mediaDetailsViewModel: MediaDetailsViewModel = viewModel(
+        factory = remember(context) { MediaDetailsViewModelFactory(context) }
+    )
     val videoSplitterViewModel: VideoSplitterViewModel = viewModel(
         factory = remember(context) { VideoSplitterViewModelFactory(context) }
     )
@@ -142,6 +147,7 @@ fun AppNavigation(
     val multiDeleteSavedImageState by savedImagesViewModel.multiDeleteState.collectAsState()
     val openSavedImageState by savedImagesViewModel.openState.collectAsState()
     val importSavedMediaState by savedImagesViewModel.importState.collectAsState()
+    val mediaDetailsState by mediaDetailsViewModel.uiState.collectAsState()
     val videoSplitterState by videoSplitterViewModel.uiState.collectAsState()
     var selectedStatusPreviewItems by remember { mutableStateOf<List<StatusImage>>(emptyList()) }
     var selectedStatusPreviewInitialIndex by remember { mutableStateOf(0) }
@@ -414,8 +420,11 @@ fun AppNavigation(
                     initialIndex = previewItems.initialStatusPreviewIndex(imageUri, selectedStatusPreviewInitialIndex),
                     saveState = saveStatusImageState,
                     shareState = shareStatusImageState,
+                    detailsState = mediaDetailsState,
                     onSaveImage = saveStatusImageViewModel::save,
                     onShareImage = shareStatusImageViewModel::share,
+                    onShowDetails = mediaDetailsViewModel::loadStatusDetails,
+                    onDismissDetails = mediaDetailsViewModel::clear,
                     onBack = { navController.popBackStack() }
                 )
             }
@@ -438,9 +447,12 @@ fun AppNavigation(
                     deleteState = deleteSavedImageState,
                     shareState = shareSavedImageState,
                     openState = openSavedImageState,
+                    detailsState = mediaDetailsState,
                     onDeleteImage = savedImagesViewModel::delete,
                     onShareImage = savedImagesViewModel::share,
                     onOpenImage = savedImagesViewModel::open,
+                    onShowDetails = mediaDetailsViewModel::loadSavedDetails,
+                    onDismissDetails = mediaDetailsViewModel::clear,
                     onShareMessageDismissed = savedImagesViewModel::clearShareMessage,
                     onOpenMessageDismissed = savedImagesViewModel::clearOpenMessage,
                     onBack = { navController.popBackStack() }

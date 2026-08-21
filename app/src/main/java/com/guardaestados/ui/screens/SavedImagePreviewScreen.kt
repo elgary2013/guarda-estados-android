@@ -70,6 +70,7 @@ import com.guardaestados.domain.saved.SavedImage
 import com.guardaestados.domain.saved.SavedMediaOrigin
 import com.guardaestados.domain.saved.SavedMediaType
 import com.guardaestados.ui.components.ZoomableAsyncImage
+import com.guardaestados.ui.media.MediaDetailsUiState
 import com.guardaestados.ui.saved.SavedImageDeleteState
 import com.guardaestados.ui.saved.SavedImageOpenState
 import com.guardaestados.ui.saved.SavedImagePreviewState
@@ -120,9 +121,12 @@ fun SavedImagePreviewScreen(
     deleteState: SavedImageDeleteState,
     shareState: SavedImageShareState,
     openState: SavedImageOpenState,
+    detailsState: MediaDetailsUiState,
     onDeleteImage: (SavedImage) -> Unit,
     onShareImage: (SavedImage) -> Unit,
     onOpenImage: (SavedImage) -> Unit,
+    onShowDetails: (SavedImage) -> Unit,
+    onDismissDetails: () -> Unit,
     onShareMessageDismissed: () -> Unit,
     onOpenMessageDismissed: () -> Unit,
     onBack: () -> Unit,
@@ -204,9 +208,12 @@ fun SavedImagePreviewScreen(
                     deleteState = deleteState,
                     shareState = shareState,
                     openState = openState,
+                    detailsState = detailsState,
                     onDeleteImage = onDeleteImage,
                     onShareImage = onShareImage,
                     onOpenImage = onOpenImage,
+                    onShowDetails = onShowDetails,
+                    onDismissDetails = onDismissDetails,
                     onBack = onBack,
                     onShareMessageDismissed = onShareMessageDismissed,
                     onOpenMessageDismissed = onOpenMessageDismissed,
@@ -225,9 +232,12 @@ private fun ColumnScope.SavedPreviewPagerContent(
     deleteState: SavedImageDeleteState,
     shareState: SavedImageShareState,
     openState: SavedImageOpenState,
+    detailsState: MediaDetailsUiState,
     onDeleteImage: (SavedImage) -> Unit,
     onShareImage: (SavedImage) -> Unit,
     onOpenImage: (SavedImage) -> Unit,
+    onShowDetails: (SavedImage) -> Unit,
+    onDismissDetails: () -> Unit,
     onBack: () -> Unit,
     onShareMessageDismissed: () -> Unit,
     onOpenMessageDismissed: () -> Unit,
@@ -246,6 +256,7 @@ private fun ColumnScope.SavedPreviewPagerContent(
     val pagerState = rememberPagerState(initialPage = startPage, pageCount = { images.size })
     var activePageZoomed by remember(pageKeys) { mutableStateOf(false) }
     var activePageVideoSeeking by remember(pageKeys) { mutableStateOf(false) }
+    var showDetailsSheet by remember(pageKeys) { mutableStateOf(false) }
 
     LaunchedEffect(pageKeys, startPage) {
         if (pagerState.currentPage != startPage) {
@@ -256,6 +267,16 @@ private fun ColumnScope.SavedPreviewPagerContent(
     LaunchedEffect(pageKeys, pagerState.currentPage) {
         activePageZoomed = false
         activePageVideoSeeking = false
+    }
+
+    if (showDetailsSheet) {
+        MediaDetailsBottomSheet(
+            state = detailsState,
+            onDismiss = {
+                showDetailsSheet = false
+                onDismissDetails()
+            }
+        )
     }
 
     if (immersivePreview) {
@@ -392,6 +413,10 @@ private fun ColumnScope.SavedPreviewPagerContent(
                 openState = openState,
                 deleteState = deleteState,
                 onBack = onBack,
+                onShowDetails = {
+                    showDetailsSheet = true
+                    onShowDetails(images[pagerState.currentPage])
+                },
                 onShareImage = {
                     shareSnackbarRequested = true
                     onShareImage(images[pagerState.currentPage])
@@ -537,6 +562,7 @@ private fun SavedImmersiveTopBar(
     openState: SavedImageOpenState,
     deleteState: SavedImageDeleteState,
     onBack: () -> Unit,
+    onShowDetails: () -> Unit,
     onShareImage: () -> Unit,
     onOpenImage: () -> Unit,
     onDeleteImage: () -> Unit,
@@ -594,6 +620,14 @@ private fun SavedImmersiveTopBar(
                 expanded = menuExpanded,
                 onDismissRequest = { menuExpanded = false }
             ) {
+                DropdownMenuItem(
+                    text = { Text(text = stringResource(R.string.media_details_action)) },
+                    enabled = !busy,
+                    onClick = {
+                        menuExpanded = false
+                        onShowDetails()
+                    }
+                )
                 DropdownMenuItem(
                     text = { Text(text = stringResource(R.string.saved_action_share_media)) },
                     enabled = !busy,
