@@ -132,7 +132,7 @@
     <string name="share_status_no_app">No hay una aplicación compatible para compartir esta imagen.</string>
     <string name="share_status_error">No se pudo compartir la imagen. Probá de nuevo.</string>
     <string name="saved_title">Guardados</string>
-    <string name="saved_subtitle">Copias guardadas por EstadoGo en la ubicación predeterminada o en la carpeta de destino personalizada.</string>
+    <string name="saved_subtitle">Tus copias guardadas en EstadoGo.</string>
     <string name="saved_action_refresh">Actualizar</string>
     <string name="saved_import_action">Importar archivo</string>
     <string name="saved_import_progress">Importando archivo...</string>
@@ -158,6 +158,9 @@
     <string name="saved_empty_videos_body">No hay videos guardados por la app.</string>
     <string name="saved_image_date">Guardada: %1$s</string>
     <string name="saved_thumbnail_description">Miniatura guardada de %1$s</string>
+    <string name="saved_media_thumbnail_description">Miniatura de %1$s</string>
+    <string name="saved_image_thumbnail_fallback">imagen</string>
+    <string name="saved_video_thumbnail_fallback">video</string>
     <string name="saved_preview_title">Vista guardada</string>
     <string name="saved_preview_unavailable_title">Copia guardada no disponible</string>
     <string name="saved_preview_unavailable_body">La copia guardada ya no está disponible o MediaStore no la devolvió.</string>
@@ -346,6 +349,7 @@
     <string name="video_share_part_chooser_title">Compartir parte</string>
     <string name="video_share_all_chooser_title">Compartir partes en orden</string>
     <string name="saved_video_thumbnail_label">Video guardado</string>
+    <string name="saved_video_indicator_description">Video</string>
     <string name="saved_video_part_thumbnail_label">Parte de video</string>
     <string name="states_tab_images">Imágenes (%1$d)</string>
     <string name="states_tab_videos">Videos (%1$d)</string>

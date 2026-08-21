@@ -1,5 +1,6 @@
 package com.guardaestados.ui.screens
 
+import androidx.activity.compose.BackHandler
 import androidx.annotation.StringRes
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.BorderStroke
@@ -33,8 +34,6 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Snackbar
@@ -84,10 +83,10 @@ import com.guardaestados.ui.saved.SavedImageDeleteState
 import com.guardaestados.ui.saved.SavedImagesMultiDeleteState
 import com.guardaestados.ui.saved.SavedImagesMultiShareState
 import com.guardaestados.ui.saved.SavedMediaImportState
-import com.guardaestados.domain.saved.SavedMediaOrigin
 import com.guardaestados.ui.components.VideoThumbnail
-import java.text.DateFormat
+import java.text.SimpleDateFormat
 import java.util.Date
+import java.util.Locale
 
 private const val ThumbnailPixelSize = 360
 private val SavedHeaderReservedHeight = 146.dp
@@ -210,6 +209,11 @@ fun SavedImagesScreen(
         }
     }
 
+    BackHandler(enabled = selectionActive) {
+        selectedUris = emptySet()
+        showMultiDeleteDialog = false
+    }
+
     DisposableEffect(lifecycleOwner, onRefresh) {
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) {
@@ -291,19 +295,6 @@ fun SavedImagesScreen(
                                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                                 verticalArrangement = Arrangement.spacedBy(14.dp)
                             ) {
-                                if (selectionActive) {
-                                    item(span = { GridItemSpan(maxLineSpan) }) {
-                                        SavedSelectionHeader(
-                                            selectedCount = selectedUris.size,
-                                            actionInProgress = actionInProgress,
-                                            onCancelSelection = {
-                                                selectedUris = emptySet()
-                                                showMultiDeleteDialog = false
-                                            }
-                                        )
-                                    }
-                                }
-
                                 deleteState.statusMessageRes()?.let { messageRes ->
                                     if (!selectionActive) {
                                         item(span = { GridItemSpan(maxLineSpan) }) {
@@ -347,9 +338,7 @@ fun SavedImagesScreen(
                                             },
                                             onSelectionStarted = {
                                                 selectedUris = setOf(imageKey)
-                                            },
-                                            onDeleteImage = onDeleteImage,
-                                            deleting = deleteState == SavedImageDeleteState.Deleting
+                                            }
                                         )
                                     }
                                 }
@@ -711,27 +700,24 @@ private fun SavedImageGridCard(
     selectionActive: Boolean,
     enabled: Boolean,
     onImageSelected: () -> Unit,
-    onSelectionStarted: () -> Unit,
-    onDeleteImage: (SavedImage) -> Unit,
-    deleting: Boolean
+    onSelectionStarted: () -> Unit
 ) {
     val context = LocalContext.current
     val formattedDate = image.dateAddedMillis?.formatDate()
-    val unavailable = stringResource(R.string.status_image_value_unavailable)
     val selectedDescription = stringResource(R.string.states_selection_item_selected)
     val notSelectedDescription = stringResource(R.string.states_selection_item_not_selected)
+    val thumbnailFallback = stringResource(
+        if (image.mediaType == SavedMediaType.Video) {
+            R.string.saved_video_thumbnail_fallback
+        } else {
+            R.string.saved_image_thumbnail_fallback
+        }
+    )
     var failedToLoad by remember(image.uri) { mutableStateOf(false) }
-    var showDeleteDialog by remember(image.uri) { mutableStateOf(false) }
-
-    if (showDeleteDialog) {
-        ConfirmSavedImageDeleteDialog(
-            onDismiss = { showDeleteDialog = false },
-            onConfirm = {
-                showDeleteDialog = false
-                onDeleteImage(image)
-            }
-        )
-    }
+    val thumbnailDescription = stringResource(
+        R.string.saved_media_thumbnail_description,
+        image.name.ifBlank { thumbnailFallback }
+    )
 
     Card(
         modifier = Modifier
@@ -785,11 +771,9 @@ private fun SavedImageGridCard(
             if (image.mediaType == SavedMediaType.Video) {
                 VideoThumbnail(
                     uri = image.uri,
-                    contentDescription = stringResource(R.string.saved_video_card_description)
+                    contentDescription = thumbnailDescription
                 )
-                SavedBadge(
-                    text = stringResource(R.string.saved_video_thumbnail_label),
-                    iconRes = R.drawable.ic_play_arrow,
+                SavedVideoIndicator(
                     modifier = Modifier
                         .align(Alignment.BottomStart)
                         .padding(8.dp)
@@ -807,10 +791,7 @@ private fun SavedImageGridCard(
                         .data(image.uri)
                         .size(Size(ThumbnailPixelSize, ThumbnailPixelSize))
                         .build(),
-                    contentDescription = stringResource(
-                        R.string.saved_thumbnail_description,
-                        stringResource(R.string.saved_image_card_description)
-                    ),
+                    contentDescription = thumbnailDescription,
                     contentScale = ContentScale.Crop,
                     modifier = Modifier.fillMaxSize(),
                     onError = { failedToLoad = true }
@@ -848,93 +829,24 @@ private fun SavedImageGridCard(
                         tint = if (selected) Color.White else Color.Transparent
                     )
                 }
-            } else {
-                Surface(
-                    modifier = Modifier
-                        .align(Alignment.TopEnd)
-                        .padding(7.dp),
-                    shape = RoundedCornerShape(999.dp),
-                    color = SavedSurfaceStrong,
-                    contentColor = SavedDanger,
-                    border = BorderStroke(1.dp, SavedBorder),
-                    shadowElevation = 0.dp
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(34.dp)
-                            .clickable(enabled = !deleting, role = Role.Button) { showDeleteDialog = true },
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            painter = painterResource(R.drawable.ic_delete),
-                            contentDescription = stringResource(R.string.saved_delete_media_description),
-                            modifier = Modifier.size(18.dp),
-                            tint = SavedDanger
-                        )
-                    }
-                }
             }
         }
 
         Column(
-            modifier = Modifier.padding(start = 10.dp, end = 10.dp, bottom = 10.dp),
-            verticalArrangement = Arrangement.spacedBy(6.dp)
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(start = 10.dp, end = 10.dp, bottom = 10.dp, top = 2.dp),
+            verticalArrangement = Arrangement.spacedBy(2.dp)
         ) {
-            SavedBadge(
-                text = stringResource(image.origin.labelRes()),
-                iconRes = if (image.origin == SavedMediaOrigin.VideoPart) R.drawable.ic_video else R.drawable.ic_nav_saved
-            )
-            SavedBadge(
-                text = stringResource(R.string.saved_image_date, formattedDate ?: unavailable),
-                iconRes = R.drawable.ic_image
+            Text(
+                text = formattedDate ?: stringResource(R.string.status_image_value_unavailable),
+                modifier = Modifier.fillMaxWidth(),
+                style = MaterialTheme.typography.labelMedium,
+                color = SavedBody,
+                maxLines = 1,
+                overflow = TextOverflow.Clip
             )
         }
-    }
-}
-
-@Composable
-private fun SavedSelectionHeader(
-    selectedCount: Int,
-    actionInProgress: Boolean,
-    onCancelSelection: () -> Unit
-) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Surface(
-            modifier = Modifier.size(48.dp),
-            shape = RoundedCornerShape(16.dp),
-            color = SavedSurface,
-            contentColor = SavedActive,
-            border = BorderStroke(1.dp, SavedBorder),
-            shadowElevation = 0.dp
-        ) {
-            IconButton(
-                onClick = onCancelSelection,
-                enabled = !actionInProgress
-            ) {
-                Icon(
-                    imageVector = Icons.Filled.Close,
-                    contentDescription = stringResource(R.string.states_selection_cancel),
-                    tint = SavedActive
-                )
-            }
-        }
-        Text(
-            text = pluralStringResource(
-                R.plurals.states_selection_count,
-                selectedCount,
-                selectedCount
-            ),
-            modifier = Modifier.weight(1f),
-            style = MaterialTheme.typography.titleLarge,
-            fontWeight = FontWeight.Bold,
-            color = SavedTitle,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis
-        )
     }
 }
 
@@ -1082,9 +994,7 @@ private fun SavedSelectionActionButton(
 }
 
 @Composable
-private fun SavedBadge(
-    text: String,
-    iconRes: Int,
+private fun SavedVideoIndicator(
     modifier: Modifier = Modifier
 ) {
     Surface(
@@ -1096,22 +1006,15 @@ private fun SavedBadge(
         shadowElevation = 0.dp
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 5.dp),
-            horizontalArrangement = Arrangement.spacedBy(4.dp),
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
+            horizontalArrangement = Arrangement.Center,
             verticalAlignment = Alignment.CenterVertically
         ) {
             Icon(
-                painter = painterResource(iconRes),
-                contentDescription = null,
-                modifier = Modifier.size(13.dp),
+                painter = painterResource(R.drawable.ic_play_arrow),
+                contentDescription = stringResource(R.string.saved_video_indicator_description),
+                modifier = Modifier.size(16.dp),
                 tint = SavedBlue
-            )
-            Text(
-                text = text,
-                style = MaterialTheme.typography.labelSmall,
-                color = SavedTitle,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
             )
         }
     }
@@ -1291,13 +1194,6 @@ private fun Set<String>.toggle(value: String): Set<String> {
     return if (value in this) this - value else this + value
 }
 
-private fun SavedMediaOrigin.labelRes(): Int {
-    return when (this) {
-        SavedMediaOrigin.SavedStatus -> R.string.saved_origin_status_copy
-        SavedMediaOrigin.VideoPart -> R.string.saved_origin_video_part
-    }
-}
-
 private fun Long.formatDate(): String {
-    return DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.SHORT).format(Date(this))
+    return SimpleDateFormat("d MMM yyyy", Locale.getDefault()).format(Date(this))
 }
