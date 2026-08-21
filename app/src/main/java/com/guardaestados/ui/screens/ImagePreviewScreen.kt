@@ -70,6 +70,7 @@ import com.guardaestados.R
 import com.guardaestados.domain.status.StatusImage
 import com.guardaestados.domain.status.StatusMediaType
 import com.guardaestados.ui.components.ZoomableAsyncImage
+import com.guardaestados.ui.media.MediaDetailsUiState
 import com.guardaestados.ui.save.SaveStatusImageUiState
 import com.guardaestados.ui.share.ShareStatusImageUiState
 import com.guardaestados.ui.status.StatusImagePresentationFormatter
@@ -114,8 +115,11 @@ fun ImagePreviewScreen(
     initialIndex: Int,
     saveState: SaveStatusImageUiState,
     shareState: ShareStatusImageUiState,
+    detailsState: MediaDetailsUiState,
     onSaveImage: (StatusImage) -> Unit,
     onShareImage: (StatusImage) -> Unit,
+    onShowDetails: (StatusImage) -> Unit,
+    onDismissDetails: () -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -176,8 +180,11 @@ fun ImagePreviewScreen(
                         previewState.image.mediaType == StatusMediaType.Video,
                     saveState = saveState,
                     shareState = shareState,
+                    detailsState = detailsState,
                     onSaveImage = onSaveImage,
                     onShareImage = onShareImage,
+                    onShowDetails = onShowDetails,
+                    onDismissDetails = onDismissDetails,
                     onBack = onBack
                 )
             }
@@ -192,8 +199,11 @@ private fun ColumnScope.PreviewPagerContent(
     immersivePreview: Boolean,
     saveState: SaveStatusImageUiState,
     shareState: ShareStatusImageUiState,
+    detailsState: MediaDetailsUiState,
     onSaveImage: (StatusImage) -> Unit,
     onShareImage: (StatusImage) -> Unit,
+    onShowDetails: (StatusImage) -> Unit,
+    onDismissDetails: () -> Unit,
     onBack: () -> Unit
 ) {
     if (images.isEmpty()) {
@@ -209,6 +219,7 @@ private fun ColumnScope.PreviewPagerContent(
     val pagerState = rememberPagerState(initialPage = startPage, pageCount = { images.size })
     var activePageZoomed by remember(pageKeys) { mutableStateOf(false) }
     var activePageVideoSeeking by remember(pageKeys) { mutableStateOf(false) }
+    var showDetailsSheet by remember(pageKeys) { mutableStateOf(false) }
 
     LaunchedEffect(pageKeys, startPage) {
         if (pagerState.currentPage != startPage) {
@@ -219,6 +230,16 @@ private fun ColumnScope.PreviewPagerContent(
     LaunchedEffect(pageKeys, pagerState.currentPage) {
         activePageZoomed = false
         activePageVideoSeeking = false
+    }
+
+    if (showDetailsSheet) {
+        MediaDetailsBottomSheet(
+            state = detailsState,
+            onDismiss = {
+                showDetailsSheet = false
+                onDismissDetails()
+            }
+        )
     }
 
     if (immersivePreview) {
@@ -314,6 +335,10 @@ private fun ColumnScope.PreviewPagerContent(
                 saveState = saveState,
                 shareState = shareState,
                 onBack = onBack,
+                onShowDetails = {
+                    showDetailsSheet = true
+                    onShowDetails(images[pagerState.currentPage])
+                },
                 onSaveImage = {
                     saveSnackbarForVideo = images[pagerState.currentPage].mediaType == StatusMediaType.Video
                     saveSnackbarRequested = true
@@ -456,6 +481,7 @@ private fun ImmersiveStatusTopBar(
     saveState: SaveStatusImageUiState,
     shareState: ShareStatusImageUiState,
     onBack: () -> Unit,
+    onShowDetails: () -> Unit,
     onSaveImage: () -> Unit,
     onShareImage: () -> Unit,
     modifier: Modifier = Modifier
@@ -507,6 +533,13 @@ private fun ImmersiveStatusTopBar(
                 expanded = menuExpanded,
                 onDismissRequest = { menuExpanded = false }
             ) {
+                DropdownMenuItem(
+                    text = { Text(text = stringResource(R.string.media_details_action)) },
+                    onClick = {
+                        menuExpanded = false
+                        onShowDetails()
+                    }
+                )
                 DropdownMenuItem(
                     text = { Text(text = stringResource(R.string.preview_action_save_copy)) },
                     enabled = saveState != SaveStatusImageUiState.Saving,
