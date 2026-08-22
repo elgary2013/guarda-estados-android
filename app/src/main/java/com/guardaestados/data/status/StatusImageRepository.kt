@@ -3,6 +3,7 @@ package com.guardaestados.data.status
 import android.content.ContentResolver
 import android.content.Context
 import android.graphics.BitmapFactory
+import android.media.MediaMetadataRetriever
 import android.net.Uri
 import androidx.documentfile.provider.DocumentFile
 import com.guardaestados.domain.status.StatusImage
@@ -53,6 +54,7 @@ class StatusImageRepository(
         val mimeType = resolvedMimeType ?: documentMimeType ?: return null
         val mediaType = StatusMediaType.fromMimeType(mimeType)
         val dimensions = if (mediaType == StatusMediaType.Image) contentResolver.readImageDimensions(uri) else null
+        val durationMillis = if (mediaType == StatusMediaType.Video) readVideoDurationMillis(uri) else null
         return StatusImage(
             uri = uri,
             name = fileName,
@@ -61,6 +63,7 @@ class StatusImageRepository(
             sizeBytes = length().takeIf { it > 0L },
             widthPixels = dimensions?.widthPixels,
             heightPixels = dimensions?.heightPixels,
+            durationMillis = durationMillis,
             mediaType = mediaType
         )
     }
@@ -78,6 +81,22 @@ class StatusImageRepository(
                 ).takeIf { dimensions -> dimensions.widthPixels != null && dimensions.heightPixels != null }
             }
         }.getOrNull()
+    }
+
+    private fun readVideoDurationMillis(uri: Uri): Long? {
+        val retriever = MediaMetadataRetriever()
+        return try {
+            retriever.setDataSource(appContext, uri)
+            retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION).positiveLongOrNull()
+        } catch (exception: Exception) {
+            null
+        } finally {
+            runCatching { retriever.release() }
+        }
+    }
+
+    private fun String?.positiveLongOrNull(): Long? {
+        return this?.toLongOrNull()?.takeIf { it > 0L }
     }
 
     private data class ImageDimensions(

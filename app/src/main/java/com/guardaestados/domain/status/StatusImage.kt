@@ -10,6 +10,7 @@ data class StatusImage(
     val sizeBytes: Long?,
     val widthPixels: Int? = null,
     val heightPixels: Int? = null,
+    val durationMillis: Long? = null,
     val mediaType: StatusMediaType = StatusMediaType.fromMimeType(mimeType)
 )
 
