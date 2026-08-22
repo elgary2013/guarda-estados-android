@@ -344,11 +344,11 @@
     <string name="video_splitter_action_create">Crear partes</string>
     <string name="video_splitter_action_cancel">Cancelar</string>
     <string name="video_splitter_processing_status">Procesando parte %1$d de %2$d</string>
-    <string name="video_splitter_preview_original">Ver original</string>
+    <string name="video_splitter_preview_original">Vista previa</string>
     <string name="video_splitter_generated_title">Partes generadas</string>
     <string name="video_splitter_share_notice">Se abre el selector oficial de Android. La app no envía ni publica nada por sí sola.</string>
-    <string name="video_splitter_share_all">Compartir todas en orden</string>
-    <string name="video_splitter_part_title">Parte %1$d</string>
+    <string name="video_splitter_share_all">Compartir todas las partes</string>
+    <string name="video_splitter_part_title">Parte %1$d de %2$d</string>
     <string name="video_splitter_part_duration">Duración: %1$s</string>
     <string name="video_splitter_preview_part">Ver parte</string>
     <string name="video_splitter_share_part">Compartir parte</string>
