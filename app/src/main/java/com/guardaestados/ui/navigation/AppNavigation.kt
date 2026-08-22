@@ -260,6 +260,18 @@ fun AppNavigation(
                 Box(modifier = Modifier.fillMaxSize()) {
                     HomeScreen(
                         homeBackgroundUri = homeBackgroundUri,
+                        folderSelectionState = folderSelectionState,
+                        statusGalleryState = statusGalleryState,
+                        onOpenStates = {
+                            navController.navigate(AppRoute.States.route) {
+                                launchSingleTop = true
+                            }
+                        },
+                        onOpenFolderSettings = {
+                            navController.navigate(AppRoute.FolderSettings.route) {
+                                launchSingleTop = true
+                            }
+                        },
                         contentPadding = innerPadding
                     )
                 }
