@@ -15,20 +15,29 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -50,6 +59,7 @@ import com.guardaestados.ui.video.VideoShareStatus
 import com.guardaestados.ui.video.VideoSplitterMessage
 import com.guardaestados.ui.video.VideoSplitterStatus
 import com.guardaestados.ui.video.VideoSplitterUiState
+import kotlinx.coroutines.launch
 
 private val SplitBackground: Color
     @Composable get() = LocalGuardaEstadosColors.current.background
@@ -85,6 +95,10 @@ fun VideoSplitterScreen(
     onBack: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val scrollState = rememberScrollState()
+    val previewRequester = remember { BringIntoViewRequester() }
+    val coroutineScope = rememberCoroutineScope()
+
     Surface(
         modifier = modifier.fillMaxSize(),
         color = SplitBackground
@@ -92,31 +106,13 @@ fun VideoSplitterScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .verticalScroll(rememberScrollState())
+                .verticalScroll(scrollState)
                 .statusBarsPadding()
                 .navigationBarsPadding()
                 .padding(24.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            SplitSecondaryButton(
-                text = stringResource(R.string.preview_action_back),
-                onClick = onBack,
-                modifier = Modifier.fillMaxWidth()
-            )
-
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(
-                    text = stringResource(R.string.video_splitter_title),
-                    style = MaterialTheme.typography.headlineMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = SplitText
-                )
-                Text(
-                    text = stringResource(R.string.video_splitter_subtitle),
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = SplitBody
-                )
-            }
+            VideoSplitterHeader(onBack = onBack)
 
             VideoNoticeCard()
 
@@ -136,7 +132,10 @@ fun VideoSplitterScreen(
 
             val previewUri = uiState.previewUri
             if (previewUri != null) {
-                GlassCard(contentPadding = PaddingValues(8.dp)) {
+                GlassCard(
+                    modifier = Modifier.bringIntoViewRequester(previewRequester),
+                    contentPadding = PaddingValues(8.dp)
+                ) {
                     VideoPlayerPreview(
                         uri = previewUri,
                         modifier = Modifier
@@ -166,11 +165,52 @@ fun VideoSplitterScreen(
                 GeneratedPartsCard(
                     parts = uiState.generatedParts,
                     sharing = uiState.shareStatus == VideoShareStatus.Opening,
-                    onPreviewPart = onPreviewPart,
+                    onPreviewPart = { part ->
+                        onPreviewPart(part)
+                        coroutineScope.launch {
+                            previewRequester.bringIntoView()
+                        }
+                    },
                     onSharePart = onSharePart,
                     onShareAllParts = onShareAllParts
                 )
             }
+        }
+    }
+}
+
+@Composable
+private fun VideoSplitterHeader(onBack: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = 56.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.Top
+    ) {
+        IconButton(onClick = onBack) {
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                contentDescription = stringResource(R.string.preview_action_back),
+                modifier = Modifier.size(24.dp),
+                tint = SplitText
+            )
+        }
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            Text(
+                text = stringResource(R.string.video_splitter_title),
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.Bold,
+                color = SplitText
+            )
+            Text(
+                text = stringResource(R.string.video_splitter_subtitle),
+                style = MaterialTheme.typography.bodyMedium,
+                color = SplitBody
+            )
         }
     }
 }
@@ -196,10 +236,10 @@ private fun GlassCard(
 
 @Composable
 private fun VideoNoticeCard() {
-    GlassCard(contentPadding = PaddingValues(16.dp)) {
+    GlassCard(contentPadding = PaddingValues(horizontal = 14.dp, vertical = 10.dp)) {
         Text(
             text = stringResource(R.string.video_splitter_privacy_notice),
-            style = MaterialTheme.typography.bodyMedium,
+            style = MaterialTheme.typography.bodySmall,
             color = SplitBody
         )
     }
@@ -245,7 +285,6 @@ private fun SelectedVideoCard(
                 fontWeight = FontWeight.SemiBold,
                 color = SplitText
             )
-            VideoDetailRow(label = stringResource(R.string.video_splitter_file_name), value = video.displayName)
             VideoDetailRow(label = stringResource(R.string.video_splitter_total_duration), value = formatter.format(video.durationMs))
             VideoDetailRow(label = stringResource(R.string.video_splitter_estimated_parts), value = estimatedParts.toString())
             VideoDetailRow(label = stringResource(R.string.video_splitter_output_location), value = stringResource(R.string.video_splitter_output_path))
@@ -347,21 +386,16 @@ private fun GeneratedPartsCard(
                 enabled = !sharing,
                 modifier = Modifier.fillMaxWidth()
             )
-            parts.sortedBy { it.index }.forEach { part ->
+            val sortedParts = parts.sortedBy { it.index }
+            val totalParts = sortedParts.size
+            sortedParts.forEach { part ->
                 GlassCard(contentPadding = PaddingValues(14.dp)) {
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Text(
-                            text = stringResource(R.string.video_splitter_part_title, part.index),
+                            text = stringResource(R.string.video_splitter_part_title, part.index, totalParts),
                             style = MaterialTheme.typography.titleSmall,
                             fontWeight = FontWeight.SemiBold,
                             color = SplitText
-                        )
-                        Text(
-                            text = part.displayName,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = SplitBody,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
                         )
                         Text(
                             text = stringResource(R.string.video_splitter_part_duration, formatter.format(part.durationMs)),
