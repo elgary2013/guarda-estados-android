@@ -252,8 +252,12 @@
     <string name="settings_title">Configuración</string>
     <string name="settings_subtitle">Administrá la carpeta autorizada, el tema y la información de la aplicación.</string>
     <string name="settings_folder_title">Carpeta seleccionada</string>
+    <string name="settings_states_folder_title">Carpeta de estados</string>
     <string name="settings_folder_summary_selected">Carpeta de estados conectada</string>
     <string name="settings_folder_summary_empty">Sin carpeta seleccionada</string>
+    <string name="settings_states_folder_connected_recommended">Conectada: %1$s</string>
+    <string name="settings_states_folder_connected_manual">Carpeta conectada</string>
+    <string name="settings_states_folder_not_connected">Sin carpeta conectada</string>
     <string name="settings_folder_description">Esta carpeta se usa solo para leer los estados detectados.</string>
     <string name="settings_folder_name">Carpeta guardada: %1$s</string>
     <string name="settings_folder_authorized_name">Carpeta autorizada: %1$s</string>
@@ -265,6 +269,7 @@
     <string name="settings_save_destination_title">Carpeta de destino</string>
     <string name="settings_save_destination_current_title">Destino actual</string>
     <string name="settings_save_destination_summary_default">Ubicación predeterminada</string>
+    <string name="settings_save_destination_estadogo_default">Destino predeterminado de EstadoGo</string>
     <string name="settings_save_destination_summary_attention">Requiere atención</string>
     <string name="settings_save_destination_default">Usando ubicación predeterminada: Pictures &gt; EstadoGo &gt; Imágenes para imágenes y Movies &gt; EstadoGo &gt; Videos para videos.</string>
     <string name="settings_save_destination_default_title">Destino predeterminado</string>
