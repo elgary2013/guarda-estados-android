@@ -50,6 +50,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavDestination.Companion.hierarchy
+import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -161,6 +162,9 @@ fun AppNavigation(
         AppRoute.Saved,
         AppRoute.Settings
     )
+    val navigateToBottomRoute: (AppRoute) -> Unit = { route ->
+        navController.navigateToBottomRoute(route)
+    }
     val currentBackStackEntry = navController.currentBackStackEntryAsState().value
     val currentDestination = currentBackStackEntry?.destination
     val currentRoute = currentDestination?.route
@@ -238,15 +242,7 @@ fun AppNavigation(
                     routes = routes,
                     currentRoute = currentRoute,
                     glassOnPhoto = glassOnHomePhoto,
-                    onRouteSelected = { route ->
-                        navController.navigate(route.route) {
-                            popUpTo(navController.graph.startDestinationId) {
-                                saveState = true
-                            }
-                            launchSingleTop = true
-                            restoreState = true
-                        }
-                    }
+                    onRouteSelected = navigateToBottomRoute
                 )
             }
         }
@@ -262,11 +258,7 @@ fun AppNavigation(
                         homeBackgroundUri = homeBackgroundUri,
                         folderSelectionState = folderSelectionState,
                         statusGalleryState = statusGalleryState,
-                        onOpenStates = {
-                            navController.navigate(AppRoute.States.route) {
-                                launchSingleTop = true
-                            }
-                        },
+                        onOpenStates = { navigateToBottomRoute(AppRoute.States) },
                         onOpenFolderSettings = {
                             navController.navigate(AppRoute.FolderSettings.route) {
                                 launchSingleTop = true
@@ -471,6 +463,16 @@ fun AppNavigation(
                 )
             }
         }
+    }
+}
+
+private fun NavHostController.navigateToBottomRoute(route: AppRoute) {
+    navigate(route.route) {
+        popUpTo(graph.startDestinationId) {
+            saveState = true
+        }
+        launchSingleTop = true
+        restoreState = true
     }
 }
 
