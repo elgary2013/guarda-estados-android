@@ -67,6 +67,7 @@ import coil3.request.ImageRequest
 import coil3.size.Size
 import com.guardaestados.ui.theme.LocalGuardaEstadosColors
 import com.guardaestados.R
+import com.guardaestados.domain.media.MediaDetailsFormatter
 import com.guardaestados.domain.status.StatusGalleryState
 import com.guardaestados.domain.status.StatusImage
 import com.guardaestados.domain.status.StatusMediaType
@@ -256,11 +257,13 @@ fun StatesScreen(
                     }
                 }
 
-                item(span = { GridItemSpan(maxLineSpan) }) {
-                    RefreshFooter(
-                        onRefresh = onRefresh,
-                        enabled = !savingSelection && !selectionActive
-                    )
+                if (statusGalleryState !is StatusGalleryState.Content) {
+                    item(span = { GridItemSpan(maxLineSpan) }) {
+                        RefreshFooter(
+                            onRefresh = onRefresh,
+                            enabled = !savingSelection && !selectionActive
+                        )
+                    }
                 }
             }
 
@@ -526,6 +529,9 @@ private fun StatusImageGridCard(
 ) {
     val context = LocalContext.current
     val formattedDate = image.lastModifiedMillis?.formatDate()
+    val formattedVideoDuration = remember(image.durationMillis) {
+        MediaDetailsFormatter().formatDuration(image.durationMillis)
+    }
     val selectedDescription = stringResource(R.string.states_selection_item_selected)
     val notSelectedDescription = stringResource(R.string.states_selection_item_not_selected)
     var failedToLoad by remember(image.uri) { mutableStateOf(false) }
@@ -584,13 +590,22 @@ private fun StatusImageGridCard(
                     uri = image.uri,
                     contentDescription = stringResource(R.string.status_video_card_description)
                 )
-                MediaTypeBadge(
-                    text = stringResource(R.string.states_video_badge),
-                    iconRes = R.drawable.ic_play_arrow,
-                    modifier = Modifier
-                        .align(Alignment.BottomStart)
-                        .padding(8.dp)
-                )
+                if (formattedVideoDuration != null) {
+                    MediaTypeBadge(
+                        text = formattedVideoDuration,
+                        iconRes = R.drawable.ic_play_arrow,
+                        modifier = Modifier
+                            .align(Alignment.BottomStart)
+                            .padding(8.dp)
+                    )
+                } else {
+                    MediaTypeIconBadge(
+                        iconRes = R.drawable.ic_play_arrow,
+                        modifier = Modifier
+                            .align(Alignment.BottomStart)
+                            .padding(8.dp)
+                    )
+                }
             } else if (failedToLoad) {
                 Text(
                     text = stringResource(R.string.status_image_thumbnail_error),
@@ -784,6 +799,30 @@ private fun StatesSelectionActionBar(
                 )
             }
         }
+    }
+}
+
+@Composable
+private fun MediaTypeIconBadge(
+    iconRes: Int,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        modifier = modifier,
+        shape = RoundedCornerShape(999.dp),
+        color = StatesBadgeOverlay,
+        contentColor = StatesTitle,
+        border = BorderStroke(1.dp, StatesBorder),
+        shadowElevation = 0.dp
+    ) {
+        Icon(
+            painter = painterResource(iconRes),
+            contentDescription = null,
+            modifier = Modifier
+                .padding(7.dp)
+                .size(14.dp),
+            tint = StatesActive
+        )
     }
 }
 
