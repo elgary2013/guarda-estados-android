@@ -129,7 +129,7 @@ fun SettingsScreen(
             )
 
             SettingsLinkSection(
-                title = stringResource(R.string.settings_folder_title),
+                title = stringResource(R.string.settings_states_folder_title),
                 summary = folderSummaryText(folderSelectionState),
                 icon = Icons.Filled.Folder,
                 onClick = onOpenFolderSettings
@@ -156,7 +156,9 @@ fun SettingsScreen(
                 onClick = onOpenPrivacyInfo
             )
 
-            SettingsLinkSection(
+            Spacer(modifier = Modifier.size(8.dp))
+
+            SensitiveSettingsLinkSection(
                 title = stringResource(R.string.settings_reset_title),
                 summary = stringResource(R.string.settings_reset_summary),
                 icon = Icons.Filled.Delete,
@@ -346,13 +348,76 @@ private fun SettingsLinkSection(
 }
 
 @Composable
+private fun SensitiveSettingsLinkSection(
+    title: String,
+    summary: String,
+    icon: ImageVector,
+    onClick: () -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = SettingsDangerSoft.copy(alpha = 0.38f)
+        ),
+        border = BorderStroke(1.dp, SettingsDanger.copy(alpha = 0.52f))
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable(role = Role.Button, onClick = onClick)
+                .padding(horizontal = 16.dp, vertical = 14.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            SettingsSectionIcon(
+                icon = icon,
+                backgroundColor = SettingsDangerSoft,
+                tint = SettingsDanger,
+                borderColor = SettingsDanger.copy(alpha = 0.42f)
+            )
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(2.dp)
+            ) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = SettingsDanger
+                )
+                Text(
+                    text = summary,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = SettingsBody
+                )
+            }
+        }
+    }
+}
+
+@Composable
 private fun SettingsSectionIcon(icon: ImageVector) {
+    SettingsSectionIcon(
+        icon = icon,
+        backgroundColor = SettingsIconBackground,
+        tint = SettingsIconTint,
+        borderColor = SettingsIconBorder
+    )
+}
+
+@Composable
+private fun SettingsSectionIcon(
+    icon: ImageVector,
+    backgroundColor: Color,
+    tint: Color,
+    borderColor: Color
+) {
     Surface(
         modifier = Modifier.size(44.dp),
         shape = CircleShape,
-        color = SettingsIconBackground,
-        contentColor = SettingsIconTint,
-        border = BorderStroke(1.dp, SettingsIconBorder)
+        color = backgroundColor,
+        contentColor = tint,
+        border = BorderStroke(1.dp, borderColor)
     ) {
         Row(
             modifier = Modifier.fillMaxSize(),
@@ -363,7 +428,7 @@ private fun SettingsSectionIcon(icon: ImageVector) {
                 imageVector = icon,
                 contentDescription = null,
                 modifier = Modifier.size(22.dp),
-                tint = SettingsIconTint
+                tint = tint
             )
         }
     }
@@ -524,9 +589,18 @@ private fun FolderDetail(folderSelectionState: FolderSelectionState) {
 private fun folderSummaryText(folderSelectionState: FolderSelectionState): String {
     return when (folderSelectionState) {
         FolderSelectionState.Loading -> stringResource(R.string.folder_status_loading)
-        is FolderSelectionState.Selected -> stringResource(R.string.settings_folder_summary_selected)
-        is FolderSelectionState.PermissionLost -> stringResource(R.string.folder_status_permission_lost)
-        FolderSelectionState.NotSelected -> stringResource(R.string.settings_folder_summary_empty)
+        is FolderSelectionState.Selected -> {
+            if (folderSelectionState.uriString.isRecommendedStatusesFolder()) {
+                stringResource(
+                    R.string.settings_states_folder_connected_recommended,
+                    stringResource(R.string.settings_folder_statuses_name)
+                )
+            } else {
+                stringResource(R.string.settings_states_folder_connected_manual)
+            }
+        }
+        is FolderSelectionState.PermissionLost,
+        FolderSelectionState.NotSelected -> stringResource(R.string.settings_states_folder_not_connected)
     }
 }
 
@@ -543,10 +617,10 @@ private fun folderStatusText(folderSelectionState: FolderSelectionState): String
 @Composable
 private fun saveDestinationSummaryText(saveDestinationState: SaveDestinationState): String {
     return when (saveDestinationState) {
-        SaveDestinationState.Default -> stringResource(R.string.settings_save_destination_summary_default)
+        SaveDestinationState.Default -> stringResource(R.string.settings_save_destination_estadogo_default)
         is SaveDestinationState.Custom -> saveDestinationState.folderName
-        is SaveDestinationState.PermissionLost -> stringResource(R.string.settings_save_destination_summary_attention)
-        is SaveDestinationState.Unavailable -> stringResource(R.string.settings_save_destination_summary_attention)
+        is SaveDestinationState.PermissionLost -> saveDestinationState.folderName
+        is SaveDestinationState.Unavailable -> saveDestinationState.folderName
     }
 }
 
