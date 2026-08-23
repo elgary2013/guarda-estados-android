@@ -293,11 +293,16 @@
     <string name="settings_home_background_remove">Quitar foto de fondo</string>
     <string name="settings_home_background_use_default">Usar fondo predeterminado</string>
     <string name="settings_home_background_note">La foto de fondo se muestra solo en Inicio.</string>
+    <string name="appearance_home_background_status_default">Fondo predeterminado activo</string>
+    <string name="appearance_home_background_status_custom">Foto personalizada activa</string>
+    <string name="appearance_home_background_choose">Elegir foto</string>
+    <string name="appearance_home_background_change">Cambiar foto</string>
     <string name="settings_theme_title">Tema</string>
+    <string name="appearance_theme_selected">Tema seleccionado: %1$s</string>
     <string name="settings_theme_summary_system">Usar tema del sistema</string>
     <string name="settings_theme_summary_light">Claro</string>
     <string name="settings_theme_summary_dark">Oscuro</string>
-    <string name="settings_theme_system">Usar tema del sistema</string>
+    <string name="settings_theme_system">Según el sistema</string>
     <string name="settings_theme_light">Claro</string>
     <string name="settings_theme_dark">Oscuro</string>
     <string name="settings_privacy_title">Privacidad y aviso legal</string>
