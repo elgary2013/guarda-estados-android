@@ -4,7 +4,6 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
@@ -74,39 +73,35 @@ fun PrivacyInfoScreen(
                 title = stringResource(R.string.settings_privacy_info_title),
                 icon = Icons.Filled.Info
             ) {
-                Text(
-                    text = stringResource(R.string.settings_privacy_local),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = PrivacyBody
+                PrivacyInfoBlock(
+                    title = stringResource(R.string.privacy_info_data_title),
+                    body = stringResource(R.string.privacy_info_data_body)
                 )
-                Text(
-                    text = stringResource(R.string.settings_privacy_folder_access),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = PrivacyBody
+                PrivacyInfoBlock(
+                    title = stringResource(R.string.privacy_info_folder_title),
+                    body = stringResource(R.string.privacy_info_folder_body)
                 )
-                Text(
-                    text = stringResource(R.string.settings_legal_affiliation),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = PrivacyBody
+                PrivacyInfoBlock(
+                    title = stringResource(R.string.privacy_info_saved_copies_title),
+                    body = stringResource(R.string.privacy_info_saved_copies_body)
                 )
-                Text(
-                    text = stringResource(R.string.settings_legal_user_responsibility),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = PrivacyBody
+                PrivacyInfoBlock(
+                    title = stringResource(R.string.privacy_info_no_access_title),
+                    body = stringResource(R.string.privacy_info_no_access_body)
+                )
+                PrivacyInfoBlock(
+                    title = stringResource(R.string.privacy_info_responsible_use_title),
+                    body = stringResource(R.string.privacy_info_responsible_use_body)
+                )
+                PrivacyInfoBlock(
+                    title = stringResource(R.string.privacy_info_app_title),
+                    body = stringResource(
+                        R.string.privacy_info_app_body,
+                        stringResource(R.string.app_name),
+                        appVersion
+                    )
                 )
                 PrivacyPolicyButton(onClick = onOpenPrivacyPolicy)
-                Spacer(modifier = Modifier.size(4.dp))
-                Text(
-                    text = stringResource(R.string.settings_about_app_name),
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    color = PrivacyTitle
-                )
-                Text(
-                    text = stringResource(R.string.settings_about_version, appVersion),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = PrivacyBody
-                )
             }
         }
     }
@@ -133,6 +128,26 @@ private fun PrivacyHeader(onBack: () -> Unit) {
             style = MaterialTheme.typography.headlineSmall,
             fontWeight = FontWeight.SemiBold,
             color = PrivacyTitle
+        )
+    }
+}
+
+@Composable
+private fun PrivacyInfoBlock(
+    title: String,
+    body: String
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.bodyMedium,
+            fontWeight = FontWeight.SemiBold,
+            color = PrivacyTitle
+        )
+        Text(
+            text = body,
+            style = MaterialTheme.typography.bodyMedium,
+            color = PrivacyBody
         )
     }
 }
