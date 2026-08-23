@@ -74,7 +74,7 @@ fun FolderSettingsScreen(
         ) {
             FolderSettingsHeader(onBack = onBack)
             FolderSettingsSection(
-                title = stringResource(R.string.settings_folder_title),
+                title = stringResource(R.string.settings_states_folder_title),
                 icon = Icons.Filled.Folder
             ) {
                 Text(
@@ -82,12 +82,7 @@ fun FolderSettingsScreen(
                     style = MaterialTheme.typography.bodyMedium,
                     color = FolderSettingsBody
                 )
-                FolderDetail(folderSelectionState = folderSelectionState)
-                Text(
-                    text = stringResource(R.string.settings_folder_description),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = FolderSettingsBody
-                )
+                RecommendedFolderPath()
                 when (folderSelectionState) {
                     is FolderSelectionState.Selected -> {
                         BrandGradientButton(
@@ -97,6 +92,11 @@ fun FolderSettingsScreen(
                     }
                     else -> {
                         FolderSelectionGuide()
+                        Text(
+                            text = stringResource(R.string.folder_selection_xiaomi_note),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = FolderSettingsBody
+                        )
                         BrandGradientButton(
                             text = stringResource(R.string.folder_action_open_recommended),
                             onClick = onSelectRecommendedFolder
@@ -131,7 +131,7 @@ private fun FolderSettingsHeader(onBack: () -> Unit) {
             )
         }
         Text(
-            text = stringResource(R.string.settings_folder_title),
+            text = stringResource(R.string.settings_states_folder_title),
             style = MaterialTheme.typography.headlineSmall,
             fontWeight = FontWeight.SemiBold,
             color = FolderSettingsTitle
@@ -202,98 +202,49 @@ private fun FolderSettingsIcon(icon: ImageVector) {
 private fun FolderSelectionGuide() {
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
         Text(
-            text = stringResource(R.string.folder_selection_guide_title),
+            text = stringResource(R.string.folder_selection_steps_title),
             style = MaterialTheme.typography.titleSmall,
             fontWeight = FontWeight.SemiBold,
             color = FolderSettingsTitle
         )
-        Text(text = stringResource(R.string.folder_selection_guide_menu), color = FolderSettingsBody)
-        Text(text = stringResource(R.string.folder_selection_guide_hidden), color = FolderSettingsBody)
-        Text(text = stringResource(R.string.folder_selection_guide_statuses), color = FolderSettingsBody)
-        Text(text = stringResource(R.string.folder_selection_guide_confirm), color = FolderSettingsBody)
+        Text(text = stringResource(R.string.folder_selection_step_open_recommended), color = FolderSettingsBody)
+        Text(text = stringResource(R.string.folder_selection_step_open_statuses), color = FolderSettingsBody)
+        Text(text = stringResource(R.string.folder_selection_step_confirm), color = FolderSettingsBody)
     }
 }
 
 @Composable
-private fun FolderDetail(folderSelectionState: FolderSelectionState) {
-    when (folderSelectionState) {
-        FolderSelectionState.NotSelected -> {
-            Text(
-                text = stringResource(R.string.settings_folder_recommended_label),
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.SemiBold,
-                color = FolderSettingsTitle
-            )
-            Text(
-                text = stringResource(R.string.settings_folder_recommended_path),
-                style = MaterialTheme.typography.bodyMedium,
-                color = FolderSettingsBody
-            )
-        }
-        is FolderSelectionState.Selected -> {
-            val folderName = folderSelectionState.uriString.friendlyFolderName()
-                ?: stringResource(R.string.settings_folder_unknown_name)
-            if (folderSelectionState.uriString.isRecommendedStatusesFolder()) {
-                Text(
-                    text = stringResource(
-                        R.string.settings_folder_authorized_name,
-                        stringResource(R.string.settings_folder_statuses_name)
-                    ),
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    color = FolderSettingsTitle
-                )
-                Text(
-                    text = stringResource(R.string.settings_folder_recommended_path),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = FolderSettingsBody
-                )
-            } else {
-                Text(
-                    text = stringResource(R.string.settings_folder_manual_authorized),
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    color = FolderSettingsTitle
-                )
-                Text(
-                    text = folderName,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = FolderSettingsBody
-                )
-            }
-        }
-        is FolderSelectionState.PermissionLost -> {
-            val folderName = folderSelectionState.uriString.friendlyFolderName()
-                ?: stringResource(R.string.settings_folder_unknown_name)
-            Text(
-                text = stringResource(R.string.settings_folder_name, folderName),
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.SemiBold,
-                color = FolderSettingsTitle
-            )
-        }
-        FolderSelectionState.Loading -> Unit
-    }
+private fun RecommendedFolderPath() {
+    Text(
+        text = stringResource(R.string.settings_folder_recommended_path_title),
+        style = MaterialTheme.typography.bodyMedium,
+        fontWeight = FontWeight.SemiBold,
+        color = FolderSettingsTitle
+    )
+    Text(
+        text = stringResource(R.string.settings_folder_recommended_path),
+        style = MaterialTheme.typography.bodyMedium,
+        color = FolderSettingsBody
+    )
 }
 
 @Composable
 private fun folderStatusText(folderSelectionState: FolderSelectionState): String {
     return when (folderSelectionState) {
         FolderSelectionState.Loading -> stringResource(R.string.folder_status_loading)
-        FolderSelectionState.NotSelected -> stringResource(R.string.folder_status_not_selected)
-        is FolderSelectionState.PermissionLost -> stringResource(R.string.folder_status_permission_lost)
-        is FolderSelectionState.Selected -> stringResource(R.string.folder_status_selected)
+        FolderSelectionState.NotSelected -> stringResource(R.string.folder_status_not_connected)
+        is FolderSelectionState.PermissionLost -> stringResource(R.string.folder_status_permission_lost_reconnect)
+        is FolderSelectionState.Selected -> {
+            if (folderSelectionState.uriString.isRecommendedStatusesFolder()) {
+                stringResource(
+                    R.string.folder_status_connected_recommended,
+                    stringResource(R.string.settings_folder_statuses_name)
+                )
+            } else {
+                stringResource(R.string.folder_status_connected_manual)
+            }
+        }
     }
-}
-
-private fun String.friendlyFolderName(): String? {
-    val uri = runCatching { Uri.parse(this) }.getOrNull()
-    val documentId = uri
-        ?.let { parsedUri -> runCatching { DocumentsContract.getTreeDocumentId(parsedUri) }.getOrNull() }
-    return documentId
-        ?.visibleFolderName()
-        ?: uri?.lastPathSegment?.visibleFolderName()
-        ?: Uri.decode(this).visibleFolderName()
 }
 
 private fun String.isRecommendedStatusesFolder(): Boolean {
@@ -301,15 +252,6 @@ private fun String.isRecommendedStatusesFolder(): Boolean {
     return runCatching { DocumentsContract.getTreeDocumentId(uri) }
         .getOrNull()
         .equals(RecommendedStatusesDocumentId, ignoreCase = true)
-}
-
-private fun String.visibleFolderName(): String? {
-    return Uri.decode(this)
-        .substringBefore('?')
-        .substringAfterLast(':')
-        .substringAfterLast('/')
-        .takeUnless { it.startsWith("content://") }
-        ?.ifBlank { null }
 }
 
 private const val RecommendedStatusesDocumentId =

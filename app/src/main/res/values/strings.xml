@@ -262,6 +262,7 @@
     <string name="settings_folder_name">Carpeta guardada: %1$s</string>
     <string name="settings_folder_authorized_name">Carpeta autorizada: %1$s</string>
     <string name="settings_folder_recommended_label">Carpeta recomendada</string>
+    <string name="settings_folder_recommended_path_title">Ruta recomendada</string>
     <string name="settings_folder_recommended_path">Android &gt; media &gt; com.whatsapp &gt; WhatsApp &gt; Media &gt; .Statuses</string>
     <string name="settings_folder_manual_authorized">Carpeta manual autorizada</string>
     <string name="settings_folder_statuses_name">.Statuses</string>
@@ -327,7 +328,16 @@
     <string name="folder_status_not_selected">Todavía no conectaste una carpeta de estados.</string>
     <string name="folder_status_permission_lost">La carpeta guardada perdió el permiso de acceso. Volvé a conectarla.</string>
     <string name="folder_status_selected">Carpeta de estados conectada</string>
+    <string name="folder_status_not_connected">Sin carpeta conectada</string>
+    <string name="folder_status_connected_recommended">Carpeta conectada: %1$s</string>
+    <string name="folder_status_connected_manual">Carpeta conectada</string>
+    <string name="folder_status_permission_lost_reconnect">No se puede acceder a la carpeta. Volvé a conectarla.</string>
     <string name="folder_selection_guide_title">Guía para elegir .Statuses</string>
+    <string name="folder_selection_steps_title">Cómo conectar la carpeta</string>
+    <string name="folder_selection_step_open_recommended">Tocá “Abrir carpeta recomendada”.</string>
+    <string name="folder_selection_step_open_statuses">En el selector, abrí .Statuses.</string>
+    <string name="folder_selection_step_confirm">Tocá “Usar esta carpeta”.</string>
+    <string name="folder_selection_xiaomi_note">Si el selector no abre en la ruta esperada, navegá manualmente hasta .Statuses.</string>
     <string name="folder_selection_guide_menu">1. Tocá los tres puntos.</string>
     <string name="folder_selection_guide_hidden">2. Activá “Mostrar archivos ocultos”.</string>
     <string name="folder_selection_guide_statuses">3. Abrí la carpeta .Statuses.</string>
