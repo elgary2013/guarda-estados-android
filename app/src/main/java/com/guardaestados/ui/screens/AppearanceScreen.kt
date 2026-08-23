@@ -17,6 +17,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Image
+import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -82,8 +83,14 @@ fun AppearanceScreen(
             AppearanceHeader(onBack = onBack)
             AppearanceSection(
                 title = stringResource(R.string.settings_theme_title),
-                icon = Icons.Filled.Image
+                icon = Icons.Filled.Palette
             ) {
+                AppearanceStatusText(
+                    text = stringResource(
+                        R.string.appearance_theme_selected,
+                        selectedThemeText(themePreference)
+                    )
+                )
                 ThemeOption(
                     text = stringResource(R.string.settings_theme_system),
                     selected = themePreference == AppThemePreference.System,
@@ -113,9 +120,9 @@ fun AppearanceScreen(
                 BrandGradientButton(
                     text = stringResource(
                         if (homeBackgroundUri == null) {
-                            R.string.settings_home_background_load
+                            R.string.appearance_home_background_choose
                         } else {
-                            R.string.settings_home_background_change
+                            R.string.appearance_home_background_change
                         }
                     ),
                     onClick = onSelectHomeBackground
@@ -136,6 +143,16 @@ fun AppearanceScreen(
             }
         }
     }
+}
+
+@Composable
+private fun AppearanceStatusText(text: String) {
+    Text(
+        text = text,
+        style = MaterialTheme.typography.bodyLarge,
+        fontWeight = FontWeight.SemiBold,
+        color = AppearanceTitle
+    )
 }
 
 @Composable
@@ -278,9 +295,18 @@ private fun ThemeOption(
 private fun homeBackgroundStatusText(homeBackgroundUri: String?): String {
     return stringResource(
         if (homeBackgroundUri == null) {
-            R.string.settings_home_background_status_default
+            R.string.appearance_home_background_status_default
         } else {
-            R.string.settings_home_background_status_custom
+            R.string.appearance_home_background_status_custom
         }
     )
+}
+
+@Composable
+private fun selectedThemeText(themePreference: AppThemePreference): String {
+    return when (themePreference) {
+        AppThemePreference.System -> stringResource(R.string.settings_theme_system)
+        AppThemePreference.Light -> stringResource(R.string.settings_theme_light)
+        AppThemePreference.Dark -> stringResource(R.string.settings_theme_dark)
+    }
 }
