@@ -24,6 +24,20 @@ data class VideoSplitProgress(
     val fraction: Float = if (totalParts <= 0) 0f else currentPart.toFloat() / totalParts.toFloat()
 }
 
+data class VideoTrimRange(
+    val startSeconds: Int,
+    val endSeconds: Int
+) {
+    val durationSeconds: Int = endSeconds - startSeconds
+    val startMs: Long = startSeconds * MILLIS_PER_SECOND
+    val endMs: Long = endSeconds * MILLIS_PER_SECOND
+    val durationMs: Long = durationSeconds * MILLIS_PER_SECOND
+
+    private companion object {
+        const val MILLIS_PER_SECOND = 1000L
+    }
+}
+
 sealed interface VideoMetadataResult {
     data class Success(val video: SelectedVideo) : VideoMetadataResult
     data object EmptyOrUnknownDuration : VideoMetadataResult
@@ -41,6 +55,19 @@ sealed interface VideoSplitResult {
     data object ExportError : VideoSplitResult
 }
 
+sealed interface VideoTrimResult {
+    data class Success(val trim: GeneratedVideoPart) : VideoTrimResult
+    data object Cancelled : VideoTrimResult
+    data object InvalidRange : VideoTrimResult
+    data object EmptyOrUnknownDuration : VideoTrimResult
+    data object FileUnavailable : VideoTrimResult
+    data object InsufficientStorage : VideoTrimResult
+    data object DestinationPermissionLost : VideoTrimResult
+    data object DestinationUnavailable : VideoTrimResult
+    data object UnsupportedAndroidVersion : VideoTrimResult
+    data object ExportError : VideoTrimResult
+}
+
 interface VideoSplitterRepository {
     suspend fun loadVideo(uri: Uri): VideoMetadataResult
 
@@ -49,6 +76,11 @@ interface VideoSplitterRepository {
         partDurationSeconds: Int,
         onProgress: (VideoSplitProgress) -> Unit
     ): VideoSplitResult
+
+    suspend fun trimVideo(
+        video: SelectedVideo,
+        range: VideoTrimRange
+    ): VideoTrimResult
 }
 
 interface VideoPartSharerRepository {

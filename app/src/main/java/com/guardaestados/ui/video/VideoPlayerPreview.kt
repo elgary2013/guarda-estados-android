@@ -1,6 +1,7 @@
 package com.guardaestados.ui.video
 
 import android.net.Uri
+import android.os.Looper
 import androidx.annotation.OptIn
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -49,6 +50,7 @@ import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.exoplayer.PlayerMessage
 import androidx.media3.ui.PlayerView
 import com.guardaestados.R
 import kotlinx.coroutines.delay
@@ -58,6 +60,10 @@ import kotlinx.coroutines.delay
 fun VideoPlayerPreview(
     uri: Uri,
     modifier: Modifier = Modifier,
+    previewStartMs: Long? = null,
+    previewStopMs: Long? = null,
+    playbackRequestKey: Int = 0,
+    autoPlayOnRequest: Boolean = false,
     showPlaybackStatus: Boolean = false,
     errorMessage: String? = null,
     immersiveControls: Boolean = false,
@@ -65,6 +71,11 @@ fun VideoPlayerPreview(
 ) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
+    val safePreviewStartMs = previewStartMs?.coerceAtLeast(0L)
+    val safePreviewStopMs = previewStopMs?.takeIf { endMs ->
+        val startMs = safePreviewStartMs ?: 0L
+        endMs > startMs
+    }
     var isLoading by remember(uri) { mutableStateOf(true) }
     var hasError by remember(uri) { mutableStateOf(false) }
     var isPlaying by remember(uri) { mutableStateOf(false) }
@@ -120,6 +131,36 @@ fun VideoPlayerPreview(
         }
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
+
+    LaunchedEffect(player, playbackRequestKey, autoPlayOnRequest) {
+        if (playbackRequestKey <= 0) return@LaunchedEffect
+        player.seekTo(safePreviewStartMs ?: 0L)
+        if (autoPlayOnRequest) {
+            player.play()
+        } else {
+            player.pause()
+        }
+        isPlaying = player.isPlaying
+    }
+
+    DisposableEffect(player, playbackRequestKey, safePreviewStopMs) {
+        val stopMessage = if (playbackRequestKey > 0 && safePreviewStopMs != null) {
+            player.createMessage(
+            PlayerMessage.Target { _, _ ->
+                player.pause()
+            }
+        )
+                .setLooper(Looper.getMainLooper())
+                .setPosition(safePreviewStopMs)
+                .setDeleteAfterDelivery(true)
+                .send()
+        } else {
+            null
+        }
+        onDispose {
+            stopMessage?.let { message -> runCatching { message.cancel() } }
+        }
     }
 
     LaunchedEffect(player) {
