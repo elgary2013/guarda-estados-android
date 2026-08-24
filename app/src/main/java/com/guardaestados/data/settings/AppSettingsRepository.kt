@@ -30,6 +30,10 @@ class AppSettingsRepository(
         .map { preferences -> preferences[HOME_BACKGROUND_URI] }
         .catch { emit(null) }
 
+    val includedHomeBackground: Flow<IncludedHomeBackground?> = appContext.appSettingsDataStore.data
+        .map { preferences -> IncludedHomeBackground.fromStorageKey(preferences[HOME_INCLUDED_BACKGROUND]) }
+        .catch { emit(null) }
+
     val saveDestinationState: Flow<SaveDestinationState> = appContext.appSettingsDataStore.data
         .map { preferences ->
             val uriString = preferences[SAVE_DESTINATION_URI]
@@ -70,6 +74,7 @@ class AppSettingsRepository(
 
         appContext.appSettingsDataStore.edit { preferences ->
             preferences[HOME_BACKGROUND_URI] = newUriString
+            preferences.remove(HOME_INCLUDED_BACKGROUND)
         }
 
         previousUriString
@@ -100,6 +105,19 @@ class AppSettingsRepository(
                 selectedUri = Uri.parse(uriString)
             }
             preferences.remove(HOME_BACKGROUND_URI)
+            preferences.remove(HOME_INCLUDED_BACKGROUND)
+        }
+        selectedUri?.let { uri -> appContext.releasePersistedReadPermission(uri) }
+    }
+
+    suspend fun saveIncludedHomeBackground(background: IncludedHomeBackground) {
+        var selectedUri: Uri? = null
+        appContext.appSettingsDataStore.edit { preferences ->
+            preferences[HOME_BACKGROUND_URI]?.let { uriString ->
+                selectedUri = Uri.parse(uriString)
+            }
+            preferences.remove(HOME_BACKGROUND_URI)
+            preferences[HOME_INCLUDED_BACKGROUND] = background.storageKey
         }
         selectedUri?.let { uri -> appContext.releasePersistedReadPermission(uri) }
     }
@@ -177,6 +195,7 @@ class AppSettingsRepository(
         private val THEME_PREFERENCE = stringPreferencesKey("theme_preference")
         private val SAVE_DESTINATION_URI = stringPreferencesKey("save_destination_uri")
         private val HOME_BACKGROUND_URI = stringPreferencesKey("home_background_uri")
+        private val HOME_INCLUDED_BACKGROUND = stringPreferencesKey("home_included_background")
     }
 }
 

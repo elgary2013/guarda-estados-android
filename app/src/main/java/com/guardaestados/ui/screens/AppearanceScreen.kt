@@ -1,7 +1,9 @@
 package com.guardaestados.ui.screens
 
+import androidx.annotation.StringRes
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -39,7 +41,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.guardaestados.R
 import com.guardaestados.data.settings.AppThemePreference
+import com.guardaestados.data.settings.IncludedHomeBackground
 import com.guardaestados.ui.theme.BrandGradientButton
+import com.guardaestados.ui.theme.EstadoGoIncludedHomeBackground
 import com.guardaestados.ui.theme.LocalGuardaEstadosColors
 
 private val AppearanceBackground: Color
@@ -63,9 +67,11 @@ private val AppearanceDanger: Color
 fun AppearanceScreen(
     themePreference: AppThemePreference,
     homeBackgroundUri: String?,
+    includedHomeBackground: IncludedHomeBackground?,
     onThemePreferenceSelected: (AppThemePreference) -> Unit,
     onSelectHomeBackground: () -> Unit,
     onClearHomeBackground: () -> Unit,
+    onSelectIncludedHomeBackground: (IncludedHomeBackground) -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -112,7 +118,7 @@ fun AppearanceScreen(
                 icon = Icons.Filled.Image
             ) {
                 Text(
-                    text = homeBackgroundStatusText(homeBackgroundUri),
+                    text = homeBackgroundStatusText(homeBackgroundUri, includedHomeBackground),
                     style = MaterialTheme.typography.bodyLarge,
                     fontWeight = FontWeight.SemiBold,
                     color = AppearanceTitle
@@ -127,7 +133,7 @@ fun AppearanceScreen(
                     ),
                     onClick = onSelectHomeBackground
                 )
-                if (homeBackgroundUri != null) {
+                if (homeBackgroundUri != null || includedHomeBackground != null) {
                     TextButton(onClick = onClearHomeBackground) {
                         Text(
                             text = stringResource(R.string.settings_home_background_use_default),
@@ -140,6 +146,23 @@ fun AppearanceScreen(
                     style = MaterialTheme.typography.bodyMedium,
                     color = AppearanceBody
                 )
+            }
+            AppearanceSection(
+                title = stringResource(R.string.appearance_included_backgrounds_title),
+                icon = Icons.Filled.Image
+            ) {
+                Text(
+                    text = stringResource(R.string.appearance_included_backgrounds_body),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = AppearanceBody
+                )
+                IncludedHomeBackground.entries.forEach { background ->
+                    IncludedBackgroundOption(
+                        background = background,
+                        selected = homeBackgroundUri == null && includedHomeBackground == background,
+                        onClick = { onSelectIncludedHomeBackground(background) }
+                    )
+                }
             }
         }
     }
@@ -292,14 +315,91 @@ private fun ThemeOption(
 }
 
 @Composable
-private fun homeBackgroundStatusText(homeBackgroundUri: String?): String {
-    return stringResource(
-        if (homeBackgroundUri == null) {
-            R.string.appearance_home_background_status_default
-        } else {
-            R.string.appearance_home_background_status_custom
+private fun IncludedBackgroundOption(
+    background: IncludedHomeBackground,
+    selected: Boolean,
+    onClick: () -> Unit
+) {
+    val backgroundColor = if (selected) AppearanceSurfaceSoft else Color.Transparent
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = 72.dp)
+            .selectable(
+                selected = selected,
+                onClick = onClick,
+                role = Role.RadioButton
+            )
+            .padding(horizontal = 2.dp, vertical = 4.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Surface(
+            modifier = Modifier.fillMaxWidth(),
+            color = backgroundColor,
+            shape = MaterialTheme.shapes.small
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 8.dp, vertical = 8.dp),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Surface(
+                    modifier = Modifier.size(width = 72.dp, height = 46.dp),
+                    shape = MaterialTheme.shapes.small,
+                    border = BorderStroke(1.dp, AppearanceBorder)
+                ) {
+                    Box(modifier = Modifier.fillMaxSize()) {
+                        EstadoGoIncludedHomeBackground(
+                            background = background,
+                            modifier = Modifier.fillMaxSize()
+                        )
+                    }
+                }
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(2.dp)
+                ) {
+                    Text(
+                        text = stringResource(background.titleRes()),
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
+                        color = AppearanceTitle
+                    )
+                    Text(
+                        text = stringResource(R.string.appearance_included_background_status),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = AppearanceBody
+                    )
+                }
+                RadioButton(
+                    selected = selected,
+                    onClick = null,
+                    colors = RadioButtonDefaults.colors(
+                        selectedColor = AppearanceActive,
+                        unselectedColor = AppearanceBody
+                    )
+                )
+            }
         }
-    )
+    }
+}
+
+@Composable
+private fun homeBackgroundStatusText(
+    homeBackgroundUri: String?,
+    includedHomeBackground: IncludedHomeBackground?
+): String {
+    return when {
+        homeBackgroundUri != null -> stringResource(R.string.appearance_home_background_status_custom)
+        includedHomeBackground != null -> stringResource(
+            R.string.appearance_home_background_status_included,
+            stringResource(includedHomeBackground.titleRes())
+        )
+        else -> stringResource(R.string.appearance_home_background_status_default)
+    }
 }
 
 @Composable
@@ -308,5 +408,14 @@ private fun selectedThemeText(themePreference: AppThemePreference): String {
         AppThemePreference.System -> stringResource(R.string.settings_theme_system)
         AppThemePreference.Light -> stringResource(R.string.settings_theme_light)
         AppThemePreference.Dark -> stringResource(R.string.settings_theme_dark)
+    }
+}
+
+@StringRes
+private fun IncludedHomeBackground.titleRes(): Int {
+    return when (this) {
+        IncludedHomeBackground.AuraGreen -> R.string.appearance_background_aura_green
+        IncludedHomeBackground.EmeraldWaves -> R.string.appearance_background_emerald_waves
+        IncludedHomeBackground.LuminousNight -> R.string.appearance_background_luminous_night
     }
 }

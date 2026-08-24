@@ -15,6 +15,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -27,7 +29,6 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.pluralStringResource
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.SpanStyle
@@ -38,14 +39,17 @@ import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import com.guardaestados.R
 import com.guardaestados.data.folder.FolderSelectionState
+import com.guardaestados.data.settings.IncludedHomeBackground
 import com.guardaestados.domain.status.StatusGalleryState
 import com.guardaestados.domain.status.StatusMediaType
 import com.guardaestados.ui.theme.BrandGlassCard
+import com.guardaestados.ui.theme.EstadoGoIncludedHomeBackground
 import com.guardaestados.ui.theme.LocalGuardaEstadosColors
 
 @Composable
 fun HomeScreen(
     homeBackgroundUri: String?,
+    includedHomeBackground: IncludedHomeBackground?,
     folderSelectionState: FolderSelectionState,
     statusGalleryState: StatusGalleryState,
     onOpenStates: () -> Unit,
@@ -56,6 +60,8 @@ fun HomeScreen(
     val appColors = LocalGuardaEstadosColors.current
     val backgroundImageUri = remember(homeBackgroundUri) { homeBackgroundUri?.let(Uri::parse) }
     val hasBackgroundImage = backgroundImageUri != null
+    val hasIncludedBackground = !hasBackgroundImage && includedHomeBackground != null
+    val hasCustomBackground = hasBackgroundImage || hasIncludedBackground
 
     Surface(
         modifier = modifier.fillMaxSize(),
@@ -67,6 +73,11 @@ fun HomeScreen(
                     model = backgroundImageUri,
                     contentDescription = null,
                     contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize()
+                )
+            } else if (includedHomeBackground != null) {
+                EstadoGoIncludedHomeBackground(
+                    background = includedHomeBackground,
                     modifier = Modifier.fillMaxSize()
                 )
             } else {
@@ -90,7 +101,7 @@ fun HomeScreen(
                     .fillMaxSize()
                     .background(
                         Brush.verticalGradient(
-                            colors = if (hasBackgroundImage) {
+                            colors = if (hasCustomBackground) {
                                 listOf(
                                     Color(0xE8031519),
                                     Color(0xA0062622),
@@ -108,7 +119,7 @@ fun HomeScreen(
             )
 
             HomeCoverContent(
-                glassOnPhoto = hasBackgroundImage,
+                glassOnPhoto = hasCustomBackground,
                 folderSelectionState = folderSelectionState,
                 statusGalleryState = statusGalleryState,
                 onOpenStates = onOpenStates,
@@ -179,27 +190,15 @@ private fun HomeCoverContent(
             shape = RoundedCornerShape(8.dp)
         ) {
             Row(
-                horizontalArrangement = Arrangement.spacedBy(14.dp),
-                verticalAlignment = Alignment.Top
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Surface(
-                    modifier = Modifier.size(48.dp),
-                    shape = RoundedCornerShape(8.dp),
-                    color = LocalGuardaEstadosColors.current.surfaceSoft,
-                    contentColor = LocalGuardaEstadosColors.current.active
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Icon(
-                            painter = painterResource(R.drawable.ic_image),
-                            contentDescription = null,
-                            modifier = Modifier.size(26.dp),
-                            tint = LocalGuardaEstadosColors.current.active
-                        )
-                    }
-                }
-                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     Text(
-                        text = stringResource(statusSummary.titleRes),
+                        text = stringResource(R.string.home_available_statuses_title),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.SemiBold,
                         color = titleColor
@@ -210,6 +209,12 @@ private fun HomeCoverContent(
                         color = bodyColor
                     )
                 }
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                    contentDescription = null,
+                    modifier = Modifier.size(24.dp),
+                    tint = LocalGuardaEstadosColors.current.active
+                )
             }
         }
     }
@@ -236,7 +241,6 @@ private fun homeStatusSummary(
         is FolderSelectionState.Selected -> {
             when (statusGalleryState) {
                 StatusGalleryState.Loading -> HomeStatusSummary(
-                    titleRes = R.string.home_device_states_title,
                     bodyRes = R.string.home_status_loading,
                     opensFolderSettings = false
                 )
@@ -245,7 +249,6 @@ private fun homeStatusSummary(
                     val imageCount = statusGalleryState.images.count { image -> image.mediaType == StatusMediaType.Image }
                     val videoCount = statusGalleryState.images.count { image -> image.mediaType == StatusMediaType.Video }
                     HomeStatusSummary(
-                        titleRes = R.string.home_device_states_title,
                         bodyRes = R.string.home_status_loading,
                         imageCount = imageCount,
                         videoCount = videoCount,
@@ -254,20 +257,19 @@ private fun homeStatusSummary(
                 }
 
                 StatusGalleryState.Empty -> HomeStatusSummary(
-                    titleRes = R.string.home_device_states_title,
                     bodyRes = R.string.home_status_empty,
+                    imageCount = 0,
+                    videoCount = 0,
                     opensFolderSettings = false
                 )
 
                 StatusGalleryState.NoFolderSelected,
                 StatusGalleryState.PermissionLost -> HomeStatusSummary(
-                    titleRes = R.string.home_connect_states_folder_title,
                     bodyRes = R.string.home_connect_states_folder_body,
                     opensFolderSettings = true
                 )
 
                 StatusGalleryState.RecoverableError -> HomeStatusSummary(
-                    titleRes = R.string.home_device_states_title,
                     bodyRes = R.string.home_status_read_error,
                     opensFolderSettings = false
                 )
@@ -276,7 +278,6 @@ private fun homeStatusSummary(
 
         FolderSelectionState.NotSelected,
         is FolderSelectionState.PermissionLost -> HomeStatusSummary(
-            titleRes = R.string.home_connect_states_folder_title,
             bodyRes = R.string.home_connect_states_folder_body,
             opensFolderSettings = true
         )
@@ -284,7 +285,6 @@ private fun homeStatusSummary(
 }
 
 private data class HomeStatusSummary(
-    val titleRes: Int,
     val bodyRes: Int,
     val imageCount: Int? = null,
     val videoCount: Int? = null,

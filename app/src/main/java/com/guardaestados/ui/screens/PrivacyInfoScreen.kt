@@ -16,6 +16,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -54,6 +56,8 @@ private val PrivacyActive: Color
 fun PrivacyInfoScreen(
     appVersion: String,
     onOpenPrivacyPolicy: () -> Unit,
+    onShareApp: () -> Unit,
+    onRateApp: () -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -100,6 +104,16 @@ fun PrivacyInfoScreen(
                         stringResource(R.string.app_name),
                         appVersion
                     )
+                )
+                PrivacyActionButton(
+                    text = stringResource(R.string.privacy_info_share_app),
+                    icon = Icons.Filled.Share,
+                    onClick = onShareApp
+                )
+                PrivacyActionButton(
+                    text = stringResource(R.string.privacy_info_rate_app),
+                    icon = Icons.Filled.Star,
+                    onClick = onRateApp
                 )
                 PrivacyPolicyButton(onClick = onOpenPrivacyPolicy)
             }
@@ -201,6 +215,38 @@ private fun PrivacyIcon(icon: ImageVector) {
             horizontalArrangement = Arrangement.Center,
             verticalAlignment = Alignment.CenterVertically
         ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                modifier = Modifier.size(20.dp),
+                tint = PrivacyActive
+            )
+        }
+    }
+}
+
+@Composable
+private fun PrivacyActionButton(
+    text: String,
+    icon: ImageVector,
+    onClick: () -> Unit
+) {
+    TextButton(
+        onClick = onClick,
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = text,
+                modifier = Modifier.weight(1f),
+                color = PrivacyActive,
+                style = MaterialTheme.typography.bodyLarge,
+                fontWeight = FontWeight.SemiBold
+            )
             Icon(
                 imageVector = icon,
                 contentDescription = null,
