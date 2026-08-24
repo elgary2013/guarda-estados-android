@@ -59,6 +59,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.guardaestados.data.folder.FolderSelectionState
 import com.guardaestados.data.settings.AppThemePreference
+import com.guardaestados.data.settings.IncludedHomeBackground
 import com.guardaestados.data.settings.SaveDestinationState
 import com.guardaestados.domain.saved.SavedImage
 import com.guardaestados.domain.status.StatusGalleryState
@@ -101,10 +102,12 @@ fun AppNavigation(
     saveDestinationState: SaveDestinationState,
     appVersion: String,
     homeBackgroundUri: String?,
+    includedHomeBackground: IncludedHomeBackground?,
     onSelectRecommendedFolder: () -> Unit,
     onSelectFolder: () -> Unit,
     onSelectHomeBackground: () -> Unit,
     onClearHomeBackground: () -> Unit,
+    onSelectIncludedHomeBackground: (IncludedHomeBackground) -> Unit,
     onSelectSaveDestination: () -> Unit,
     onUseDefaultSaveDestination: () -> Unit,
     onThemePreferenceSelected: (AppThemePreference) -> Unit,
@@ -112,6 +115,8 @@ fun AppNavigation(
     onResetSettings: () -> Unit,
     onResetMessageDismissed: () -> Unit,
     onOpenPrivacyPolicy: () -> Unit,
+    onShareApp: () -> Unit,
+    onRateApp: () -> Unit,
     onValidateHomeBackground: () -> Unit,
     onHomePhotoSystemBarsStateChanged: (Boolean) -> Unit
 ) {
@@ -169,7 +174,7 @@ fun AppNavigation(
     val currentDestination = currentBackStackEntry?.destination
     val currentRoute = currentDestination?.route
     val showBottomBar = routes.any { route -> currentDestination?.hierarchy?.any { it.route == route.route } == true }
-    val glassOnHomePhoto = currentRoute == AppRoute.Home.route && homeBackgroundUri != null
+    val glassOnHomePhoto = currentRoute == AppRoute.Home.route && (homeBackgroundUri != null || includedHomeBackground != null)
     val routesThatResetVideoSplitter = remember {
         setOf(
             AppRoute.Home.route,
@@ -256,6 +261,7 @@ fun AppNavigation(
                 Box(modifier = Modifier.fillMaxSize()) {
                     HomeScreen(
                         homeBackgroundUri = homeBackgroundUri,
+                        includedHomeBackground = includedHomeBackground,
                         folderSelectionState = folderSelectionState,
                         statusGalleryState = statusGalleryState,
                         onOpenStates = { navigateToBottomRoute(AppRoute.States) },
@@ -347,6 +353,7 @@ fun AppNavigation(
                         themePreference = themePreference,
                         saveDestinationState = saveDestinationState,
                         homeBackgroundUri = homeBackgroundUri,
+                        includedHomeBackground = includedHomeBackground,
                         onOpenFolderSettings = {
                             navController.navigate(AppRoute.FolderSettings.route) {
                                 launchSingleTop = true
@@ -398,9 +405,11 @@ fun AppNavigation(
                     AppearanceScreen(
                         themePreference = themePreference,
                         homeBackgroundUri = homeBackgroundUri,
+                        includedHomeBackground = includedHomeBackground,
                         onThemePreferenceSelected = onThemePreferenceSelected,
                         onSelectHomeBackground = onSelectHomeBackground,
                         onClearHomeBackground = onClearHomeBackground,
+                        onSelectIncludedHomeBackground = onSelectIncludedHomeBackground,
                         onBack = { navController.popBackStack() }
                     )
                 }
@@ -410,6 +419,8 @@ fun AppNavigation(
                     PrivacyInfoScreen(
                         appVersion = appVersion,
                         onOpenPrivacyPolicy = onOpenPrivacyPolicy,
+                        onShareApp = onShareApp,
+                        onRateApp = onRateApp,
                         onBack = { navController.popBackStack() }
                     )
                 }

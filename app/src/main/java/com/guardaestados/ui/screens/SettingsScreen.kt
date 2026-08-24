@@ -60,6 +60,7 @@ import com.guardaestados.ui.theme.LocalGuardaEstadosColors
 import com.guardaestados.R
 import com.guardaestados.data.folder.FolderSelectionState
 import com.guardaestados.data.settings.AppThemePreference
+import com.guardaestados.data.settings.IncludedHomeBackground
 import com.guardaestados.data.settings.SaveDestinationState
 import com.guardaestados.ui.settings.SettingsResetState
 import com.guardaestados.ui.theme.BrandGradientButton
@@ -93,6 +94,7 @@ fun SettingsScreen(
     themePreference: AppThemePreference,
     saveDestinationState: SaveDestinationState,
     homeBackgroundUri: String?,
+    includedHomeBackground: IncludedHomeBackground?,
     onOpenFolderSettings: () -> Unit,
     onOpenSaveDestination: () -> Unit,
     onOpenAppearance: () -> Unit,
@@ -144,7 +146,7 @@ fun SettingsScreen(
 
             SettingsLinkSection(
                 title = stringResource(R.string.settings_appearance_title),
-                summary = appearanceSummaryText(themePreference, homeBackgroundUri),
+                summary = appearanceSummaryText(themePreference, homeBackgroundUri, includedHomeBackground),
                 icon = Icons.Filled.Image,
                 onClick = onOpenAppearance
             )
@@ -655,22 +657,26 @@ private fun themeSummaryText(themePreference: AppThemePreference): String {
 @Composable
 private fun appearanceSummaryText(
     themePreference: AppThemePreference,
-    homeBackgroundUri: String?
+    homeBackgroundUri: String?,
+    includedHomeBackground: IncludedHomeBackground?
 ): String {
     return stringResource(
         R.string.settings_appearance_summary,
         themeSummaryText(themePreference),
-        homeBackgroundStatusText(homeBackgroundUri)
+        homeBackgroundStatusText(homeBackgroundUri, includedHomeBackground)
     )
 }
 
 @Composable
-private fun homeBackgroundStatusText(homeBackgroundUri: String?): String {
+private fun homeBackgroundStatusText(
+    homeBackgroundUri: String?,
+    includedHomeBackground: IncludedHomeBackground?
+): String {
     return stringResource(
-        if (homeBackgroundUri == null) {
-            R.string.settings_home_background_status_default
-        } else {
-            R.string.settings_home_background_status_custom
+        when {
+            homeBackgroundUri != null -> R.string.settings_home_background_status_custom
+            includedHomeBackground != null -> R.string.settings_home_background_status_included
+            else -> R.string.settings_home_background_status_default
         }
     )
 }

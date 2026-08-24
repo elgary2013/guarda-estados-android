@@ -1,6 +1,7 @@
 package com.guardaestados.ui
 
 import android.content.Context
+import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.net.Uri
 import android.provider.DocumentsContract
@@ -44,6 +45,7 @@ fun GuardaEstadosApp() {
     val resetState by settingsViewModel.resetState.collectAsState()
     val saveDestinationState by settingsViewModel.saveDestinationState.collectAsState()
     val homeBackgroundUri by settingsViewModel.homeBackgroundUri.collectAsState()
+    val includedHomeBackground by settingsViewModel.includedHomeBackground.collectAsState()
     val homeBackgroundNotice by settingsViewModel.homeBackgroundNotice.collectAsState()
     val coroutineScope = rememberCoroutineScope()
     val folderPicker = rememberLauncherForActivityResult(
@@ -97,10 +99,12 @@ fun GuardaEstadosApp() {
             saveDestinationState = saveDestinationState,
             appVersion = appVersion,
             homeBackgroundUri = homeBackgroundUri,
+            includedHomeBackground = includedHomeBackground,
             onSelectRecommendedFolder = { folderPicker.launch(recommendedStatusesParentUri()) },
             onSelectFolder = { folderPicker.launch(null) },
             onSelectHomeBackground = { homeBackgroundPicker.launch(arrayOf("image/*")) },
             onClearHomeBackground = settingsViewModel::clearHomeBackground,
+            onSelectIncludedHomeBackground = settingsViewModel::selectIncludedHomeBackground,
             onSelectSaveDestination = { saveDestinationPicker.launch(null) },
             onUseDefaultSaveDestination = settingsViewModel::useDefaultSaveDestination,
             onThemePreferenceSelected = settingsViewModel::selectTheme,
@@ -108,6 +112,8 @@ fun GuardaEstadosApp() {
             onResetSettings = settingsViewModel::resetSettings,
             onResetMessageDismissed = settingsViewModel::clearResetMessage,
             onOpenPrivacyPolicy = { context.openPrivacyPolicy() },
+            onShareApp = { context.shareEstadoGo() },
+            onRateApp = { context.rateEstadoGo() },
             onValidateHomeBackground = settingsViewModel::validateHomeBackground,
             onHomePhotoSystemBarsStateChanged = { drawHomePhotoBehindSystemBars = it }
         )
@@ -139,4 +145,37 @@ private fun Context.installedVersionName(): String {
 private fun Context.openPrivacyPolicy() {
     val intent = Intent(Intent.ACTION_VIEW, Uri.parse(getString(R.string.settings_privacy_policy_url)))
     runCatching { startActivity(intent) }
+        .onFailure { Toast.makeText(this, R.string.app_action_error, Toast.LENGTH_SHORT).show() }
+}
+
+private fun Context.shareEstadoGo() {
+    val playStoreUrl = googlePlayWebUrl()
+    val sendIntent = Intent(Intent.ACTION_SEND).apply {
+        type = "text/plain"
+        putExtra(Intent.EXTRA_TEXT, getString(R.string.app_share_text, playStoreUrl))
+    }
+    val chooser = Intent.createChooser(sendIntent, getString(R.string.app_share_chooser_title))
+    runCatching { startActivity(chooser) }
+        .onFailure { Toast.makeText(this, R.string.app_share_error, Toast.LENGTH_SHORT).show() }
+}
+
+private fun Context.rateEstadoGo() {
+    val marketIntent = Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=$packageName"))
+    try {
+        startActivity(marketIntent)
+    } catch (exception: ActivityNotFoundException) {
+        openGooglePlayWeb()
+    } catch (exception: Exception) {
+        openGooglePlayWeb()
+    }
+}
+
+private fun Context.openGooglePlayWeb() {
+    val webIntent = Intent(Intent.ACTION_VIEW, Uri.parse(googlePlayWebUrl()))
+    runCatching { startActivity(webIntent) }
+        .onFailure { Toast.makeText(this, R.string.app_rate_error, Toast.LENGTH_SHORT).show() }
+}
+
+private fun Context.googlePlayWebUrl(): String {
+    return "https://play.google.com/store/apps/details?id=$packageName"
 }

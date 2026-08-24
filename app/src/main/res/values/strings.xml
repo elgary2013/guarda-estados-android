@@ -8,6 +8,7 @@
     <string name="home_title">EstadoGo</string>
     <string name="home_title_visible">EstadoGo</string>
     <string name="home_subtitle">Tus estados, siempre a mano.</string>
+    <string name="home_available_statuses_title">Estados disponibles</string>
     <string name="home_device_states_title">Estados en tu dispositivo</string>
     <string name="home_device_states_body">Elegí Estados en la barra inferior para ver imágenes y videos disponibles.</string>
     <string name="home_connect_states_folder_title">Conectá la carpeta de estados</string>
@@ -288,6 +289,7 @@
     <string name="settings_home_background_body">Elegí una foto para usar como fondo de la pantalla de Inicio.</string>
     <string name="settings_home_background_status_default">Fondo predeterminado</string>
     <string name="settings_home_background_status_custom">Foto de fondo personalizada</string>
+    <string name="settings_home_background_status_included">Fondo de EstadoGo</string>
     <string name="settings_home_background_load">Cargar foto de fondo</string>
     <string name="settings_home_background_change">Cambiar foto de fondo</string>
     <string name="settings_home_background_remove">Quitar foto de fondo</string>
@@ -295,8 +297,15 @@
     <string name="settings_home_background_note">La foto de fondo se muestra solo en Inicio.</string>
     <string name="appearance_home_background_status_default">Fondo predeterminado activo</string>
     <string name="appearance_home_background_status_custom">Foto personalizada activa</string>
+    <string name="appearance_home_background_status_included">Fondo de EstadoGo activo: %1$s</string>
     <string name="appearance_home_background_choose">Elegir foto</string>
     <string name="appearance_home_background_change">Cambiar foto</string>
+    <string name="appearance_included_backgrounds_title">Fondos de EstadoGo</string>
+    <string name="appearance_included_backgrounds_body">Fondos oscuros incluidos en la app, sin fotos ni marcas externas.</string>
+    <string name="appearance_included_background_status">Incluido en la app</string>
+    <string name="appearance_background_aura_green">Aura verde</string>
+    <string name="appearance_background_emerald_waves">Ondas esmeralda</string>
+    <string name="appearance_background_luminous_night">Noche luminosa</string>
     <string name="settings_theme_title">Tema</string>
     <string name="appearance_theme_selected">Tema seleccionado: %1$s</string>
     <string name="settings_theme_summary_system">Usar tema del sistema</string>
@@ -324,6 +333,13 @@
     <string name="privacy_info_responsible_use_body">Guardá y compartí contenido solo si tenés autorización de su creador.</string>
     <string name="privacy_info_app_title">Información de la app</string>
     <string name="privacy_info_app_body">Nombre: %1$s\nVersión instalada: %2$s</string>
+    <string name="privacy_info_share_app">Compartir EstadoGo</string>
+    <string name="privacy_info_rate_app">Calificar EstadoGo</string>
+    <string name="app_share_text">Probá EstadoGo para ver, guardar y compartir tus estados de forma local: %1$s</string>
+    <string name="app_share_chooser_title">Compartir EstadoGo</string>
+    <string name="app_share_error">No se pudieron abrir las opciones para compartir. Probá de nuevo.</string>
+    <string name="app_rate_error">No se pudo abrir Google Play. Probá de nuevo más tarde.</string>
+    <string name="app_action_error">No se pudo abrir esta acción. Probá de nuevo.</string>
     <string name="settings_legal_affiliation">No está afiliada a WhatsApp LLC, Meta Platforms, Inc. ni otras aplicaciones compatibles.</string>
     <string name="settings_legal_user_responsibility">El usuario debe guardar o compartir contenido únicamente con autorización de su creador.</string>
     <string name="settings_reset_title">Restablecer configuración</string>

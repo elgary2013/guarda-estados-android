@@ -8,6 +8,7 @@ import androidx.lifecycle.viewModelScope
 import com.guardaestados.data.folder.FolderSelectionRepository
 import com.guardaestados.data.settings.AppSettingsRepository
 import com.guardaestados.data.settings.AppThemePreference
+import com.guardaestados.data.settings.IncludedHomeBackground
 import com.guardaestados.data.settings.SaveDestinationState
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -28,6 +29,12 @@ class SettingsViewModel(
     )
 
     val homeBackgroundUri: StateFlow<String?> = appSettingsRepository.homeBackgroundUri.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5_000),
+        initialValue = null
+    )
+
+    val includedHomeBackground: StateFlow<IncludedHomeBackground?> = appSettingsRepository.includedHomeBackground.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5_000),
         initialValue = null
@@ -54,6 +61,12 @@ class SettingsViewModel(
     fun clearHomeBackground() {
         viewModelScope.launch(Dispatchers.IO) {
             appSettingsRepository.clearHomeBackground()
+        }
+    }
+
+    fun selectIncludedHomeBackground(background: IncludedHomeBackground) {
+        viewModelScope.launch(Dispatchers.IO) {
+            appSettingsRepository.saveIncludedHomeBackground(background)
         }
     }
 
