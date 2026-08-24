@@ -32,6 +32,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.RangeSlider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -48,18 +49,23 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.guardaestados.ui.theme.LocalGuardaEstadosColors
 import com.guardaestados.R
 import com.guardaestados.domain.video.GeneratedVideoPart
 import com.guardaestados.domain.video.ReadableVideoDurationFormatter
 import com.guardaestados.domain.video.SelectedVideo
 import com.guardaestados.domain.video.VideoSplitProgress
+import com.guardaestados.domain.video.VideoTrimPlanner
+import com.guardaestados.domain.video.VideoTrimRange
+import com.guardaestados.domain.video.VideoTrimRangeValidation
+import com.guardaestados.ui.theme.LocalGuardaEstadosColors
 import com.guardaestados.ui.video.VideoPlayerPreview
 import com.guardaestados.ui.video.VideoShareStatus
 import com.guardaestados.ui.video.VideoSplitterMessage
+import com.guardaestados.ui.video.VideoSplitterMode
 import com.guardaestados.ui.video.VideoSplitterStatus
 import com.guardaestados.ui.video.VideoSplitterUiState
 import kotlinx.coroutines.launch
+import kotlin.math.roundToInt
 
 private val SplitBackground: Color
     @Composable get() = LocalGuardaEstadosColors.current.background
@@ -84,10 +90,16 @@ private val SplitGradient: Brush
 fun VideoSplitterScreen(
     uiState: VideoSplitterUiState,
     onPickVideo: () -> Unit,
+    onModeSelected: (VideoSplitterMode) -> Unit,
     onPartDurationSelected: (Int) -> Unit,
+    onTrimRangeChanged: (Int, Int) -> Unit,
+    onAdjustTrimStart: (Int) -> Unit,
+    onAdjustTrimEnd: (Int) -> Unit,
     onCreateParts: () -> Unit,
+    onCreateTrim: () -> Unit,
     onCancelProcessing: () -> Unit,
     onPreviewOriginal: () -> Unit,
+    onPreviewTrimRange: () -> Unit,
     onPreviewPart: (GeneratedVideoPart) -> Unit,
     onSharePart: (GeneratedVideoPart) -> Unit,
     onShareAllParts: () -> Unit,
@@ -98,6 +110,18 @@ fun VideoSplitterScreen(
     val scrollState = rememberScrollState()
     val previewRequester = remember { BringIntoViewRequester() }
     val coroutineScope = rememberCoroutineScope()
+    val previewGeneratedVideo: (GeneratedVideoPart) -> Unit = { part ->
+        onPreviewPart(part)
+        coroutineScope.launch {
+            previewRequester.bringIntoView()
+        }
+    }
+    val previewSelectedTrimRange: () -> Unit = {
+        onPreviewTrimRange()
+        coroutineScope.launch {
+            previewRequester.bringIntoView()
+        }
+    }
 
     Surface(
         modifier = modifier.fillMaxSize(),
@@ -132,16 +156,35 @@ fun VideoSplitterScreen(
 
             val previewUri = uiState.previewUri
             if (previewUri != null) {
+                val previewRange = uiState.previewTrimRange
+                val trimFormatter = remember { VideoTrimPlanner() }
                 GlassCard(
                     modifier = Modifier.bringIntoViewRequester(previewRequester),
                     contentPadding = PaddingValues(8.dp)
                 ) {
-                    VideoPlayerPreview(
-                        uri = previewUri,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .heightIn(min = 260.dp, max = 520.dp)
-                    )
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        VideoPlayerPreview(
+                            uri = previewUri,
+                            previewStartMs = previewRange?.startMs,
+                            previewStopMs = previewRange?.endMs,
+                            playbackRequestKey = uiState.previewRequestKey,
+                            autoPlayOnRequest = uiState.previewShouldAutoPlay,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .heightIn(min = 260.dp, max = 520.dp)
+                        )
+                        if (previewRange != null) {
+                            Text(
+                                text = stringResource(
+                                    R.string.video_trim_preview_range,
+                                    trimFormatter.formatSeconds(previewRange.startSeconds),
+                                    trimFormatter.formatSeconds(previewRange.endSeconds)
+                                ),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = SplitBody
+                            )
+                        }
+                    }
                 }
             } else {
                 VideoEmptyCard()
@@ -150,29 +193,43 @@ fun VideoSplitterScreen(
             uiState.selectedVideo?.let { video ->
                 SelectedVideoCard(
                     video = video,
+                    activeMode = uiState.activeMode,
                     selectedPartSeconds = uiState.selectedPartSeconds,
                     estimatedParts = uiState.estimatedParts,
+                    trimRange = uiState.trimRange,
+                    trimRangeValidation = uiState.trimRangeValidation,
                     processing = uiState.status == VideoSplitterStatus.Processing,
                     progress = uiState.progress,
+                    onModeSelected = onModeSelected,
                     onPartDurationSelected = onPartDurationSelected,
+                    onTrimRangeChanged = onTrimRangeChanged,
+                    onAdjustTrimStart = onAdjustTrimStart,
+                    onAdjustTrimEnd = onAdjustTrimEnd,
                     onCreateParts = onCreateParts,
+                    onCreateTrim = onCreateTrim,
                     onCancelProcessing = onCancelProcessing,
-                    onPreviewOriginal = onPreviewOriginal
+                    onPreviewOriginal = onPreviewOriginal,
+                    onPreviewTrimRange = previewSelectedTrimRange
                 )
             }
 
-            if (uiState.generatedParts.isNotEmpty()) {
+            if (uiState.activeMode == VideoSplitterMode.Split && uiState.generatedParts.isNotEmpty()) {
                 GeneratedPartsCard(
                     parts = uiState.generatedParts,
                     sharing = uiState.shareStatus == VideoShareStatus.Opening,
-                    onPreviewPart = { part ->
-                        onPreviewPart(part)
-                        coroutineScope.launch {
-                            previewRequester.bringIntoView()
-                        }
-                    },
+                    onPreviewPart = previewGeneratedVideo,
                     onSharePart = onSharePart,
                     onShareAllParts = onShareAllParts
+                )
+            }
+
+            val generatedTrim = uiState.generatedTrim
+            if (uiState.activeMode == VideoSplitterMode.Trim && generatedTrim != null) {
+                GeneratedTrimCard(
+                    trim = generatedTrim,
+                    sharing = uiState.shareStatus == VideoShareStatus.Opening,
+                    onPreviewTrim = previewGeneratedVideo,
+                    onShareTrim = onSharePart
                 )
             }
         }
@@ -267,14 +324,23 @@ private fun VideoEmptyCard() {
 @Composable
 private fun SelectedVideoCard(
     video: SelectedVideo,
+    activeMode: VideoSplitterMode,
     selectedPartSeconds: Int,
     estimatedParts: Int,
+    trimRange: VideoTrimRange,
+    trimRangeValidation: VideoTrimRangeValidation,
     processing: Boolean,
     progress: VideoSplitProgress?,
+    onModeSelected: (VideoSplitterMode) -> Unit,
     onPartDurationSelected: (Int) -> Unit,
+    onTrimRangeChanged: (Int, Int) -> Unit,
+    onAdjustTrimStart: (Int) -> Unit,
+    onAdjustTrimEnd: (Int) -> Unit,
     onCreateParts: () -> Unit,
+    onCreateTrim: () -> Unit,
     onCancelProcessing: () -> Unit,
-    onPreviewOriginal: () -> Unit
+    onPreviewOriginal: () -> Unit,
+    onPreviewTrimRange: () -> Unit
 ) {
     val formatter = ReadableVideoDurationFormatter()
     GlassCard {
@@ -286,75 +352,336 @@ private fun SelectedVideoCard(
                 color = SplitText
             )
             VideoDetailRow(label = stringResource(R.string.video_splitter_total_duration), value = formatter.format(video.durationMs))
-            VideoDetailRow(label = stringResource(R.string.video_splitter_estimated_parts), value = estimatedParts.toString())
-            VideoDetailRow(label = stringResource(R.string.video_splitter_output_location), value = stringResource(R.string.video_splitter_output_path))
-
-            Text(
-                text = stringResource(R.string.video_splitter_part_duration_title),
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.SemiBold,
-                color = SplitText
+            VideoModeSelector(
+                activeMode = activeMode,
+                processing = processing,
+                onModeSelected = onModeSelected
             )
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                listOf(15, 30, 60).forEach { seconds ->
-                    FilterChip(
-                        selected = selectedPartSeconds == seconds,
-                        onClick = { onPartDurationSelected(seconds) },
-                        enabled = !processing,
-                        label = { Text(text = stringResource(R.string.video_splitter_seconds_option, seconds)) },
-                        border = FilterChipDefaults.filterChipBorder(
-                            enabled = !processing,
-                            selected = selectedPartSeconds == seconds,
-                            borderColor = SplitBorder,
-                            selectedBorderColor = SplitGreen
-                        ),
-                        colors = FilterChipDefaults.filterChipColors(
-                            containerColor = SplitSurfaceStrong,
-                            labelColor = SplitBody,
-                            iconColor = SplitBody,
-                            selectedContainerColor = SplitGreenSoft,
-                            selectedLabelColor = SplitGreen,
-                            selectedLeadingIconColor = SplitGreen,
-                            disabledContainerColor = SplitSurfaceStrong.copy(alpha = 0.52f),
-                            disabledLabelColor = SplitBody.copy(alpha = 0.58f)
-                        )
-                    )
-                }
-            }
-
-            if (processing) {
-                val current = progress?.currentPart ?: 0
-                val total = progress?.totalParts ?: estimatedParts
-                LinearProgressIndicator(
-                    progress = { progress?.fraction ?: 0f },
-                    modifier = Modifier.fillMaxWidth(),
-                    color = SplitGreen,
-                    trackColor = SplitBorder
+            when (activeMode) {
+                VideoSplitterMode.Split -> SplitPartsControls(
+                    selectedPartSeconds = selectedPartSeconds,
+                    estimatedParts = estimatedParts,
+                    processing = processing,
+                    progress = progress,
+                    onPartDurationSelected = onPartDurationSelected,
+                    onCreateParts = onCreateParts,
+                    onCancelProcessing = onCancelProcessing
                 )
-                Text(
-                    text = stringResource(R.string.video_splitter_processing_status, current, total),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = SplitBody
+                VideoSplitterMode.Trim -> TrimVideoControls(
+                    video = video,
+                    trimRange = trimRange,
+                    trimRangeValidation = trimRangeValidation,
+                    processing = processing,
+                    onTrimRangeChanged = onTrimRangeChanged,
+                    onAdjustTrimStart = onAdjustTrimStart,
+                    onAdjustTrimEnd = onAdjustTrimEnd,
+                    onCreateTrim = onCreateTrim,
+                    onPreviewTrimRange = onPreviewTrimRange,
+                    onCancelProcessing = onCancelProcessing
                 )
             }
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                SplitSecondaryButton(
+            when (activeMode) {
+                VideoSplitterMode.Split -> SplitSecondaryButton(
                     text = stringResource(R.string.video_splitter_preview_original),
                     onClick = onPreviewOriginal,
                     enabled = !processing,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                VideoSplitterMode.Trim -> Unit
+            }
+        }
+    }
+}
+
+@Composable
+private fun VideoModeSelector(
+    activeMode: VideoSplitterMode,
+    processing: Boolean,
+    onModeSelected: (VideoSplitterMode) -> Unit
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(
+            text = stringResource(R.string.video_splitter_mode_title),
+            style = MaterialTheme.typography.titleSmall,
+            fontWeight = FontWeight.SemiBold,
+            color = SplitText
+        )
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            VideoFilterChip(
+                selected = activeMode == VideoSplitterMode.Split,
+                text = stringResource(R.string.video_splitter_mode_split),
+                processing = processing,
+                onClick = { onModeSelected(VideoSplitterMode.Split) }
+            )
+            VideoFilterChip(
+                selected = activeMode == VideoSplitterMode.Trim,
+                text = stringResource(R.string.video_splitter_mode_trim),
+                processing = processing,
+                onClick = { onModeSelected(VideoSplitterMode.Trim) }
+            )
+        }
+    }
+}
+
+@Composable
+private fun SplitPartsControls(
+    selectedPartSeconds: Int,
+    estimatedParts: Int,
+    processing: Boolean,
+    progress: VideoSplitProgress?,
+    onPartDurationSelected: (Int) -> Unit,
+    onCreateParts: () -> Unit,
+    onCancelProcessing: () -> Unit
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        VideoDetailRow(label = stringResource(R.string.video_splitter_estimated_parts), value = estimatedParts.toString())
+        VideoDetailRow(label = stringResource(R.string.video_splitter_output_location), value = stringResource(R.string.video_splitter_output_path))
+        Text(
+            text = stringResource(R.string.video_splitter_part_duration_title),
+            style = MaterialTheme.typography.titleSmall,
+            fontWeight = FontWeight.SemiBold,
+            color = SplitText
+        )
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            listOf(15, 30, 60).forEach { seconds ->
+                VideoFilterChip(
+                    selected = selectedPartSeconds == seconds,
+                    text = stringResource(R.string.video_splitter_seconds_option, seconds),
+                    processing = processing,
+                    onClick = { onPartDurationSelected(seconds) }
+                )
+            }
+        }
+        if (processing) {
+            val current = progress?.currentPart ?: 0
+            val total = progress?.totalParts ?: estimatedParts
+            LinearProgressIndicator(
+                progress = { progress?.fraction ?: 0f },
+                modifier = Modifier.fillMaxWidth(),
+                color = SplitGreen,
+                trackColor = SplitBorder
+            )
+            Text(
+                text = stringResource(R.string.video_splitter_processing_status, current, total),
+                style = MaterialTheme.typography.bodyMedium,
+                color = SplitBody
+            )
+        }
+        SplitPrimaryButton(
+            text = stringResource(if (processing) R.string.video_splitter_action_cancel else R.string.video_splitter_action_create),
+            onClick = if (processing) onCancelProcessing else onCreateParts,
+            modifier = Modifier.fillMaxWidth()
+        )
+    }
+}
+
+@Composable
+private fun VideoFilterChip(
+    selected: Boolean,
+    text: String,
+    processing: Boolean,
+    onClick: () -> Unit
+) {
+    FilterChip(
+        selected = selected,
+        onClick = onClick,
+        enabled = !processing,
+        label = { Text(text = text) },
+        border = FilterChipDefaults.filterChipBorder(
+            enabled = !processing,
+            selected = selected,
+            borderColor = SplitBorder,
+            selectedBorderColor = SplitGreen
+        ),
+        colors = FilterChipDefaults.filterChipColors(
+            containerColor = SplitSurfaceStrong,
+            labelColor = SplitBody,
+            iconColor = SplitBody,
+            selectedContainerColor = SplitGreenSoft,
+            selectedLabelColor = SplitGreen,
+            selectedLeadingIconColor = SplitGreen,
+            disabledContainerColor = SplitSurfaceStrong.copy(alpha = 0.52f),
+            disabledLabelColor = SplitBody.copy(alpha = 0.58f)
+        )
+    )
+}
+
+@Composable
+private fun TrimVideoControls(
+    video: SelectedVideo,
+    trimRange: VideoTrimRange,
+    trimRangeValidation: VideoTrimRangeValidation,
+    processing: Boolean,
+    onTrimRangeChanged: (Int, Int) -> Unit,
+    onAdjustTrimStart: (Int) -> Unit,
+    onAdjustTrimEnd: (Int) -> Unit,
+    onCreateTrim: () -> Unit,
+    onPreviewTrimRange: () -> Unit,
+    onCancelProcessing: () -> Unit
+) {
+    val planner = remember { VideoTrimPlanner() }
+    val totalSeconds = planner.durationSeconds(video.durationMs)
+    val isValid = trimRangeValidation == VideoTrimRangeValidation.Valid
+    val canDecreaseStart = !processing && trimRange.startSeconds > 0
+    val canIncreaseStart = !processing && trimRange.startSeconds < trimRange.endSeconds - 1
+    val canDecreaseEnd = !processing && trimRange.endSeconds > trimRange.startSeconds + 1
+    val canIncreaseEnd = !processing && trimRange.endSeconds < totalSeconds
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        VideoDetailRow(label = stringResource(R.string.video_splitter_output_location), value = stringResource(R.string.video_trim_output_path))
+        Text(
+            text = stringResource(R.string.video_trim_range_title),
+            style = MaterialTheme.typography.titleSmall,
+            fontWeight = FontWeight.SemiBold,
+            color = SplitText
+        )
+        if (totalSeconds > 0) {
+            RangeSlider(
+                value = trimRange.startSeconds.toFloat()..trimRange.endSeconds.toFloat(),
+                onValueChange = { range ->
+                    onTrimRangeChanged(range.start.roundToInt(), range.endInclusive.roundToInt())
+                },
+                enabled = !processing,
+                valueRange = 0f..totalSeconds.toFloat(),
+                steps = (totalSeconds - 1).coerceAtLeast(0),
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            TrimEndpointControl(
+                title = stringResource(R.string.video_trim_start_label),
+                value = planner.formatSeconds(trimRange.startSeconds),
+                onDecrease = { onAdjustTrimStart(-5) },
+                onIncrease = { onAdjustTrimStart(5) },
+                decreaseEnabled = canDecreaseStart,
+                increaseEnabled = canIncreaseStart,
+                modifier = Modifier.weight(1f)
+            )
+            TrimEndpointControl(
+                title = stringResource(R.string.video_trim_end_label),
+                value = planner.formatSeconds(trimRange.endSeconds),
+                onDecrease = { onAdjustTrimEnd(-5) },
+                onIncrease = { onAdjustTrimEnd(5) },
+                decreaseEnabled = canDecreaseEnd,
+                increaseEnabled = canIncreaseEnd,
+                modifier = Modifier.weight(1f)
+            )
+        }
+        VideoDetailRow(
+            label = stringResource(R.string.video_trim_final_duration),
+            value = planner.formatSeconds(planner.durationSeconds(trimRange))
+        )
+        if (!isValid && !processing) {
+            Text(
+                text = stringResource(trimRangeValidation.messageRes()),
+                style = MaterialTheme.typography.bodyMedium,
+                color = SplitBody
+            )
+        }
+        if (processing) {
+            LinearProgressIndicator(
+                modifier = Modifier.fillMaxWidth(),
+                color = SplitGreen,
+                trackColor = SplitBorder
+            )
+            Text(
+                text = stringResource(R.string.video_trim_processing_status),
+                style = MaterialTheme.typography.bodyMedium,
+                color = SplitBody
+            )
+            SplitPrimaryButton(
+                text = stringResource(R.string.video_splitter_action_cancel),
+                onClick = onCancelProcessing,
+                modifier = Modifier.fillMaxWidth()
+            )
+        } else if (isValid) {
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                SplitSecondaryButton(
+                    text = stringResource(R.string.video_trim_preview),
+                    onClick = onPreviewTrimRange,
                     modifier = Modifier.weight(1f)
                 )
                 SplitPrimaryButton(
-                    text = stringResource(if (processing) R.string.video_splitter_action_cancel else R.string.video_splitter_action_create),
-                    onClick = if (processing) onCancelProcessing else onCreateParts,
+                    text = stringResource(R.string.video_trim_action_create),
+                    onClick = onCreateTrim,
                     modifier = Modifier.weight(1f)
                 )
             }
         }
+    }
+}
+
+@Composable
+private fun TrimEndpointControl(
+    title: String,
+    value: String,
+    onDecrease: () -> Unit,
+    onIncrease: () -> Unit,
+    decreaseEnabled: Boolean,
+    increaseEnabled: Boolean,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier
+            .clip(RoundedCornerShape(14.dp))
+            .background(SplitSurfaceStrong)
+            .border(1.dp, SplitBorder, RoundedCornerShape(14.dp))
+            .padding(12.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.labelLarge,
+            color = SplitBody
+        )
+        Text(
+            text = value,
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.SemiBold,
+            color = SplitText
+        )
+        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            TrimAdjustButton(
+                text = stringResource(R.string.video_trim_adjust_minus_5),
+                onClick = onDecrease,
+                enabled = decreaseEnabled,
+                modifier = Modifier.weight(1f)
+            )
+            TrimAdjustButton(
+                text = stringResource(R.string.video_trim_adjust_plus_5),
+                onClick = onIncrease,
+                enabled = increaseEnabled,
+                modifier = Modifier.weight(1f)
+            )
+        }
+    }
+}
+
+@Composable
+private fun TrimAdjustButton(
+    text: String,
+    onClick: () -> Unit,
+    enabled: Boolean,
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier
+            .heightIn(min = 48.dp)
+            .clip(RoundedCornerShape(12.dp))
+            .background(SplitSurface.copy(alpha = if (enabled) 1f else 0.54f))
+            .border(1.dp, SplitBorder, RoundedCornerShape(12.dp))
+            .clickable(enabled = enabled, role = Role.Button, onClick = onClick)
+            .padding(horizontal = 6.dp, vertical = 8.dp),
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = text,
+            style = MaterialTheme.typography.labelMedium,
+            fontWeight = FontWeight.SemiBold,
+            color = if (enabled) SplitBody else SplitBody.copy(alpha = 0.58f),
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
     }
 }
 
@@ -418,6 +745,50 @@ private fun GeneratedPartsCard(
                         }
                     }
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun GeneratedTrimCard(
+    trim: GeneratedVideoPart,
+    sharing: Boolean,
+    onPreviewTrim: (GeneratedVideoPart) -> Unit,
+    onShareTrim: (GeneratedVideoPart) -> Unit
+) {
+    val formatter = ReadableVideoDurationFormatter()
+    GlassCard {
+        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Text(
+                text = stringResource(R.string.video_trim_generated_title),
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = SplitText
+            )
+            Text(
+                text = stringResource(R.string.video_splitter_share_notice),
+                style = MaterialTheme.typography.bodyMedium,
+                color = SplitBody
+            )
+            Text(
+                text = stringResource(R.string.video_splitter_part_duration, formatter.format(trim.durationMs)),
+                style = MaterialTheme.typography.bodyMedium,
+                color = SplitBody
+            )
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                SplitSecondaryButton(
+                    text = stringResource(R.string.video_trim_preview),
+                    onClick = { onPreviewTrim(trim) },
+                    modifier = Modifier.weight(1f)
+                )
+                SplitSecondaryButton(
+                    text = stringResource(R.string.video_trim_share),
+                    onClick = { onShareTrim(trim) },
+                    enabled = !sharing,
+                    modifier = Modifier.weight(1f),
+                    accent = true
+                )
             }
         }
     }
@@ -523,6 +894,17 @@ private fun VideoDetailRow(label: String, value: String) {
 }
 
 @StringRes
+private fun VideoTrimRangeValidation.messageRes(): Int {
+    return when (this) {
+        VideoTrimRangeValidation.Valid -> R.string.video_trim_range_valid
+        VideoTrimRangeValidation.UnknownDuration -> R.string.video_trim_range_unknown_duration
+        VideoTrimRangeValidation.StartNotBeforeEnd -> R.string.video_trim_range_invalid_order
+        VideoTrimRangeValidation.TooShort -> R.string.video_trim_range_too_short
+        VideoTrimRangeValidation.OutsideDuration -> R.string.video_trim_range_outside_duration
+    }
+}
+
+@StringRes
 private fun VideoSplitterMessage.stringRes(): Int {
     return when (this) {
         VideoSplitterMessage.UnknownDuration -> R.string.video_splitter_error_unknown_duration
@@ -531,8 +913,12 @@ private fun VideoSplitterMessage.stringRes(): Int {
         VideoSplitterMessage.InsufficientStorage -> R.string.video_splitter_error_storage
         VideoSplitterMessage.UnsupportedAndroidVersion -> R.string.video_splitter_error_unsupported_android
         VideoSplitterMessage.ExportError -> R.string.video_splitter_error_export
+        VideoSplitterMessage.InvalidTrimRange -> R.string.video_trim_range_invalid
+        VideoSplitterMessage.DestinationPermissionLost -> R.string.video_trim_destination_permission_lost
+        VideoSplitterMessage.DestinationUnavailable -> R.string.video_trim_destination_unavailable
         VideoSplitterMessage.Cancelled -> R.string.video_splitter_cancelled
         VideoSplitterMessage.SplitSuccess -> R.string.video_splitter_success
+        VideoSplitterMessage.TrimSuccess -> R.string.video_trim_success
         VideoSplitterMessage.ShareChooserOpened -> R.string.video_splitter_share_opened
         VideoSplitterMessage.ShareNoCompatibleApp -> R.string.video_splitter_share_no_app
         VideoSplitterMessage.ShareError -> R.string.video_splitter_share_error
