@@ -1,7 +1,9 @@
 package com.guardaestados.ui
 
+import android.app.Activity
 import android.content.Context
 import android.content.ActivityNotFoundException
+import android.content.ContextWrapper
 import android.content.Intent
 import android.net.Uri
 import android.provider.DocumentsContract
@@ -20,6 +22,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.guardaestados.R
+import com.guardaestados.ads.ConsentManager
 import com.guardaestados.data.folder.FolderSelectionRepository
 import com.guardaestados.data.folder.FolderSelectionState
 import com.guardaestados.data.folder.takeSaveDestinationFolderPermission
@@ -35,6 +38,9 @@ import kotlinx.coroutines.launch
 fun GuardaEstadosApp() {
     val context = LocalContext.current
     val repository = remember(context) { FolderSelectionRepository(context) }
+    val consentManager = remember(context.applicationContext) {
+        ConsentManager(context.applicationContext)
+    }
     val settingsViewModel: SettingsViewModel = viewModel(
         factory = remember(context) { SettingsViewModelFactory(context) }
     )
@@ -47,6 +53,7 @@ fun GuardaEstadosApp() {
     val homeBackgroundUri by settingsViewModel.homeBackgroundUri.collectAsState()
     val includedHomeBackground by settingsViewModel.includedHomeBackground.collectAsState()
     val homeBackgroundNotice by settingsViewModel.homeBackgroundNotice.collectAsState()
+    val adsPrivacyState by consentManager.privacyState.collectAsState()
     val coroutineScope = rememberCoroutineScope()
     val folderPicker = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocumentTree()
@@ -80,7 +87,12 @@ fun GuardaEstadosApp() {
     }
     val appVersion = remember(context) { context.installedVersionName() }
     val systemDarkTheme = isSystemInDarkTheme()
+    val activity = context.findActivity()
     var drawHomePhotoBehindSystemBars by remember { mutableStateOf(false) }
+
+    LaunchedEffect(activity) {
+        activity?.let(consentManager::updateConsent)
+    }
 
     LaunchedEffect(homeBackgroundNotice) {
         if (homeBackgroundNotice == HomeBackgroundNotice.PermissionLost) {
@@ -112,6 +124,32 @@ fun GuardaEstadosApp() {
             onResetSettings = settingsViewModel::resetSettings,
             onResetMessageDismissed = settingsViewModel::clearResetMessage,
             onOpenPrivacyPolicy = { context.openPrivacyPolicy() },
+            adsCanRequest = adsPrivacyState.canRequestAds,
+            adsPrivacyOptionsAvailable = adsPrivacyState.privacyOptionsAvailable,
+            onOpenAdsPrivacyOptions = {
+                val currentActivity = context.findActivity()
+                if (currentActivity == null) {
+                    Toast.makeText(context, R.string.privacy_info_ads_options_error, Toast.LENGTH_SHORT).show()
+                } else {
+                    consentManager.showPrivacyOptions(
+                        activity = currentActivity,
+                        onUnavailable = {
+                            Toast.makeText(
+                                context,
+                                R.string.privacy_info_ads_options_unavailable,
+                                Toast.LENGTH_SHORT
+                            ).show()
+                        },
+                        onError = {
+                            Toast.makeText(
+                                context,
+                                R.string.privacy_info_ads_options_error,
+                                Toast.LENGTH_SHORT
+                            ).show()
+                        }
+                    )
+                }
+            },
             onShareApp = { context.shareEstadoGo() },
             onRateApp = { context.rateEstadoGo() },
             onValidateHomeBackground = settingsViewModel::validateHomeBackground,
@@ -140,6 +178,14 @@ private fun Uri.isRecommendedStatusesParentFolder(): Boolean {
 private fun Context.installedVersionName(): String {
     val packageInfo = packageManager.getPackageInfo(packageName, 0)
     return packageInfo.versionName.orEmpty()
+}
+
+private tailrec fun Context.findActivity(): Activity? {
+    return when (this) {
+        is Activity -> this
+        is ContextWrapper -> baseContext.findActivity()
+        else -> null
+    }
 }
 
 private fun Context.openPrivacyPolicy() {

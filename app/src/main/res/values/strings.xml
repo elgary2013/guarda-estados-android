@@ -316,8 +316,8 @@
     <string name="settings_theme_dark">Oscuro</string>
     <string name="settings_privacy_title">Privacidad y aviso legal</string>
     <string name="settings_privacy_info_title">Privacidad e información</string>
-    <string name="settings_privacy_info_summary">Datos locales y versión de la app</string>
-    <string name="settings_privacy_local">La aplicación funciona localmente.</string>
+    <string name="settings_privacy_info_summary">Datos locales, anuncios y versión de la app</string>
+    <string name="settings_privacy_local">El contenido de estados permanece en el teléfono.</string>
     <string name="settings_privacy_folder_access">Solo accede a la carpeta que el usuario autoriza.</string>
     <string name="settings_privacy_policy">Política de privacidad</string>
     <string name="settings_privacy_policy_url">https://programarpara.com/estadogo-privacidad</string>
@@ -327,6 +327,11 @@
     <string name="privacy_info_folder_body">Solo puede leer la carpeta que elegís y autorizás.</string>
     <string name="privacy_info_saved_copies_title">Copias guardadas</string>
     <string name="privacy_info_saved_copies_body">Las nuevas copias quedan guardadas en el teléfono.</string>
+    <string name="privacy_info_ads_title">Anuncios de Google</string>
+    <string name="privacy_info_ads_body">EstadoGo usa anuncios de Google. El contenido de tus estados permanece local en tu teléfono; la app no envía tus archivos de estados a servidores para guardarlos.</string>
+    <string name="privacy_info_ads_options">Opciones de privacidad de anuncios</string>
+    <string name="privacy_info_ads_options_unavailable">Las opciones de privacidad de anuncios no están disponibles en este momento.</string>
+    <string name="privacy_info_ads_options_error">No se pudieron abrir las opciones de privacidad. Probá de nuevo.</string>
     <string name="privacy_info_no_access_title">Lo que no accedemos</string>
     <string name="privacy_info_no_access_body">No accede a chats, contactos, mensajes, llamadas, ubicación, cámara ni micrófono.</string>
     <string name="privacy_info_responsible_use_title">Uso responsable</string>
@@ -483,4 +488,5 @@
     <string name="saved_open_status_viewer_opened">Elegí una aplicación para abrir la copia.</string>
     <string name="saved_open_status_no_app">No hay una aplicación compatible para abrir esta copia.</string>
     <string name="saved_open_status_error">No se pudo abrir la copia con otra app.</string>
+    <string name="ad_label">Anuncio</string>
 </resources>
