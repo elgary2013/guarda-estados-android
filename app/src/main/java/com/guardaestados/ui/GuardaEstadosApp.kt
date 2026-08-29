@@ -28,6 +28,7 @@ import com.guardaestados.data.folder.FolderSelectionState
 import com.guardaestados.data.folder.takeSaveDestinationFolderPermission
 import com.guardaestados.data.folder.takeSelectedFolderPermission
 import com.guardaestados.ui.navigation.AppNavigation
+import com.guardaestados.ui.ads.AppOpenAdManager
 import com.guardaestados.ui.settings.HomeBackgroundNotice
 import com.guardaestados.ui.settings.SettingsViewModel
 import com.guardaestados.ui.settings.SettingsViewModelFactory
@@ -35,11 +36,18 @@ import com.guardaestados.ui.theme.GuardaEstadosTheme
 import kotlinx.coroutines.launch
 
 @Composable
-fun GuardaEstadosApp() {
+fun GuardaEstadosApp(shouldAttemptAppOpenAd: Boolean = false) {
     val context = LocalContext.current
     val repository = remember(context) { FolderSelectionRepository(context) }
     val consentManager = remember(context.applicationContext) {
         ConsentManager(context.applicationContext)
+    }
+    val appOpenAdManager = remember(context.applicationContext, shouldAttemptAppOpenAd) {
+        AppOpenAdManager(context.applicationContext).also { manager ->
+            if (shouldAttemptAppOpenAd) {
+                manager.markColdStartObserved()
+            }
+        }
     }
     val settingsViewModel: SettingsViewModel = viewModel(
         factory = remember(context) { SettingsViewModelFactory(context) }
@@ -126,6 +134,11 @@ fun GuardaEstadosApp() {
             onOpenPrivacyPolicy = { context.openPrivacyPolicy() },
             adsCanRequest = adsPrivacyState.canRequestAds,
             adsPrivacyOptionsAvailable = adsPrivacyState.privacyOptionsAvailable,
+            onColdStartHomeReadyForAppOpenAd = {
+                if (shouldAttemptAppOpenAd) {
+                    activity?.let(appOpenAdManager::loadAndShowOnColdStart)
+                }
+            },
             onOpenAdsPrivacyOptions = {
                 val currentActivity = context.findActivity()
                 if (currentActivity == null) {

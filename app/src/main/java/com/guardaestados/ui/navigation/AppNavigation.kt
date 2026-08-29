@@ -118,6 +118,7 @@ fun AppNavigation(
     onOpenPrivacyPolicy: () -> Unit,
     adsCanRequest: Boolean,
     adsPrivacyOptionsAvailable: Boolean,
+    onColdStartHomeReadyForAppOpenAd: () -> Unit,
     onOpenAdsPrivacyOptions: () -> Unit,
     onShareApp: () -> Unit,
     onRateApp: () -> Unit,
@@ -236,6 +237,19 @@ fun AppNavigation(
             savedImagesViewModel.onSystemDeleteConfirmationLaunched()
         } catch (exception: Exception) {
             savedImagesViewModel.onSystemDeleteConfirmationResult(confirmed = false)
+        }
+    }
+
+    var coldStartHomeReadyForAppOpenAd by remember { mutableStateOf(true) }
+    LaunchedEffect(currentRoute) {
+        if (currentRoute != null && currentRoute != AppRoute.Home.route) {
+            coldStartHomeReadyForAppOpenAd = false
+        }
+    }
+    LaunchedEffect(adsCanRequest, currentRoute, coldStartHomeReadyForAppOpenAd) {
+        if (coldStartHomeReadyForAppOpenAd && adsCanRequest && currentRoute == AppRoute.Home.route) {
+            coldStartHomeReadyForAppOpenAd = false
+            onColdStartHomeReadyForAppOpenAd()
         }
     }
 
