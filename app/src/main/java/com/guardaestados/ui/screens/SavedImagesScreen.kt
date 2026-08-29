@@ -83,6 +83,7 @@ import com.guardaestados.ui.saved.SavedImageDeleteState
 import com.guardaestados.ui.saved.SavedImagesMultiDeleteState
 import com.guardaestados.ui.saved.SavedImagesMultiShareState
 import com.guardaestados.ui.saved.SavedMediaImportState
+import com.guardaestados.ui.ads.AdaptiveBannerAd
 import com.guardaestados.ui.components.VideoThumbnail
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -123,6 +124,8 @@ fun SavedImagesScreen(
     multiDeleteState: SavedImagesMultiDeleteState,
     importState: SavedMediaImportState,
     isRefreshing: Boolean,
+    adsCanRequest: Boolean,
+    bannerAdUnitId: String,
     onRefresh: () -> Unit,
     onImportFile: () -> Unit,
     onImageSelected: (List<SavedImage>, Int) -> Unit,
@@ -340,6 +343,14 @@ fun SavedImagesScreen(
                                                 selectedUris = setOf(imageKey)
                                             }
                                         )
+                                    }
+                                    if (!selectionActive) {
+                                        item(span = { GridItemSpan(maxLineSpan) }) {
+                                            AdaptiveBannerAd(
+                                                adUnitId = bannerAdUnitId,
+                                                canRequestAds = adsCanRequest
+                                            )
+                                        }
                                     }
                                 }
                             }

@@ -72,8 +72,10 @@ fun HomeScreen(
                 AsyncImage(
                     model = backgroundImageUri,
                     contentDescription = null,
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier.fillMaxSize()
+                    contentScale = ContentScale.Fit,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(appColors.background)
                 )
             } else if (includedHomeBackground != null) {
                 EstadoGoIncludedHomeBackground(

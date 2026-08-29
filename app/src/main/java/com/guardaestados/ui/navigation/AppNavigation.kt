@@ -66,6 +66,7 @@ import com.guardaestados.domain.status.StatusGalleryState
 import com.guardaestados.domain.status.StatusImage
 import com.guardaestados.ui.media.MediaDetailsViewModel
 import com.guardaestados.ui.media.MediaDetailsViewModelFactory
+import com.guardaestados.ui.ads.AdMobAdUnitIds
 import com.guardaestados.ui.save.SaveStatusImageViewModel
 import com.guardaestados.ui.save.SaveStatusImageViewModelFactory
 import com.guardaestados.ui.saved.SavedImageDeleteState
@@ -115,6 +116,10 @@ fun AppNavigation(
     onResetSettings: () -> Unit,
     onResetMessageDismissed: () -> Unit,
     onOpenPrivacyPolicy: () -> Unit,
+    adsCanRequest: Boolean,
+    adsPrivacyOptionsAvailable: Boolean,
+    onColdStartHomeReadyForAppOpenAd: () -> Unit,
+    onOpenAdsPrivacyOptions: () -> Unit,
     onShareApp: () -> Unit,
     onRateApp: () -> Unit,
     onValidateHomeBackground: () -> Unit,
@@ -235,6 +240,19 @@ fun AppNavigation(
         }
     }
 
+    var coldStartHomeReadyForAppOpenAd by remember { mutableStateOf(true) }
+    LaunchedEffect(currentRoute) {
+        if (currentRoute != null && currentRoute != AppRoute.Home.route) {
+            coldStartHomeReadyForAppOpenAd = false
+        }
+    }
+    LaunchedEffect(adsCanRequest, currentRoute, coldStartHomeReadyForAppOpenAd) {
+        if (coldStartHomeReadyForAppOpenAd && adsCanRequest && currentRoute == AppRoute.Home.route) {
+            coldStartHomeReadyForAppOpenAd = false
+            onColdStartHomeReadyForAppOpenAd()
+        }
+    }
+
     Scaffold(
         contentWindowInsets = if (glassOnHomePhoto) {
             WindowInsets(0.dp)
@@ -279,6 +297,8 @@ fun AppNavigation(
                     StatesScreen(
                         statusGalleryState = statusGalleryState,
                         multiSaveState = multiSaveStatusImageState,
+                        adsCanRequest = adsCanRequest,
+                        bannerAdUnitId = AdMobAdUnitIds.StatesBanner,
                         onRefresh = statusGalleryViewModel::refresh,
                         onSaveSelected = saveStatusImageViewModel::saveAll,
                         onMultiSaveMessageShown = saveStatusImageViewModel::clearMultiSaveResult,
@@ -302,6 +322,8 @@ fun AppNavigation(
                         multiDeleteState = multiDeleteSavedImageState,
                         importState = importSavedMediaState,
                         isRefreshing = savedImagesRefreshing,
+                        adsCanRequest = adsCanRequest,
+                        bannerAdUnitId = AdMobAdUnitIds.SavedBanner,
                         onRefresh = savedImagesViewModel::refresh,
                         onImportFile = { importSavedMediaLauncher.launch(SavedImportMimeTypes) },
                         onImageSelected = { images, initialIndex ->
@@ -418,7 +440,9 @@ fun AppNavigation(
                 PaddedNavigationContent(innerPadding) {
                     PrivacyInfoScreen(
                         appVersion = appVersion,
+                        adsPrivacyOptionsAvailable = adsPrivacyOptionsAvailable,
                         onOpenPrivacyPolicy = onOpenPrivacyPolicy,
+                        onOpenAdsPrivacyOptions = onOpenAdsPrivacyOptions,
                         onShareApp = onShareApp,
                         onRateApp = onRateApp,
                         onBack = { navController.popBackStack() }

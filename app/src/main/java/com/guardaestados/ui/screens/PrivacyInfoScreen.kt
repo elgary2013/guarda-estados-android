@@ -55,7 +55,9 @@ private val PrivacyActive: Color
 @Composable
 fun PrivacyInfoScreen(
     appVersion: String,
+    adsPrivacyOptionsAvailable: Boolean,
     onOpenPrivacyPolicy: () -> Unit,
+    onOpenAdsPrivacyOptions: () -> Unit,
     onShareApp: () -> Unit,
     onRateApp: () -> Unit,
     onBack: () -> Unit,
@@ -89,6 +91,17 @@ fun PrivacyInfoScreen(
                     title = stringResource(R.string.privacy_info_saved_copies_title),
                     body = stringResource(R.string.privacy_info_saved_copies_body)
                 )
+                PrivacyInfoBlock(
+                    title = stringResource(R.string.privacy_info_ads_title),
+                    body = stringResource(R.string.privacy_info_ads_body)
+                )
+                if (adsPrivacyOptionsAvailable) {
+                    PrivacyActionButton(
+                        text = stringResource(R.string.privacy_info_ads_options),
+                        icon = Icons.AutoMirrored.Filled.OpenInNew,
+                        onClick = onOpenAdsPrivacyOptions
+                    )
+                }
                 PrivacyInfoBlock(
                     title = stringResource(R.string.privacy_info_no_access_title),
                     body = stringResource(R.string.privacy_info_no_access_body)
@@ -229,12 +242,15 @@ private fun PrivacyIcon(icon: ImageVector) {
 private fun PrivacyActionButton(
     text: String,
     icon: ImageVector,
+    enabled: Boolean = true,
     onClick: () -> Unit
 ) {
     TextButton(
         onClick = onClick,
+        enabled = enabled,
         modifier = Modifier.fillMaxWidth()
     ) {
+        val contentColor = if (enabled) PrivacyActive else PrivacyBody
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -243,7 +259,7 @@ private fun PrivacyActionButton(
             Text(
                 text = text,
                 modifier = Modifier.weight(1f),
-                color = PrivacyActive,
+                color = contentColor,
                 style = MaterialTheme.typography.bodyLarge,
                 fontWeight = FontWeight.SemiBold
             )
@@ -251,7 +267,7 @@ private fun PrivacyActionButton(
                 imageVector = icon,
                 contentDescription = null,
                 modifier = Modifier.size(20.dp),
-                tint = PrivacyActive
+                tint = contentColor
             )
         }
     }

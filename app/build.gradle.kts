@@ -11,6 +11,16 @@ val releaseKeystoreProperties = Properties().apply {
         releaseKeystorePropertiesFile.inputStream().use(::load)
     }
 }
+val localPropertiesFile = rootProject.file("local.properties")
+val localProperties = Properties().apply {
+    if (localPropertiesFile.exists()) {
+        localPropertiesFile.inputStream().use(::load)
+    }
+}
+
+fun String.toBuildConfigStringLiteral(): String {
+    return "\"${replace("\\", "\\\\").replace("\"", "\\\"")}\""
+}
 
 android {
     namespace = "com.guardaestados"
@@ -42,6 +52,15 @@ android {
     }
 
     buildTypes {
+        debug {
+            buildConfigField(
+                "String",
+                "UMP_TEST_DEVICE_HASHED_ID",
+                localProperties.getProperty("ump.testDeviceHashedId")
+                    .orEmpty()
+                    .toBuildConfigStringLiteral()
+            )
+        }
         release {
             isMinifyEnabled = false
             signingConfig = signingConfigs.getByName("release")
@@ -57,6 +76,7 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 }
 
@@ -78,6 +98,8 @@ dependencies {
     implementation(libs.androidx.media3.exoplayer)
     implementation(libs.androidx.media3.ui)
     implementation(libs.androidx.media3.transformer)
+    implementation(libs.google.mobile.ads)
+    implementation(libs.google.ump)
     testImplementation(libs.junit)
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
