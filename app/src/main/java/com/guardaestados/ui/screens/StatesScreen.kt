@@ -71,7 +71,6 @@ import com.guardaestados.domain.media.MediaDetailsFormatter
 import com.guardaestados.domain.status.StatusGalleryState
 import com.guardaestados.domain.status.StatusImage
 import com.guardaestados.domain.status.StatusMediaType
-import com.guardaestados.ui.ads.AdaptiveBannerAd
 import com.guardaestados.ui.save.MultiSaveStatusUiState
 import com.guardaestados.ui.components.VideoThumbnail
 import java.text.DateFormat
@@ -101,8 +100,6 @@ private val StatesBorder: Color
 fun StatesScreen(
     statusGalleryState: StatusGalleryState,
     multiSaveState: MultiSaveStatusUiState,
-    adsCanRequest: Boolean,
-    bannerAdUnitId: String,
     onRefresh: () -> Unit,
     onSaveSelected: (List<StatusImage>) -> Unit,
     onMultiSaveMessageShown: () -> Unit,
@@ -256,15 +253,6 @@ fun StatesScreen(
                                 )
                             }
                         }
-                        if (!selectionActive && selectedItems.isNotEmpty()) {
-                            item(span = { GridItemSpan(maxLineSpan) }) {
-                                AdaptiveBannerAd(
-                                    adUnitId = bannerAdUnitId,
-                                    canRequestAds = adsCanRequest
-                                )
-                            }
-                        }
-
                     }
                 }
 

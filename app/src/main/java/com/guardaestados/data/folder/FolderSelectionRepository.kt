@@ -20,7 +20,7 @@ class FolderSelectionRepository(context: Context) {
             val uriString = preferences[SELECTED_FOLDER_URI]
             when {
                 uriString.isNullOrBlank() -> FolderSelectionState.NotSelected
-                appContext.hasPersistedReadWritePermission(Uri.parse(uriString)) -> {
+                appContext.hasPersistedReadPermission(Uri.parse(uriString)) -> {
                     FolderSelectionState.Selected(uriString)
                 }
                 else -> FolderSelectionState.PermissionLost(uriString)
@@ -45,9 +45,9 @@ class FolderSelectionRepository(context: Context) {
         selectedUri?.let(appContext::releasePersistedFolderPermission)
     }
 
-    private fun Context.hasPersistedReadWritePermission(uri: Uri): Boolean {
+    private fun Context.hasPersistedReadPermission(uri: Uri): Boolean {
         return contentResolver.persistedUriPermissions.any { permission ->
-            permission.uri == uri && permission.isReadPermission && permission.isWritePermission
+            permission.uri == uri && permission.isReadPermission
         }
     }
 
@@ -63,9 +63,15 @@ sealed interface FolderSelectionState {
     data class PermissionLost(val uriString: String) : FolderSelectionState
 }
 
-fun Context.takeSelectedFolderPermission(uri: Uri) {
-    val flags = Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION
-    contentResolver.takePersistableUriPermission(uri, flags)
+fun Context.takeSelectedFolderPermission(uri: Uri): Boolean {
+    return try {
+        contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        true
+    } catch (exception: SecurityException) {
+        false
+    } catch (exception: IllegalArgumentException) {
+        false
+    }
 }
 
 fun Context.takeSaveDestinationFolderPermission(uri: Uri) {

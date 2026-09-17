@@ -16,12 +16,13 @@ class AppOpenAdDisplayLimiterTest {
     }
 
     @Test
-    fun canShow_respectsEightHourInterval() {
+    fun canShow_respectsFourHourInterval() {
         val store = FakeAppOpenAdDisplayStore(lastShownAtMillis = 1_000L)
         val limiter = AppOpenAdDisplayLimiter(store)
+        val fourHoursMillis = 4L * 60L * 60L * 1000L
 
-        assertFalse(limiter.canShow(1_000L + AppOpenAdMinimumIntervalMillis - 1L))
-        assertTrue(limiter.canShow(1_000L + AppOpenAdMinimumIntervalMillis))
+        assertFalse(limiter.canShow(1_000L + fourHoursMillis - 1L))
+        assertTrue(limiter.canShow(1_000L + fourHoursMillis))
     }
 
     @Test

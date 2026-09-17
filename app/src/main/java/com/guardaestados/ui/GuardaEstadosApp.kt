@@ -1,6 +1,7 @@
 package com.guardaestados.ui
 
 import android.app.Activity
+import android.app.Activity.RESULT_OK
 import android.content.Context
 import android.content.ActivityNotFoundException
 import android.content.ContextWrapper
@@ -10,6 +11,7 @@ import android.provider.DocumentsContract
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.result.contract.ActivityResultContract
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -64,7 +66,7 @@ fun GuardaEstadosApp(shouldAttemptAppOpenAd: Boolean = false) {
     val adsPrivacyState by consentManager.privacyState.collectAsState()
     val coroutineScope = rememberCoroutineScope()
     val folderPicker = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.OpenDocumentTree()
+        contract = ReadOnlyOpenDocumentTree()
     ) { uri ->
         if (uri == null) {
             return@rememberLauncherForActivityResult
@@ -73,7 +75,10 @@ fun GuardaEstadosApp(shouldAttemptAppOpenAd: Boolean = false) {
             Toast.makeText(context, R.string.folder_media_selection_rejected, Toast.LENGTH_LONG).show()
             return@rememberLauncherForActivityResult
         }
-        context.takeSelectedFolderPermission(uri)
+        if (!context.takeSelectedFolderPermission(uri)) {
+            Toast.makeText(context, R.string.folder_permission_persist_error, Toast.LENGTH_LONG).show()
+            return@rememberLauncherForActivityResult
+        }
         coroutineScope.launch {
             repository.saveSelectedFolder(uri)
         }
@@ -174,6 +179,23 @@ fun GuardaEstadosApp(shouldAttemptAppOpenAd: Boolean = false) {
 private const val ExternalStorageDocumentsAuthority = "com.android.externalstorage.documents"
 private const val RecommendedStatusesParentDocumentId =
     "primary:Android/media/com.whatsapp/WhatsApp/Media"
+
+private class ReadOnlyOpenDocumentTree : ActivityResultContract<Uri?, Uri?>() {
+    override fun createIntent(context: Context, input: Uri?): Intent {
+        return Intent(Intent.ACTION_OPEN_DOCUMENT_TREE).apply {
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            addFlags(Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION)
+            addFlags(Intent.FLAG_GRANT_PREFIX_URI_PERMISSION)
+            input?.let { initialUri ->
+                putExtra(DocumentsContract.EXTRA_INITIAL_URI, initialUri)
+            }
+        }
+    }
+
+    override fun parseResult(resultCode: Int, intent: Intent?): Uri? {
+        return intent?.data.takeIf { resultCode == RESULT_OK }
+    }
+}
 
 private fun recommendedStatusesParentUri(): Uri {
     return DocumentsContract.buildDocumentUri(

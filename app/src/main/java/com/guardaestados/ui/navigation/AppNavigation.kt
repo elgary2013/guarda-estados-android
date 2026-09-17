@@ -62,17 +62,20 @@ import com.guardaestados.data.settings.AppThemePreference
 import com.guardaestados.data.settings.IncludedHomeBackground
 import com.guardaestados.data.settings.SaveDestinationState
 import com.guardaestados.domain.saved.SavedImage
+import com.guardaestados.domain.saved.SavedImagesState
 import com.guardaestados.domain.status.StatusGalleryState
 import com.guardaestados.domain.status.StatusImage
 import com.guardaestados.ui.media.MediaDetailsViewModel
 import com.guardaestados.ui.media.MediaDetailsViewModelFactory
 import com.guardaestados.ui.ads.AdMobAdUnitIds
+import com.guardaestados.ui.ads.AdaptiveBannerAd
 import com.guardaestados.ui.save.SaveStatusImageViewModel
 import com.guardaestados.ui.save.SaveStatusImageViewModelFactory
 import com.guardaestados.ui.saved.SavedImageDeleteState
 import com.guardaestados.ui.saved.SavedImagePreviewResolver
 import com.guardaestados.ui.saved.SavedImagesViewModel
 import com.guardaestados.ui.saved.SavedImagesViewModelFactory
+import com.guardaestados.ui.saved.SavedMediaImportState
 import com.guardaestados.ui.settings.SettingsResetState
 import com.guardaestados.ui.share.ShareStatusImageViewModel
 import com.guardaestados.ui.share.ShareStatusImageViewModelFactory
@@ -164,6 +167,7 @@ fun AppNavigation(
     var selectedStatusPreviewInitialIndex by remember { mutableStateOf(0) }
     var selectedSavedPreviewItems by remember { mutableStateOf<List<SavedImage>>(emptyList()) }
     var selectedSavedPreviewInitialIndex by remember { mutableStateOf(0) }
+    var globalBannerDialogVisible by remember { mutableStateOf(false) }
     val navController = rememberNavController()
     val routes = listOf(
         AppRoute.Home,
@@ -179,6 +183,24 @@ fun AppNavigation(
     val currentDestination = currentBackStackEntry?.destination
     val currentRoute = currentDestination?.route
     val showBottomBar = routes.any { route -> currentDestination?.hierarchy?.any { it.route == route.route } == true }
+    val globalBannerAdUnitId = when (currentRoute) {
+        AppRoute.Home.route,
+        AppRoute.States.route,
+        AppRoute.Settings.route -> AdMobAdUnitIds.StatesBanner
+        AppRoute.Saved.route -> AdMobAdUnitIds.SavedBanner
+        else -> null
+    }
+    val showGlobalBanner = adsCanRequest && !globalBannerDialogVisible && when (currentRoute) {
+        AppRoute.Home.route,
+        AppRoute.Settings.route -> true
+        AppRoute.States.route -> statusGalleryState != StatusGalleryState.Loading &&
+            statusGalleryState != StatusGalleryState.PermissionLost &&
+            statusGalleryState != StatusGalleryState.RecoverableError
+        AppRoute.Saved.route -> savedImagesState != SavedImagesState.Loading &&
+            savedImagesState != SavedImagesState.RecoverableError &&
+            importSavedMediaState != SavedMediaImportState.Importing
+        else -> false
+    }
     val glassOnHomePhoto = currentRoute == AppRoute.Home.route && (homeBackgroundUri != null || includedHomeBackground != null)
     val routesThatResetVideoSplitter = remember {
         setOf(
@@ -261,12 +283,20 @@ fun AppNavigation(
         },
         bottomBar = {
             if (showBottomBar) {
-                SoloEstadosBottomBar(
-                    routes = routes,
-                    currentRoute = currentRoute,
-                    glassOnPhoto = glassOnHomePhoto,
-                    onRouteSelected = navigateToBottomRoute
-                )
+                Column {
+                    if (showGlobalBanner && globalBannerAdUnitId != null) {
+                        AdaptiveBannerAd(
+                            adUnitId = globalBannerAdUnitId,
+                            canRequestAds = true
+                        )
+                    }
+                    SoloEstadosBottomBar(
+                        routes = routes,
+                        currentRoute = currentRoute,
+                        glassOnPhoto = glassOnHomePhoto,
+                        onRouteSelected = navigateToBottomRoute
+                    )
+                }
             }
         }
     ) { innerPadding ->
@@ -297,8 +327,6 @@ fun AppNavigation(
                     StatesScreen(
                         statusGalleryState = statusGalleryState,
                         multiSaveState = multiSaveStatusImageState,
-                        adsCanRequest = adsCanRequest,
-                        bannerAdUnitId = AdMobAdUnitIds.StatesBanner,
                         onRefresh = statusGalleryViewModel::refresh,
                         onSaveSelected = saveStatusImageViewModel::saveAll,
                         onMultiSaveMessageShown = saveStatusImageViewModel::clearMultiSaveResult,
@@ -322,8 +350,6 @@ fun AppNavigation(
                         multiDeleteState = multiDeleteSavedImageState,
                         importState = importSavedMediaState,
                         isRefreshing = savedImagesRefreshing,
-                        adsCanRequest = adsCanRequest,
-                        bannerAdUnitId = AdMobAdUnitIds.SavedBanner,
                         onRefresh = savedImagesViewModel::refresh,
                         onImportFile = { importSavedMediaLauncher.launch(SavedImportMimeTypes) },
                         onImageSelected = { images, initialIndex ->
@@ -341,7 +367,8 @@ fun AppNavigation(
                         onDeleteMessageDismissed = savedImagesViewModel::clearDeleteMessage,
                         onMultiShareMessageDismissed = savedImagesViewModel::clearMultiShareMessage,
                         onMultiDeleteMessageDismissed = savedImagesViewModel::clearMultiDeleteMessage,
-                        onImportMessageDismissed = savedImagesViewModel::clearImportMessage
+                        onImportMessageDismissed = savedImagesViewModel::clearImportMessage,
+                        onDialogVisibilityChanged = { globalBannerDialogVisible = it }
                     )
                 }
             }
@@ -398,7 +425,8 @@ fun AppNavigation(
                         },
                         resetState = resetState,
                         onResetSettings = onResetSettings,
-                        onResetMessageDismissed = onResetMessageDismissed
+                        onResetMessageDismissed = onResetMessageDismissed,
+                        onDialogVisibilityChanged = { globalBannerDialogVisible = it }
                     )
                 }
             }
