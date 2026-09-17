@@ -8,6 +8,13 @@
     <string name="home_title">EstadoGo</string>
     <string name="home_title_visible">EstadoGo</string>
     <string name="home_subtitle">Tus estados, siempre a mano.</string>
+    <string name="home_modern_tagline">Guardá, dividí y compartí tus estados</string>
+    <string name="home_status_ready_real">Tus estados están listos para ver, guardar o compartir.</string>
+    <string name="home_quick_access_title">Accesos rápidos</string>
+    <string name="home_quick_saved_body">Abrí tus copias guardadas</string>
+    <string name="home_quick_split_body">Creá partes o recortá un fragmento</string>
+    <string name="home_tools_title">Herramientas</string>
+    <string name="share_action_short">Compartir</string>
     <string name="home_available_statuses_title">Estados disponibles</string>
     <string name="home_device_states_title">Estados en tu dispositivo</string>
     <string name="home_device_states_body">Elegí Estados en la barra inferior para ver imágenes y videos disponibles.</string>
@@ -250,8 +257,11 @@
         <item quantity="one">%1$d no se pudo eliminar</item>
         <item quantity="other">%1$d no se pudieron eliminar</item>
     </plurals>
-    <string name="settings_title">Configuración</string>
-    <string name="settings_subtitle">Administrá la carpeta autorizada, el tema y la información de la aplicación.</string>
+    <string name="settings_title">Ajustes</string>
+    <string name="settings_subtitle">Controlá tu experiencia.</string>
+    <string name="settings_video_splitter_summary">Creá partes de 15, 30 o 60 segundos, o recortá un fragmento.</string>
+    <string name="settings_how_to_title">Cómo usar EstadoGo</string>
+    <string name="settings_how_to_body">Conectá la carpeta de estados, abrí una vista previa y elegí guardar o compartir. Para videos largos, usá Dividir.</string>
     <string name="settings_folder_title">Carpeta seleccionada</string>
     <string name="settings_states_folder_title">Carpeta de estados</string>
     <string name="settings_folder_summary_selected">Carpeta de estados conectada</string>
@@ -398,6 +408,7 @@
     <string name="video_splitter_title">Dividir video</string>
     <string name="video_splitter_subtitle">Elegí un video con el selector oficial de Android, creá partes y compartilas manualmente.</string>
     <string name="video_splitter_privacy_notice">La app no publica estados automáticamente, no accede a WhatsApp, chats, contactos ni datos internos de otras apps. El usuario decide dónde compartir cada parte.</string>
+    <string name="video_splitter_original_unchanged">El original no se modifica</string>
     <string name="video_splitter_action_pick">Elegir video</string>
     <string name="video_splitter_empty_title">Sin video seleccionado</string>
     <string name="video_splitter_empty_body">Seleccioná un único video desde el teléfono para ver la vista previa y preparar las partes.</string>
@@ -490,4 +501,5 @@
     <string name="saved_open_status_no_app">No hay una aplicación compatible para abrir esta copia.</string>
     <string name="saved_open_status_error">No se pudo abrir la copia con otra app.</string>
     <string name="ad_label">Anuncio</string>
+    <string name="saved_empty_open_states">Explorar estados</string>
 </resources>

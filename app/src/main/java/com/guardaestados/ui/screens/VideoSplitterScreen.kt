@@ -295,7 +295,7 @@ private fun GlassCard(
 private fun VideoNoticeCard() {
     GlassCard(contentPadding = PaddingValues(horizontal = 14.dp, vertical = 10.dp)) {
         Text(
-            text = stringResource(R.string.video_splitter_privacy_notice),
+            text = stringResource(R.string.video_splitter_original_unchanged),
             style = MaterialTheme.typography.bodySmall,
             color = SplitBody
         )

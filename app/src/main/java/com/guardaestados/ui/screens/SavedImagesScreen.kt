@@ -134,6 +134,7 @@ fun SavedImagesScreen(
     onMultiDeleteMessageDismissed: () -> Unit,
     onImportMessageDismissed: () -> Unit,
     onDialogVisibilityChanged: (Boolean) -> Unit,
+    onOpenStates: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     var selectedTabIndex by rememberSaveable { mutableIntStateOf(0) }
@@ -282,7 +283,9 @@ fun SavedImagesScreen(
 
                         SavedImagesState.Empty -> SavedStateMessage(
                             titleRes = R.string.saved_empty_title,
-                            bodyRes = R.string.saved_empty_body
+                            bodyRes = R.string.saved_empty_body,
+                            actionRes = R.string.saved_empty_open_states,
+                            onAction = onOpenStates
                         )
 
                         SavedImagesState.RecoverableError -> SavedStateMessage(
@@ -605,7 +608,9 @@ private fun androidx.compose.foundation.lazy.grid.LazyGridScope.fullWidthSavedMe
 @Composable
 private fun SavedStateMessage(
     @StringRes titleRes: Int,
-    @StringRes bodyRes: Int
+    @StringRes bodyRes: Int,
+    @StringRes actionRes: Int? = null,
+    onAction: (() -> Unit)? = null
 ) {
     Box(
         modifier = Modifier
@@ -613,10 +618,22 @@ private fun SavedStateMessage(
             .padding(horizontal = 16.dp),
         contentAlignment = Alignment.TopCenter
     ) {
-        SavedMessageCard(
-            title = stringResource(titleRes),
-            body = stringResource(bodyRes)
-        )
+        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            SavedMessageCard(
+                title = stringResource(titleRes),
+                body = stringResource(bodyRes)
+            )
+            if (actionRes != null && onAction != null) {
+                Button(
+                    onClick = onAction,
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.buttonColors(containerColor = SavedActive),
+                    shape = RoundedCornerShape(16.dp)
+                ) {
+                    Text(text = stringResource(actionRes))
+                }
+            }
+        }
     }
 }
 

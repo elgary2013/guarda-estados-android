@@ -18,13 +18,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
 val PrimaryBrandGradient = Brush.linearGradient(
-    colors = listOf(SocialGreen, SocialFuchsia)
+    colors = listOf(Color(0xFF159CFF), SocialViolet, SocialFuchsia)
 )
 
 val HighlightBrandGradient = Brush.linearGradient(
@@ -35,7 +36,7 @@ val HighlightBrandGradient = Brush.linearGradient(
 fun BrandGlassCard(
     modifier: Modifier = Modifier,
     contentPadding: PaddingValues = PaddingValues(16.dp),
-    shape: RoundedCornerShape = RoundedCornerShape(8.dp),
+    shape: RoundedCornerShape = RoundedCornerShape(22.dp),
     content: @Composable () -> Unit
 ) {
     Surface(
@@ -77,7 +78,7 @@ fun BrandGradientButton(
     enabled: Boolean = true,
     highlight: Boolean = false
 ) {
-    val shape = RoundedCornerShape(8.dp)
+    val shape = RoundedCornerShape(18.dp)
     val useBrandGradient = LocalBrandGradientsEnabled.current
     val backgroundModifier = if (useBrandGradient) {
         Modifier.background(
@@ -121,7 +122,7 @@ fun BrandSecondaryButton(
     modifier: Modifier = Modifier,
     enabled: Boolean = true
 ) {
-    val shape = RoundedCornerShape(8.dp)
+    val shape = RoundedCornerShape(18.dp)
     Surface(
         modifier = modifier
             .defaultMinSize(minHeight = 48.dp)

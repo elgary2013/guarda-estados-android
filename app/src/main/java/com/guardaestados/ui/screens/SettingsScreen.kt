@@ -25,8 +25,8 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.ContentCut
 import androidx.compose.material.icons.filled.Folder
-import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -62,10 +62,10 @@ import com.guardaestados.ui.theme.LocalGuardaEstadosColors
 import com.guardaestados.R
 import com.guardaestados.data.folder.FolderSelectionState
 import com.guardaestados.data.settings.AppThemePreference
-import com.guardaestados.data.settings.IncludedHomeBackground
 import com.guardaestados.data.settings.SaveDestinationState
 import com.guardaestados.ui.settings.SettingsResetState
 import com.guardaestados.ui.theme.BrandGradientButton
+import com.guardaestados.ui.theme.BrandGlassCard
 
 private val SettingsBackground: Color
     @Composable get() = LocalGuardaEstadosColors.current.background
@@ -95,11 +95,10 @@ fun SettingsScreen(
     folderSelectionState: FolderSelectionState,
     themePreference: AppThemePreference,
     saveDestinationState: SaveDestinationState,
-    homeBackgroundUri: String?,
-    includedHomeBackground: IncludedHomeBackground?,
     onOpenFolderSettings: () -> Unit,
     onOpenSaveDestination: () -> Unit,
-    onOpenAppearance: () -> Unit,
+    onOpenVideoSplitter: () -> Unit,
+    onThemePreferenceSelected: (AppThemePreference) -> Unit,
     onOpenPrivacyInfo: () -> Unit,
     resetState: SettingsResetState,
     onResetSettings: () -> Unit,
@@ -156,10 +155,10 @@ fun SettingsScreen(
             )
 
             SettingsLinkSection(
-                title = stringResource(R.string.settings_appearance_title),
-                summary = appearanceSummaryText(themePreference, homeBackgroundUri, includedHomeBackground),
-                icon = Icons.Filled.Image,
-                onClick = onOpenAppearance
+                title = stringResource(R.string.video_splitter_title),
+                summary = stringResource(R.string.settings_video_splitter_summary),
+                icon = Icons.Filled.ContentCut,
+                onClick = onOpenVideoSplitter
             )
 
             SettingsLinkSection(
@@ -168,6 +167,22 @@ fun SettingsScreen(
                 icon = Icons.Filled.Info,
                 onClick = onOpenPrivacyInfo
             )
+
+            BrandGlassCard(modifier = Modifier.fillMaxWidth()) {
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text(stringResource(R.string.settings_theme_title), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold, color = SettingsTitle)
+                    ThemeOption(stringResource(R.string.settings_theme_system), themePreference == AppThemePreference.System) { onThemePreferenceSelected(AppThemePreference.System) }
+                    ThemeOption(stringResource(R.string.settings_theme_dark), themePreference == AppThemePreference.Dark) { onThemePreferenceSelected(AppThemePreference.Dark) }
+                    ThemeOption(stringResource(R.string.settings_theme_light), themePreference == AppThemePreference.Light) { onThemePreferenceSelected(AppThemePreference.Light) }
+                }
+            }
+
+            BrandGlassCard(modifier = Modifier.fillMaxWidth()) {
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text(stringResource(R.string.settings_how_to_title), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold, color = SettingsTitle)
+                    Text(stringResource(R.string.settings_how_to_body), style = MaterialTheme.typography.bodyMedium, color = SettingsBody)
+                }
+            }
 
             Spacer(modifier = Modifier.size(8.dp))
 
@@ -663,33 +678,6 @@ private fun themeSummaryText(themePreference: AppThemePreference): String {
         AppThemePreference.Light -> stringResource(R.string.settings_theme_summary_light)
         AppThemePreference.Dark -> stringResource(R.string.settings_theme_summary_dark)
     }
-}
-
-@Composable
-private fun appearanceSummaryText(
-    themePreference: AppThemePreference,
-    homeBackgroundUri: String?,
-    includedHomeBackground: IncludedHomeBackground?
-): String {
-    return stringResource(
-        R.string.settings_appearance_summary,
-        themeSummaryText(themePreference),
-        homeBackgroundStatusText(homeBackgroundUri, includedHomeBackground)
-    )
-}
-
-@Composable
-private fun homeBackgroundStatusText(
-    homeBackgroundUri: String?,
-    includedHomeBackground: IncludedHomeBackground?
-): String {
-    return stringResource(
-        when {
-            homeBackgroundUri != null -> R.string.settings_home_background_status_custom
-            includedHomeBackground != null -> R.string.settings_home_background_status_included
-            else -> R.string.settings_home_background_status_default
-        }
-    )
 }
 
 @Composable

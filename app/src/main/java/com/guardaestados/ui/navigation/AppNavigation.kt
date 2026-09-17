@@ -59,7 +59,6 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.guardaestados.data.folder.FolderSelectionState
 import com.guardaestados.data.settings.AppThemePreference
-import com.guardaestados.data.settings.IncludedHomeBackground
 import com.guardaestados.data.settings.SaveDestinationState
 import com.guardaestados.domain.saved.SavedImage
 import com.guardaestados.domain.saved.SavedImagesState
@@ -79,7 +78,6 @@ import com.guardaestados.ui.saved.SavedMediaImportState
 import com.guardaestados.ui.settings.SettingsResetState
 import com.guardaestados.ui.share.ShareStatusImageViewModel
 import com.guardaestados.ui.share.ShareStatusImageViewModelFactory
-import com.guardaestados.ui.screens.AppearanceScreen
 import com.guardaestados.ui.screens.FolderSettingsScreen
 import com.guardaestados.ui.screens.HomeScreen
 import com.guardaestados.ui.screens.ImagePreviewScreen
@@ -105,13 +103,8 @@ fun AppNavigation(
     themePreference: AppThemePreference,
     saveDestinationState: SaveDestinationState,
     appVersion: String,
-    homeBackgroundUri: String?,
-    includedHomeBackground: IncludedHomeBackground?,
     onSelectRecommendedFolder: () -> Unit,
     onSelectFolder: () -> Unit,
-    onSelectHomeBackground: () -> Unit,
-    onClearHomeBackground: () -> Unit,
-    onSelectIncludedHomeBackground: (IncludedHomeBackground) -> Unit,
     onSelectSaveDestination: () -> Unit,
     onUseDefaultSaveDestination: () -> Unit,
     onThemePreferenceSelected: (AppThemePreference) -> Unit,
@@ -124,9 +117,7 @@ fun AppNavigation(
     onColdStartHomeReadyForAppOpenAd: () -> Unit,
     onOpenAdsPrivacyOptions: () -> Unit,
     onShareApp: () -> Unit,
-    onRateApp: () -> Unit,
-    onValidateHomeBackground: () -> Unit,
-    onHomePhotoSystemBarsStateChanged: (Boolean) -> Unit
+    onRateApp: () -> Unit
 ) {
     val context = LocalContext.current
     val statusGalleryViewModel: StatusGalleryViewModel = viewModel(
@@ -182,7 +173,8 @@ fun AppNavigation(
     val currentBackStackEntry = navController.currentBackStackEntryAsState().value
     val currentDestination = currentBackStackEntry?.destination
     val currentRoute = currentDestination?.route
-    val showBottomBar = routes.any { route -> currentDestination?.hierarchy?.any { it.route == route.route } == true }
+    val showBottomBar = routes.filterNot { it == AppRoute.VideoSplitter }
+        .any { route -> currentDestination?.hierarchy?.any { it.route == route.route } == true }
     val globalBannerAdUnitId = when (currentRoute) {
         AppRoute.Home.route,
         AppRoute.States.route,
@@ -201,7 +193,6 @@ fun AppNavigation(
             importSavedMediaState != SavedMediaImportState.Importing
         else -> false
     }
-    val glassOnHomePhoto = currentRoute == AppRoute.Home.route && (homeBackgroundUri != null || includedHomeBackground != null)
     val routesThatResetVideoSplitter = remember {
         setOf(
             AppRoute.Home.route,
@@ -231,16 +222,6 @@ fun AppNavigation(
         contract = ActivityResultContracts.StartIntentSenderForResult()
     ) { result ->
         savedImagesViewModel.onSystemDeleteConfirmationResult(result.resultCode == Activity.RESULT_OK)
-    }
-
-    LaunchedEffect(glassOnHomePhoto) {
-        onHomePhotoSystemBarsStateChanged(glassOnHomePhoto)
-    }
-
-    LaunchedEffect(currentRoute, homeBackgroundUri) {
-        if (currentRoute == AppRoute.Home.route && homeBackgroundUri != null) {
-            onValidateHomeBackground()
-        }
     }
 
     LaunchedEffect(currentRoute) {
@@ -276,11 +257,7 @@ fun AppNavigation(
     }
 
     Scaffold(
-        contentWindowInsets = if (glassOnHomePhoto) {
-            WindowInsets(0.dp)
-        } else {
-            ScaffoldDefaults.contentWindowInsets
-        },
+        contentWindowInsets = ScaffoldDefaults.contentWindowInsets,
         bottomBar = {
             if (showBottomBar) {
                 Column {
@@ -293,7 +270,7 @@ fun AppNavigation(
                     SoloEstadosBottomBar(
                         routes = routes,
                         currentRoute = currentRoute,
-                        glassOnPhoto = glassOnHomePhoto,
+                        glassOnPhoto = false,
                         onRouteSelected = navigateToBottomRoute
                     )
                 }
@@ -308,11 +285,11 @@ fun AppNavigation(
             composable(AppRoute.Home.route) {
                 Box(modifier = Modifier.fillMaxSize()) {
                     HomeScreen(
-                        homeBackgroundUri = homeBackgroundUri,
-                        includedHomeBackground = includedHomeBackground,
                         folderSelectionState = folderSelectionState,
                         statusGalleryState = statusGalleryState,
                         onOpenStates = { navigateToBottomRoute(AppRoute.States) },
+                        onOpenSaved = { navigateToBottomRoute(AppRoute.Saved) },
+                        onOpenVideoSplitter = { navigateToBottomRoute(AppRoute.VideoSplitter) },
                         onOpenFolderSettings = {
                             navController.navigate(AppRoute.FolderSettings.route) {
                                 launchSingleTop = true
@@ -368,7 +345,8 @@ fun AppNavigation(
                         onMultiShareMessageDismissed = savedImagesViewModel::clearMultiShareMessage,
                         onMultiDeleteMessageDismissed = savedImagesViewModel::clearMultiDeleteMessage,
                         onImportMessageDismissed = savedImagesViewModel::clearImportMessage,
-                        onDialogVisibilityChanged = { globalBannerDialogVisible = it }
+                        onDialogVisibilityChanged = { globalBannerDialogVisible = it },
+                        onOpenStates = { navigateToBottomRoute(AppRoute.States) }
                     )
                 }
             }
@@ -401,8 +379,6 @@ fun AppNavigation(
                         folderSelectionState = folderSelectionState,
                         themePreference = themePreference,
                         saveDestinationState = saveDestinationState,
-                        homeBackgroundUri = homeBackgroundUri,
-                        includedHomeBackground = includedHomeBackground,
                         onOpenFolderSettings = {
                             navController.navigate(AppRoute.FolderSettings.route) {
                                 launchSingleTop = true
@@ -413,11 +389,8 @@ fun AppNavigation(
                                 launchSingleTop = true
                             }
                         },
-                        onOpenAppearance = {
-                            navController.navigate(AppRoute.Appearance.route) {
-                                launchSingleTop = true
-                            }
-                        },
+                        onOpenVideoSplitter = { navigateToBottomRoute(AppRoute.VideoSplitter) },
+                        onThemePreferenceSelected = onThemePreferenceSelected,
                         onOpenPrivacyInfo = {
                             navController.navigate(AppRoute.PrivacyInfoSettings.route) {
                                 launchSingleTop = true
@@ -446,20 +419,6 @@ fun AppNavigation(
                         saveDestinationState = saveDestinationState,
                         onSelectSaveDestination = onSelectSaveDestination,
                         onUseDefaultSaveDestination = onUseDefaultSaveDestination,
-                        onBack = { navController.popBackStack() }
-                    )
-                }
-            }
-            composable(AppRoute.Appearance.route) {
-                PaddedNavigationContent(innerPadding) {
-                    AppearanceScreen(
-                        themePreference = themePreference,
-                        homeBackgroundUri = homeBackgroundUri,
-                        includedHomeBackground = includedHomeBackground,
-                        onThemePreferenceSelected = onThemePreferenceSelected,
-                        onSelectHomeBackground = onSelectHomeBackground,
-                        onClearHomeBackground = onClearHomeBackground,
-                        onSelectIncludedHomeBackground = onSelectIncludedHomeBackground,
                         onBack = { navController.popBackStack() }
                     )
                 }
@@ -655,27 +614,20 @@ private fun RowScope.BottomBarItem(
         verticalArrangement = Arrangement.Center
     ) {
         if (isCentralAction) {
-            Surface(
-                modifier = Modifier.size(46.dp),
-                shape = RoundedCornerShape(50),
-                color = if (selected) activeColor.copy(alpha = 0.18f) else Color.Transparent,
-                contentColor = itemContentColor,
-                border = BorderStroke(
-                    width = if (selected || glassOnPhoto) 1.5.dp else 1.dp,
-                    color = if (selected) activeColor else inactiveColor.copy(alpha = 0.58f)
-                ),
-                tonalElevation = 0.dp,
-                shadowElevation = 0.dp
+            Box(
+                modifier = Modifier
+                    .size(58.dp)
+                    .shadow(14.dp, RoundedCornerShape(50))
+                    .background(colors.primaryGradient, RoundedCornerShape(50)),
+                contentAlignment = Alignment.Center
             ) {
-                Box(contentAlignment = Alignment.Center) {
-                    route.iconRes?.let { iconRes ->
-                        Icon(
-                            painter = painterResource(iconRes),
-                            contentDescription = null,
-                            modifier = Modifier.size(24.dp),
-                            tint = itemContentColor
-                        )
-                    }
+                route.iconRes?.let { iconRes ->
+                    Icon(
+                        painter = painterResource(iconRes),
+                        contentDescription = null,
+                        modifier = Modifier.size(28.dp),
+                        tint = Color.White
+                    )
                 }
             }
         } else {

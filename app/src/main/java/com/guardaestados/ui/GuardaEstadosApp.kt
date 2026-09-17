@@ -17,10 +17,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.guardaestados.R
@@ -31,7 +29,6 @@ import com.guardaestados.data.folder.takeSaveDestinationFolderPermission
 import com.guardaestados.data.folder.takeSelectedFolderPermission
 import com.guardaestados.ui.navigation.AppNavigation
 import com.guardaestados.ui.ads.AppOpenAdManager
-import com.guardaestados.ui.settings.HomeBackgroundNotice
 import com.guardaestados.ui.settings.SettingsViewModel
 import com.guardaestados.ui.settings.SettingsViewModelFactory
 import com.guardaestados.ui.theme.GuardaEstadosTheme
@@ -60,9 +57,6 @@ fun GuardaEstadosApp(shouldAttemptAppOpenAd: Boolean = false) {
     val themePreference by settingsViewModel.themePreference.collectAsState()
     val resetState by settingsViewModel.resetState.collectAsState()
     val saveDestinationState by settingsViewModel.saveDestinationState.collectAsState()
-    val homeBackgroundUri by settingsViewModel.homeBackgroundUri.collectAsState()
-    val includedHomeBackground by settingsViewModel.includedHomeBackground.collectAsState()
-    val homeBackgroundNotice by settingsViewModel.homeBackgroundNotice.collectAsState()
     val adsPrivacyState by consentManager.privacyState.collectAsState()
     val coroutineScope = rememberCoroutineScope()
     val folderPicker = rememberLauncherForActivityResult(
@@ -83,13 +77,6 @@ fun GuardaEstadosApp(shouldAttemptAppOpenAd: Boolean = false) {
             repository.saveSelectedFolder(uri)
         }
     }
-    val homeBackgroundPicker = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.OpenDocument()
-    ) { uri ->
-        if (uri != null) {
-            settingsViewModel.selectHomeBackground(uri)
-        }
-    }
     val saveDestinationPicker = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocumentTree()
     ) { uri ->
@@ -101,35 +88,19 @@ fun GuardaEstadosApp(shouldAttemptAppOpenAd: Boolean = false) {
     val appVersion = remember(context) { context.installedVersionName() }
     val systemDarkTheme = isSystemInDarkTheme()
     val activity = context.findActivity()
-    var drawHomePhotoBehindSystemBars by remember { mutableStateOf(false) }
 
     LaunchedEffect(activity) {
         activity?.let(consentManager::updateConsent)
     }
 
-    LaunchedEffect(homeBackgroundNotice) {
-        if (homeBackgroundNotice == HomeBackgroundNotice.PermissionLost) {
-            Toast.makeText(context, R.string.home_background_permission_lost, Toast.LENGTH_SHORT).show()
-            settingsViewModel.clearHomeBackgroundNotice()
-        }
-    }
-
-    GuardaEstadosTheme(
-        themeMode = themePreference.toThemeMode(systemDarkTheme),
-        drawHomePhotoBehindSystemBars = drawHomePhotoBehindSystemBars
-    ) {
+    GuardaEstadosTheme(themeMode = themePreference.toThemeMode(systemDarkTheme)) {
         AppNavigation(
             folderSelectionState = folderSelectionState,
             themePreference = themePreference,
             saveDestinationState = saveDestinationState,
             appVersion = appVersion,
-            homeBackgroundUri = homeBackgroundUri,
-            includedHomeBackground = includedHomeBackground,
             onSelectRecommendedFolder = { folderPicker.launch(recommendedStatusesParentUri()) },
             onSelectFolder = { folderPicker.launch(null) },
-            onSelectHomeBackground = { homeBackgroundPicker.launch(arrayOf("image/*")) },
-            onClearHomeBackground = settingsViewModel::clearHomeBackground,
-            onSelectIncludedHomeBackground = settingsViewModel::selectIncludedHomeBackground,
             onSelectSaveDestination = { saveDestinationPicker.launch(null) },
             onUseDefaultSaveDestination = settingsViewModel::useDefaultSaveDestination,
             onThemePreferenceSelected = settingsViewModel::selectTheme,
@@ -169,9 +140,7 @@ fun GuardaEstadosApp(shouldAttemptAppOpenAd: Boolean = false) {
                 }
             },
             onShareApp = { context.shareEstadoGo() },
-            onRateApp = { context.rateEstadoGo() },
-            onValidateHomeBackground = settingsViewModel::validateHomeBackground,
-            onHomePhotoSystemBarsStateChanged = { drawHomePhotoBehindSystemBars = it }
+            onRateApp = { context.rateEstadoGo() }
         )
     }
 }
