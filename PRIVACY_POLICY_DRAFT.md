@@ -24,16 +24,20 @@ El usuario puede cambiar la carpeta seleccionada o restablecer la configuración
 
 La aplicación no lee mensajes, contactos, notificaciones, llamadas, ubicación, cámara ni micrófono.
 
-## Servidores y transferencia de datos
+## Anuncios, consentimiento y servicios externos
 
-La aplicación no sube imágenes, videos ni datos personales a servidores. No usa cuentas, analítica, anuncios, Firebase ni servicios externos de recopilación de datos.
+La aplicación usa Google Mobile Ads para mostrar anuncios y Google User Messaging Platform (UMP) para solicitar y administrar el consentimiento cuando corresponde. Estos servicios pueden tratar identificadores del dispositivo o publicitarios, interacciones con anuncios, información de diagnóstico y otros datos técnicos según la configuración, el consentimiento del usuario y las políticas de Google.
+
+La aplicación no usa Firebase ni integra analítica adicional propia. Las imágenes y videos de estados no se envían a Google ni a servidores de EstadoGo para almacenarlos o analizarlos.
+
+Cuando UMP informa que las opciones de privacidad son necesarias, el usuario puede volver a abrirlas desde la sección de privacidad de la aplicación.
 
 ## Copias locales
 
 Cuando el usuario guarda contenido, las copias se almacenan localmente en el dispositivo:
 
-- Imágenes: Pictures/GuardaEstados
-- Videos: Movies/GuardaEstados
+- Imágenes: Pictures/EstadoGo/Imágenes
+- Videos: Movies/EstadoGo/Videos
 
 Guardar una copia local no modifica los archivos originales.
 

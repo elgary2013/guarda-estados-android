@@ -41,6 +41,8 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -102,9 +104,18 @@ fun SettingsScreen(
     resetState: SettingsResetState,
     onResetSettings: () -> Unit,
     onResetMessageDismissed: () -> Unit,
+    onDialogVisibilityChanged: (Boolean) -> Unit,
     modifier: Modifier = Modifier
 ) {
     var showResetDialog by remember { mutableStateOf(false) }
+
+    LaunchedEffect(showResetDialog) {
+        onDialogVisibilityChanged(showResetDialog)
+    }
+
+    DisposableEffect(Unit) {
+        onDispose { onDialogVisibilityChanged(false) }
+    }
 
     Surface(
         modifier = modifier.fillMaxSize(),

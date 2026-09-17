@@ -383,6 +383,7 @@
     <string name="folder_action_open_recommended">Abrir carpeta recomendada</string>
     <string name="folder_action_select_manual">Elegir otra carpeta manualmente</string>
     <string name="folder_media_selection_rejected">Abrí .Statuses y tocá “Usar esta carpeta”. No se conecta la carpeta Media completa.</string>
+    <string name="folder_permission_persist_error">Android no permitió conservar el acceso de lectura a la carpeta. Probá seleccionarla nuevamente.</string>
     <string name="folder_action_select">Seleccionar carpeta</string>
     <string name="folder_action_select_again">Volver a seleccionar carpeta</string>
     <string name="folder_action_change">Cambiar carpeta</string>
