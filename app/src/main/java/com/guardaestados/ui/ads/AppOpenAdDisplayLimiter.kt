@@ -1,6 +1,6 @@
 package com.guardaestados.ui.ads
 
-internal const val AppOpenAdMinimumIntervalMillis: Long = 8L * 60L * 60L * 1000L
+internal const val AppOpenAdMinimumIntervalMillis: Long = 4L * 60L * 60L * 1000L
 
 internal interface AppOpenAdDisplayStore {
     fun hasSeenFirstOpen(): Boolean

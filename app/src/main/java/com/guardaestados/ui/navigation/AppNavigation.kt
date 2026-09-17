@@ -59,24 +59,25 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.guardaestados.data.folder.FolderSelectionState
 import com.guardaestados.data.settings.AppThemePreference
-import com.guardaestados.data.settings.IncludedHomeBackground
 import com.guardaestados.data.settings.SaveDestinationState
 import com.guardaestados.domain.saved.SavedImage
+import com.guardaestados.domain.saved.SavedImagesState
 import com.guardaestados.domain.status.StatusGalleryState
 import com.guardaestados.domain.status.StatusImage
 import com.guardaestados.ui.media.MediaDetailsViewModel
 import com.guardaestados.ui.media.MediaDetailsViewModelFactory
 import com.guardaestados.ui.ads.AdMobAdUnitIds
+import com.guardaestados.ui.ads.AdaptiveBannerAd
 import com.guardaestados.ui.save.SaveStatusImageViewModel
 import com.guardaestados.ui.save.SaveStatusImageViewModelFactory
 import com.guardaestados.ui.saved.SavedImageDeleteState
 import com.guardaestados.ui.saved.SavedImagePreviewResolver
 import com.guardaestados.ui.saved.SavedImagesViewModel
 import com.guardaestados.ui.saved.SavedImagesViewModelFactory
+import com.guardaestados.ui.saved.SavedMediaImportState
 import com.guardaestados.ui.settings.SettingsResetState
 import com.guardaestados.ui.share.ShareStatusImageViewModel
 import com.guardaestados.ui.share.ShareStatusImageViewModelFactory
-import com.guardaestados.ui.screens.AppearanceScreen
 import com.guardaestados.ui.screens.FolderSettingsScreen
 import com.guardaestados.ui.screens.HomeScreen
 import com.guardaestados.ui.screens.ImagePreviewScreen
@@ -102,13 +103,8 @@ fun AppNavigation(
     themePreference: AppThemePreference,
     saveDestinationState: SaveDestinationState,
     appVersion: String,
-    homeBackgroundUri: String?,
-    includedHomeBackground: IncludedHomeBackground?,
     onSelectRecommendedFolder: () -> Unit,
     onSelectFolder: () -> Unit,
-    onSelectHomeBackground: () -> Unit,
-    onClearHomeBackground: () -> Unit,
-    onSelectIncludedHomeBackground: (IncludedHomeBackground) -> Unit,
     onSelectSaveDestination: () -> Unit,
     onUseDefaultSaveDestination: () -> Unit,
     onThemePreferenceSelected: (AppThemePreference) -> Unit,
@@ -121,9 +117,7 @@ fun AppNavigation(
     onColdStartHomeReadyForAppOpenAd: () -> Unit,
     onOpenAdsPrivacyOptions: () -> Unit,
     onShareApp: () -> Unit,
-    onRateApp: () -> Unit,
-    onValidateHomeBackground: () -> Unit,
-    onHomePhotoSystemBarsStateChanged: (Boolean) -> Unit
+    onRateApp: () -> Unit
 ) {
     val context = LocalContext.current
     val statusGalleryViewModel: StatusGalleryViewModel = viewModel(
@@ -164,6 +158,7 @@ fun AppNavigation(
     var selectedStatusPreviewInitialIndex by remember { mutableStateOf(0) }
     var selectedSavedPreviewItems by remember { mutableStateOf<List<SavedImage>>(emptyList()) }
     var selectedSavedPreviewInitialIndex by remember { mutableStateOf(0) }
+    var globalBannerDialogVisible by remember { mutableStateOf(false) }
     val navController = rememberNavController()
     val routes = listOf(
         AppRoute.Home,
@@ -178,8 +173,26 @@ fun AppNavigation(
     val currentBackStackEntry = navController.currentBackStackEntryAsState().value
     val currentDestination = currentBackStackEntry?.destination
     val currentRoute = currentDestination?.route
-    val showBottomBar = routes.any { route -> currentDestination?.hierarchy?.any { it.route == route.route } == true }
-    val glassOnHomePhoto = currentRoute == AppRoute.Home.route && (homeBackgroundUri != null || includedHomeBackground != null)
+    val showBottomBar = routes.filterNot { it == AppRoute.VideoSplitter }
+        .any { route -> currentDestination?.hierarchy?.any { it.route == route.route } == true }
+    val globalBannerAdUnitId = when (currentRoute) {
+        AppRoute.Home.route,
+        AppRoute.States.route,
+        AppRoute.Settings.route -> AdMobAdUnitIds.StatesBanner
+        AppRoute.Saved.route -> AdMobAdUnitIds.SavedBanner
+        else -> null
+    }
+    val showGlobalBanner = adsCanRequest && !globalBannerDialogVisible && when (currentRoute) {
+        AppRoute.Home.route,
+        AppRoute.Settings.route -> true
+        AppRoute.States.route -> statusGalleryState != StatusGalleryState.Loading &&
+            statusGalleryState != StatusGalleryState.PermissionLost &&
+            statusGalleryState != StatusGalleryState.RecoverableError
+        AppRoute.Saved.route -> savedImagesState != SavedImagesState.Loading &&
+            savedImagesState != SavedImagesState.RecoverableError &&
+            importSavedMediaState != SavedMediaImportState.Importing
+        else -> false
+    }
     val routesThatResetVideoSplitter = remember {
         setOf(
             AppRoute.Home.route,
@@ -209,16 +222,6 @@ fun AppNavigation(
         contract = ActivityResultContracts.StartIntentSenderForResult()
     ) { result ->
         savedImagesViewModel.onSystemDeleteConfirmationResult(result.resultCode == Activity.RESULT_OK)
-    }
-
-    LaunchedEffect(glassOnHomePhoto) {
-        onHomePhotoSystemBarsStateChanged(glassOnHomePhoto)
-    }
-
-    LaunchedEffect(currentRoute, homeBackgroundUri) {
-        if (currentRoute == AppRoute.Home.route && homeBackgroundUri != null) {
-            onValidateHomeBackground()
-        }
     }
 
     LaunchedEffect(currentRoute) {
@@ -254,19 +257,23 @@ fun AppNavigation(
     }
 
     Scaffold(
-        contentWindowInsets = if (glassOnHomePhoto) {
-            WindowInsets(0.dp)
-        } else {
-            ScaffoldDefaults.contentWindowInsets
-        },
+        contentWindowInsets = ScaffoldDefaults.contentWindowInsets,
         bottomBar = {
             if (showBottomBar) {
-                SoloEstadosBottomBar(
-                    routes = routes,
-                    currentRoute = currentRoute,
-                    glassOnPhoto = glassOnHomePhoto,
-                    onRouteSelected = navigateToBottomRoute
-                )
+                Column {
+                    if (showGlobalBanner && globalBannerAdUnitId != null) {
+                        AdaptiveBannerAd(
+                            adUnitId = globalBannerAdUnitId,
+                            canRequestAds = true
+                        )
+                    }
+                    SoloEstadosBottomBar(
+                        routes = routes,
+                        currentRoute = currentRoute,
+                        glassOnPhoto = false,
+                        onRouteSelected = navigateToBottomRoute
+                    )
+                }
             }
         }
     ) { innerPadding ->
@@ -278,11 +285,11 @@ fun AppNavigation(
             composable(AppRoute.Home.route) {
                 Box(modifier = Modifier.fillMaxSize()) {
                     HomeScreen(
-                        homeBackgroundUri = homeBackgroundUri,
-                        includedHomeBackground = includedHomeBackground,
                         folderSelectionState = folderSelectionState,
                         statusGalleryState = statusGalleryState,
                         onOpenStates = { navigateToBottomRoute(AppRoute.States) },
+                        onOpenSaved = { navigateToBottomRoute(AppRoute.Saved) },
+                        onOpenVideoSplitter = { navigateToBottomRoute(AppRoute.VideoSplitter) },
                         onOpenFolderSettings = {
                             navController.navigate(AppRoute.FolderSettings.route) {
                                 launchSingleTop = true
@@ -297,8 +304,6 @@ fun AppNavigation(
                     StatesScreen(
                         statusGalleryState = statusGalleryState,
                         multiSaveState = multiSaveStatusImageState,
-                        adsCanRequest = adsCanRequest,
-                        bannerAdUnitId = AdMobAdUnitIds.StatesBanner,
                         onRefresh = statusGalleryViewModel::refresh,
                         onSaveSelected = saveStatusImageViewModel::saveAll,
                         onMultiSaveMessageShown = saveStatusImageViewModel::clearMultiSaveResult,
@@ -322,8 +327,6 @@ fun AppNavigation(
                         multiDeleteState = multiDeleteSavedImageState,
                         importState = importSavedMediaState,
                         isRefreshing = savedImagesRefreshing,
-                        adsCanRequest = adsCanRequest,
-                        bannerAdUnitId = AdMobAdUnitIds.SavedBanner,
                         onRefresh = savedImagesViewModel::refresh,
                         onImportFile = { importSavedMediaLauncher.launch(SavedImportMimeTypes) },
                         onImageSelected = { images, initialIndex ->
@@ -341,7 +344,9 @@ fun AppNavigation(
                         onDeleteMessageDismissed = savedImagesViewModel::clearDeleteMessage,
                         onMultiShareMessageDismissed = savedImagesViewModel::clearMultiShareMessage,
                         onMultiDeleteMessageDismissed = savedImagesViewModel::clearMultiDeleteMessage,
-                        onImportMessageDismissed = savedImagesViewModel::clearImportMessage
+                        onImportMessageDismissed = savedImagesViewModel::clearImportMessage,
+                        onDialogVisibilityChanged = { globalBannerDialogVisible = it },
+                        onOpenStates = { navigateToBottomRoute(AppRoute.States) }
                     )
                 }
             }
@@ -374,8 +379,6 @@ fun AppNavigation(
                         folderSelectionState = folderSelectionState,
                         themePreference = themePreference,
                         saveDestinationState = saveDestinationState,
-                        homeBackgroundUri = homeBackgroundUri,
-                        includedHomeBackground = includedHomeBackground,
                         onOpenFolderSettings = {
                             navController.navigate(AppRoute.FolderSettings.route) {
                                 launchSingleTop = true
@@ -386,11 +389,8 @@ fun AppNavigation(
                                 launchSingleTop = true
                             }
                         },
-                        onOpenAppearance = {
-                            navController.navigate(AppRoute.Appearance.route) {
-                                launchSingleTop = true
-                            }
-                        },
+                        onOpenVideoSplitter = { navigateToBottomRoute(AppRoute.VideoSplitter) },
+                        onThemePreferenceSelected = onThemePreferenceSelected,
                         onOpenPrivacyInfo = {
                             navController.navigate(AppRoute.PrivacyInfoSettings.route) {
                                 launchSingleTop = true
@@ -398,7 +398,8 @@ fun AppNavigation(
                         },
                         resetState = resetState,
                         onResetSettings = onResetSettings,
-                        onResetMessageDismissed = onResetMessageDismissed
+                        onResetMessageDismissed = onResetMessageDismissed,
+                        onDialogVisibilityChanged = { globalBannerDialogVisible = it }
                     )
                 }
             }
@@ -418,20 +419,6 @@ fun AppNavigation(
                         saveDestinationState = saveDestinationState,
                         onSelectSaveDestination = onSelectSaveDestination,
                         onUseDefaultSaveDestination = onUseDefaultSaveDestination,
-                        onBack = { navController.popBackStack() }
-                    )
-                }
-            }
-            composable(AppRoute.Appearance.route) {
-                PaddedNavigationContent(innerPadding) {
-                    AppearanceScreen(
-                        themePreference = themePreference,
-                        homeBackgroundUri = homeBackgroundUri,
-                        includedHomeBackground = includedHomeBackground,
-                        onThemePreferenceSelected = onThemePreferenceSelected,
-                        onSelectHomeBackground = onSelectHomeBackground,
-                        onClearHomeBackground = onClearHomeBackground,
-                        onSelectIncludedHomeBackground = onSelectIncludedHomeBackground,
                         onBack = { navController.popBackStack() }
                     )
                 }
@@ -627,27 +614,20 @@ private fun RowScope.BottomBarItem(
         verticalArrangement = Arrangement.Center
     ) {
         if (isCentralAction) {
-            Surface(
-                modifier = Modifier.size(46.dp),
-                shape = RoundedCornerShape(50),
-                color = if (selected) activeColor.copy(alpha = 0.18f) else Color.Transparent,
-                contentColor = itemContentColor,
-                border = BorderStroke(
-                    width = if (selected || glassOnPhoto) 1.5.dp else 1.dp,
-                    color = if (selected) activeColor else inactiveColor.copy(alpha = 0.58f)
-                ),
-                tonalElevation = 0.dp,
-                shadowElevation = 0.dp
+            Box(
+                modifier = Modifier
+                    .size(58.dp)
+                    .shadow(14.dp, RoundedCornerShape(50))
+                    .background(colors.primaryGradient, RoundedCornerShape(50)),
+                contentAlignment = Alignment.Center
             ) {
-                Box(contentAlignment = Alignment.Center) {
-                    route.iconRes?.let { iconRes ->
-                        Icon(
-                            painter = painterResource(iconRes),
-                            contentDescription = null,
-                            modifier = Modifier.size(24.dp),
-                            tint = itemContentColor
-                        )
-                    }
+                route.iconRes?.let { iconRes ->
+                    Icon(
+                        painter = painterResource(iconRes),
+                        contentDescription = null,
+                        modifier = Modifier.size(28.dp),
+                        tint = Color.White
+                    )
                 }
             }
         } else {

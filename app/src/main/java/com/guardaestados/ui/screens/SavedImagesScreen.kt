@@ -83,7 +83,6 @@ import com.guardaestados.ui.saved.SavedImageDeleteState
 import com.guardaestados.ui.saved.SavedImagesMultiDeleteState
 import com.guardaestados.ui.saved.SavedImagesMultiShareState
 import com.guardaestados.ui.saved.SavedMediaImportState
-import com.guardaestados.ui.ads.AdaptiveBannerAd
 import com.guardaestados.ui.components.VideoThumbnail
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -124,8 +123,6 @@ fun SavedImagesScreen(
     multiDeleteState: SavedImagesMultiDeleteState,
     importState: SavedMediaImportState,
     isRefreshing: Boolean,
-    adsCanRequest: Boolean,
-    bannerAdUnitId: String,
     onRefresh: () -> Unit,
     onImportFile: () -> Unit,
     onImageSelected: (List<SavedImage>, Int) -> Unit,
@@ -136,6 +133,8 @@ fun SavedImagesScreen(
     onMultiShareMessageDismissed: () -> Unit,
     onMultiDeleteMessageDismissed: () -> Unit,
     onImportMessageDismissed: () -> Unit,
+    onDialogVisibilityChanged: (Boolean) -> Unit,
+    onOpenStates: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     var selectedTabIndex by rememberSaveable { mutableIntStateOf(0) }
@@ -162,6 +161,14 @@ fun SavedImagesScreen(
         selectedItems
             .map { image -> image.uri.toString() }
             .toSet()
+    }
+
+    LaunchedEffect(showMultiDeleteDialog) {
+        onDialogVisibilityChanged(showMultiDeleteDialog)
+    }
+
+    DisposableEffect(Unit) {
+        onDispose { onDialogVisibilityChanged(false) }
     }
 
     LaunchedEffect(selectedTabIndex) {
@@ -276,7 +283,9 @@ fun SavedImagesScreen(
 
                         SavedImagesState.Empty -> SavedStateMessage(
                             titleRes = R.string.saved_empty_title,
-                            bodyRes = R.string.saved_empty_body
+                            bodyRes = R.string.saved_empty_body,
+                            actionRes = R.string.saved_empty_open_states,
+                            onAction = onOpenStates
                         )
 
                         SavedImagesState.RecoverableError -> SavedStateMessage(
@@ -343,14 +352,6 @@ fun SavedImagesScreen(
                                                 selectedUris = setOf(imageKey)
                                             }
                                         )
-                                    }
-                                    if (!selectionActive) {
-                                        item(span = { GridItemSpan(maxLineSpan) }) {
-                                            AdaptiveBannerAd(
-                                                adUnitId = bannerAdUnitId,
-                                                canRequestAds = adsCanRequest
-                                            )
-                                        }
                                     }
                                 }
                             }
@@ -607,7 +608,9 @@ private fun androidx.compose.foundation.lazy.grid.LazyGridScope.fullWidthSavedMe
 @Composable
 private fun SavedStateMessage(
     @StringRes titleRes: Int,
-    @StringRes bodyRes: Int
+    @StringRes bodyRes: Int,
+    @StringRes actionRes: Int? = null,
+    onAction: (() -> Unit)? = null
 ) {
     Box(
         modifier = Modifier
@@ -615,10 +618,22 @@ private fun SavedStateMessage(
             .padding(horizontal = 16.dp),
         contentAlignment = Alignment.TopCenter
     ) {
-        SavedMessageCard(
-            title = stringResource(titleRes),
-            body = stringResource(bodyRes)
-        )
+        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            SavedMessageCard(
+                title = stringResource(titleRes),
+                body = stringResource(bodyRes)
+            )
+            if (actionRes != null && onAction != null) {
+                Button(
+                    onClick = onAction,
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.buttonColors(containerColor = SavedActive),
+                    shape = RoundedCornerShape(16.dp)
+                ) {
+                    Text(text = stringResource(actionRes))
+                }
+            }
+        }
     }
 }
 

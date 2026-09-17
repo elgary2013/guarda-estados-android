@@ -1,294 +1,125 @@
 package com.guardaestados.ui.screens
 
-import android.net.Uri
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.filled.Bookmark
+import androidx.compose.material.icons.filled.ContentCut
+import androidx.compose.material.icons.filled.Download
+import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.filled.VideoLibrary
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
-import coil3.compose.AsyncImage
 import com.guardaestados.R
 import com.guardaestados.data.folder.FolderSelectionState
-import com.guardaestados.data.settings.IncludedHomeBackground
 import com.guardaestados.domain.status.StatusGalleryState
-import com.guardaestados.domain.status.StatusMediaType
 import com.guardaestados.ui.theme.BrandGlassCard
-import com.guardaestados.ui.theme.EstadoGoIncludedHomeBackground
+import com.guardaestados.ui.theme.BrandPrimaryButton
 import com.guardaestados.ui.theme.LocalGuardaEstadosColors
 
 @Composable
 fun HomeScreen(
-    homeBackgroundUri: String?,
-    includedHomeBackground: IncludedHomeBackground?,
     folderSelectionState: FolderSelectionState,
     statusGalleryState: StatusGalleryState,
     onOpenStates: () -> Unit,
     onOpenFolderSettings: () -> Unit,
+    onOpenSaved: () -> Unit,
+    onOpenVideoSplitter: () -> Unit,
     contentPadding: PaddingValues = PaddingValues(0.dp),
     modifier: Modifier = Modifier
 ) {
-    val appColors = LocalGuardaEstadosColors.current
-    val backgroundImageUri = remember(homeBackgroundUri) { homeBackgroundUri?.let(Uri::parse) }
-    val hasBackgroundImage = backgroundImageUri != null
-    val hasIncludedBackground = !hasBackgroundImage && includedHomeBackground != null
-    val hasCustomBackground = hasBackgroundImage || hasIncludedBackground
-
-    Surface(
-        modifier = modifier.fillMaxSize(),
-        color = MaterialTheme.colorScheme.background
-    ) {
-        Box(modifier = Modifier.fillMaxSize()) {
-            if (hasBackgroundImage) {
-                AsyncImage(
-                    model = backgroundImageUri,
-                    contentDescription = null,
-                    contentScale = ContentScale.Fit,
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(appColors.background)
-                )
-            } else if (includedHomeBackground != null) {
-                EstadoGoIncludedHomeBackground(
-                    background = includedHomeBackground,
-                    modifier = Modifier.fillMaxSize()
-                )
-            } else {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(
-                            Brush.verticalGradient(
-                                colors = listOf(
-                                    appColors.background,
-                                    appColors.surfaceStrong,
-                                    appColors.background
-                                )
-                            )
-                        )
-                )
-            }
-
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(
-                        Brush.verticalGradient(
-                            colors = if (hasCustomBackground) {
-                                listOf(
-                                    Color(0xE8031519),
-                                    Color(0xA0062622),
-                                    Color(0xF2031519)
-                                )
-                            } else {
-                                listOf(
-                                    appColors.background.copy(alpha = 0.9f),
-                                    appColors.background.copy(alpha = 0.7f),
-                                    appColors.background.copy(alpha = 0.95f)
-                                )
-                            }
-                        )
-                    )
-            )
-
-            HomeCoverContent(
-                glassOnPhoto = hasCustomBackground,
-                folderSelectionState = folderSelectionState,
-                statusGalleryState = statusGalleryState,
-                onOpenStates = onOpenStates,
-                onOpenFolderSettings = onOpenFolderSettings,
-                modifier = Modifier
-                    .fillMaxSize()
-                    .statusBarsPadding()
-                    .padding(horizontal = 24.dp)
-                    .padding(
-                        top = 28.dp,
-                        bottom = contentPadding.calculateBottomPadding() + 28.dp
-                    )
-            )
-        }
-    }
-}
-
-@Composable
-private fun HomeCoverContent(
-    glassOnPhoto: Boolean,
-    folderSelectionState: FolderSelectionState,
-    statusGalleryState: StatusGalleryState,
-    onOpenStates: () -> Unit,
-    onOpenFolderSettings: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    val titleColor = if (glassOnPhoto) Color.White else MaterialTheme.colorScheme.onBackground
-    val bodyColor = if (glassOnPhoto) Color.White.copy(alpha = 0.82f) else MaterialTheme.colorScheme.onSurfaceVariant
-    val brandActiveColor = LocalGuardaEstadosColors.current.active
-    val statusSummary = homeStatusSummary(
-        folderSelectionState = folderSelectionState,
-        statusGalleryState = statusGalleryState
-    )
-
-    Column(
-        modifier = modifier,
-        verticalArrangement = Arrangement.spacedBy(24.dp)
-    ) {
-        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text(
-                text = buildAnnotatedString {
-                    append("Estado")
-                    withStyle(SpanStyle(color = brandActiveColor)) {
-                        append("Go")
-                    }
-                },
-                style = MaterialTheme.typography.displaySmall,
-                fontWeight = FontWeight.Bold,
-                color = titleColor
-            )
-            Text(
-                text = stringResource(R.string.home_subtitle),
-                style = MaterialTheme.typography.titleMedium,
-                color = bodyColor
-            )
-        }
-
-        Spacer(modifier = Modifier.weight(1f))
-
-        BrandGlassCard(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable(
-                    role = Role.Button,
-                    onClick = if (statusSummary.opensFolderSettings) onOpenFolderSettings else onOpenStates
-                ),
-            contentPadding = PaddingValues(18.dp),
-            shape = RoundedCornerShape(8.dp)
-        ) {
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                verticalAlignment = Alignment.CenterVertically
+    val colors = LocalGuardaEstadosColors.current
+    val needsFolder = folderSelectionState !is FolderSelectionState.Selected
+    Surface(modifier = modifier.fillMaxSize(), color = colors.background) {
+        Box(modifier = Modifier.fillMaxSize().background(Brush.radialGradient(listOf(Color(0x55245CFF), Color.Transparent), radius = 900f))) {
+            Column(
+                modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 20.dp)
+                    .padding(top = 28.dp, bottom = contentPadding.calculateBottomPadding() + 24.dp),
+                verticalArrangement = Arrangement.spacedBy(18.dp)
             ) {
-                Column(
-                    modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    Text(
-                        text = stringResource(R.string.home_available_statuses_title),
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold,
-                        color = titleColor
-                    )
-                    Text(
-                        text = statusSummary.bodyText(),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = bodyColor
-                    )
+                Text(stringResource(R.string.home_title_visible), style = MaterialTheme.typography.displaySmall, fontWeight = FontWeight.Black, color = colors.title)
+                Text(stringResource(R.string.home_modern_tagline), style = MaterialTheme.typography.titleMedium, color = colors.body)
+                BrandGlassCard(modifier = Modifier.fillMaxWidth(), contentPadding = PaddingValues(22.dp), shape = RoundedCornerShape(28.dp)) {
+                    Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                        Surface(modifier = Modifier.size(58.dp), shape = CircleShape, color = colors.active.copy(alpha = 0.16f), contentColor = colors.active) {
+                            Box(contentAlignment = Alignment.Center) { Icon(Icons.Filled.VideoLibrary, null, modifier = Modifier.size(30.dp)) }
+                        }
+                        Text(stringResource(if (needsFolder) R.string.home_connect_states_folder_title else R.string.home_available_statuses_title), style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, color = colors.title)
+                        Text(homeModernStatus(folderSelectionState, statusGalleryState), style = MaterialTheme.typography.bodyLarge, color = colors.body)
+                        BrandPrimaryButton(stringResource(if (needsFolder) R.string.folder_action_select else R.string.home_primary_action), if (needsFolder) onOpenFolderSettings else onOpenStates, Modifier.fillMaxWidth())
+                    }
                 }
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ArrowForward,
-                    contentDescription = null,
-                    modifier = Modifier.size(24.dp),
-                    tint = LocalGuardaEstadosColors.current.active
-                )
+                Text(stringResource(R.string.home_quick_access_title), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = colors.title)
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    HomeQuickCard(stringResource(R.string.nav_saved), stringResource(R.string.home_quick_saved_body), Icons.Filled.Bookmark, onOpenSaved, Modifier.weight(1f))
+                    HomeQuickCard(stringResource(R.string.video_splitter_title), stringResource(R.string.home_quick_split_body), Icons.Filled.ContentCut, onOpenVideoSplitter, Modifier.weight(1f))
+                }
+                Text(stringResource(R.string.home_tools_title), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = colors.title)
+                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    HomeToolCard(stringResource(R.string.preview_action_save_short), Icons.Filled.Download, Modifier.weight(1f))
+                    HomeToolCard(stringResource(R.string.nav_split), Icons.Filled.ContentCut, Modifier.weight(1f))
+                    HomeToolCard(stringResource(R.string.share_action_short), Icons.Filled.Share, Modifier.weight(1f))
+                }
             }
         }
     }
 }
 
 @Composable
-private fun HomeStatusSummary.bodyText(): String {
-    return if (imageCount != null && videoCount != null) {
-        val imagesText = pluralStringResource(R.plurals.home_available_images, imageCount, imageCount)
-        val videosText = pluralStringResource(R.plurals.home_available_videos, videoCount, videoCount)
-        stringResource(R.string.home_status_counts_summary, imagesText, videosText)
-    } else {
-        stringResource(bodyRes)
+private fun HomeQuickCard(title: String, body: String, icon: ImageVector, onClick: () -> Unit, modifier: Modifier) {
+    val colors = LocalGuardaEstadosColors.current
+    BrandGlassCard(modifier.clickable(role = Role.Button, onClick = onClick), PaddingValues(16.dp), RoundedCornerShape(22.dp)) {
+        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Icon(icon, null, tint = colors.activeAlt, modifier = Modifier.size(32.dp))
+            Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = colors.title)
+            Text(body, style = MaterialTheme.typography.bodySmall, color = colors.body)
+            Icon(Icons.AutoMirrored.Filled.ArrowForward, null, tint = colors.active)
+        }
     }
 }
 
 @Composable
-private fun homeStatusSummary(
-    folderSelectionState: FolderSelectionState,
-    statusGalleryState: StatusGalleryState
-): HomeStatusSummary {
-    return when (folderSelectionState) {
-        FolderSelectionState.Loading,
-        is FolderSelectionState.Selected -> {
-            when (statusGalleryState) {
-                StatusGalleryState.Loading -> HomeStatusSummary(
-                    bodyRes = R.string.home_status_loading,
-                    opensFolderSettings = false
-                )
-
-                is StatusGalleryState.Content -> {
-                    val imageCount = statusGalleryState.images.count { image -> image.mediaType == StatusMediaType.Image }
-                    val videoCount = statusGalleryState.images.count { image -> image.mediaType == StatusMediaType.Video }
-                    HomeStatusSummary(
-                        bodyRes = R.string.home_status_loading,
-                        imageCount = imageCount,
-                        videoCount = videoCount,
-                        opensFolderSettings = false
-                    )
-                }
-
-                StatusGalleryState.Empty -> HomeStatusSummary(
-                    bodyRes = R.string.home_status_empty,
-                    imageCount = 0,
-                    videoCount = 0,
-                    opensFolderSettings = false
-                )
-
-                StatusGalleryState.NoFolderSelected,
-                StatusGalleryState.PermissionLost -> HomeStatusSummary(
-                    bodyRes = R.string.home_connect_states_folder_body,
-                    opensFolderSettings = true
-                )
-
-                StatusGalleryState.RecoverableError -> HomeStatusSummary(
-                    bodyRes = R.string.home_status_read_error,
-                    opensFolderSettings = false
-                )
-            }
+private fun HomeToolCard(title: String, icon: ImageVector, modifier: Modifier) {
+    val colors = LocalGuardaEstadosColors.current
+    BrandGlassCard(modifier, PaddingValues(vertical = 16.dp, horizontal = 8.dp), RoundedCornerShape(20.dp)) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+            Icon(icon, null, tint = colors.active, modifier = Modifier.size(28.dp))
+            Text(title, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold, color = colors.title)
         }
-
-        FolderSelectionState.NotSelected,
-        is FolderSelectionState.PermissionLost -> HomeStatusSummary(
-            bodyRes = R.string.home_connect_states_folder_body,
-            opensFolderSettings = true
-        )
     }
 }
 
-private data class HomeStatusSummary(
-    val bodyRes: Int,
-    val imageCount: Int? = null,
-    val videoCount: Int? = null,
-    val opensFolderSettings: Boolean
-)
+@Composable
+private fun homeModernStatus(folderState: FolderSelectionState, galleryState: StatusGalleryState): String = when {
+    folderState !is FolderSelectionState.Selected -> stringResource(R.string.home_connect_states_folder_body)
+    galleryState == StatusGalleryState.Loading -> stringResource(R.string.home_status_loading)
+    galleryState == StatusGalleryState.Empty -> stringResource(R.string.home_status_empty)
+    galleryState is StatusGalleryState.Content -> stringResource(R.string.home_status_ready_real)
+    else -> stringResource(R.string.home_status_read_error)
+}

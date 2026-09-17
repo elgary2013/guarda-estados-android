@@ -41,20 +41,20 @@ data class GuardaEstadosColorTokens(
 private val DarkGuardaEstadosColors = GuardaEstadosColorTokens(
     background = SocialNightBackground,
     surface = SocialNightSurface,
-    surfaceStrong = Color(0xE61A2421),
+    surfaceStrong = Color(0xE6112D55),
     surfaceSoft = SocialGreenSoft,
     title = SocialTextPrimary,
     body = SocialTextSecondary,
     border = SocialBorder,
     active = SocialGreen,
     activeAlt = SocialFuchsia,
-    thumbnailBackground = Color(0xFF101A18),
-    badgeOverlay = Color(0xD90A1210),
-    mediaBackground = Color(0xFF050807),
+    thumbnailBackground = Color(0xFF081D3B),
+    badgeOverlay = Color(0xDD03142D),
+    mediaBackground = Color(0xFF020A18),
     danger = SocialError,
     dangerSoft = Color(0x33FF6B5F),
     dangerBorder = Color(0x66FFB4AB),
-    primaryGradient = Brush.horizontalGradient(listOf(SocialGreen, SocialFuchsia))
+    primaryGradient = Brush.horizontalGradient(listOf(Color(0xFF159CFF), SocialViolet, SocialFuchsia))
 )
 
 private val LightGuardaEstadosColors = GuardaEstadosColorTokens(
