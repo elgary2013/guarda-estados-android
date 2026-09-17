@@ -23,13 +23,15 @@
 ## Privacidad y Data Safety
 
 - [ ] Completar la sección Data Safety en Play Console.
-- [ ] Declarar que la app no recopila datos de usuario.
-- [ ] Declarar que la app no comparte datos de usuario.
+- [ ] Completar Data Safety considerando el tratamiento realizado por Google Mobile Ads y UMP, incluidos los datos y finalidades declarados por Google para las versiones integradas.
+- [ ] No declarar “sin recopilación” o “sin datos compartidos” sin contrastarlo con la documentación vigente de los SDK de Google y la configuración real de anuncios.
 - [ ] Declarar que la app no crea cuentas.
 - [ ] Confirmar que la app funciona localmente.
 - [ ] Confirmar que la app accede solo a la carpeta elegida por el usuario mediante el selector oficial de Android.
 - [ ] Confirmar que el permiso URI persistente se usa solo para recordar la carpeta autorizada.
 - [ ] Confirmar que compartir contenido ocurre solo cuando el usuario lo solicita mediante el selector oficial de Android.
+- [ ] Declarar que las imágenes y videos de estados permanecen locales y no se envían a Google para almacenarlos o analizarlos.
+- [ ] Verificar que UMP se muestre cuando corresponda y que las opciones de privacidad puedan reabrirse desde la app.
 - [ ] Revisar que la política de privacidad no mencione funciones que aún no estén implementadas.
 - [ ] Completar en la política de privacidad: [correo de contacto].
 - [ ] Completar en la política de privacidad: [fecha de actualización].
@@ -40,7 +42,8 @@
 - [ ] Revisar que la descripción y capturas no usen marcas de terceros de forma engañosa.
 - [ ] Verificar que no se pidan permisos innecesarios.
 - [ ] Verificar que no se use MANAGE_EXTERNAL_STORAGE.
-- [ ] Verificar que no haya Firebase, anuncios, analítica ni SDKs externos de recopilación de datos si no se van a declarar.
+- [ ] Verificar que Google Mobile Ads y UMP estén declarados de forma coherente en Data Safety y en la política pública.
+- [ ] Verificar que no haya Firebase, analítica adicional, mediación ni otros SDKs externos no declarados.
 
 ## Build y lanzamiento
 
