@@ -10,8 +10,11 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
@@ -20,10 +23,13 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.relocation.BringIntoViewRequester
 import androidx.compose.foundation.relocation.bringIntoViewRequester
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.ContentCut
+import androidx.compose.material.icons.filled.VideoLibrary
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FilterChip
@@ -37,6 +43,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
@@ -123,6 +130,12 @@ fun VideoSplitterScreen(
         }
     }
 
+    LaunchedEffect(uiState.selectedVideo?.uri) {
+        if (uiState.selectedVideo != null && uiState.activeMode != VideoSplitterMode.Split) {
+            onModeSelected(VideoSplitterMode.Split)
+        }
+    }
+
     Surface(
         modifier = modifier.fillMaxSize(),
         color = SplitBackground
@@ -133,12 +146,10 @@ fun VideoSplitterScreen(
                 .verticalScroll(scrollState)
                 .statusBarsPadding()
                 .navigationBarsPadding()
-                .padding(24.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+                .padding(horizontal = 18.dp, vertical = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
             VideoSplitterHeader(onBack = onBack)
-
-            VideoNoticeCard()
 
             uiState.message?.let { message ->
                 VideoStatusCard(
@@ -147,47 +158,52 @@ fun VideoSplitterScreen(
                 )
             }
 
-            SplitPrimaryButton(
-                text = stringResource(R.string.video_splitter_action_pick),
-                onClick = onPickVideo,
-                enabled = uiState.status != VideoSplitterStatus.Processing,
-                modifier = Modifier.fillMaxWidth()
-            )
-
             val previewUri = uiState.previewUri
-            if (previewUri != null) {
-                val previewRange = uiState.previewTrimRange
-                val trimFormatter = remember { VideoTrimPlanner() }
-                GlassCard(
-                    modifier = Modifier.bringIntoViewRequester(previewRequester),
-                    contentPadding = PaddingValues(8.dp)
-                ) {
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        VideoPlayerPreview(
-                            uri = previewUri,
-                            previewStartMs = previewRange?.startMs,
-                            previewStopMs = previewRange?.endMs,
-                            playbackRequestKey = uiState.previewRequestKey,
-                            autoPlayOnRequest = uiState.previewShouldAutoPlay,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .heightIn(min = 260.dp, max = 520.dp)
-                        )
-                        if (previewRange != null) {
-                            Text(
-                                text = stringResource(
-                                    R.string.video_trim_preview_range,
-                                    trimFormatter.formatSeconds(previewRange.startSeconds),
-                                    trimFormatter.formatSeconds(previewRange.endSeconds)
-                                ),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = SplitBody
+            if (uiState.selectedVideo == null && previewUri == null) {
+                VideoEmptyCard(
+                    onPickVideo = onPickVideo,
+                    enabled = uiState.status != VideoSplitterStatus.Processing
+                )
+            } else {
+                VideoNoticeCard()
+                SplitPrimaryButton(
+                    text = stringResource(R.string.video_splitter_action_pick),
+                    onClick = onPickVideo,
+                    enabled = uiState.status != VideoSplitterStatus.Processing,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                if (previewUri != null) {
+                    val previewRange = uiState.previewTrimRange
+                    val trimFormatter = remember { VideoTrimPlanner() }
+                    GlassCard(
+                        modifier = Modifier.bringIntoViewRequester(previewRequester),
+                        contentPadding = PaddingValues(8.dp)
+                    ) {
+                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            VideoPlayerPreview(
+                                uri = previewUri,
+                                previewStartMs = previewRange?.startMs,
+                                previewStopMs = previewRange?.endMs,
+                                playbackRequestKey = uiState.previewRequestKey,
+                                autoPlayOnRequest = uiState.previewShouldAutoPlay,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .heightIn(min = 260.dp, max = 520.dp)
                             )
+                            if (previewRange != null) {
+                                Text(
+                                    text = stringResource(
+                                        R.string.video_trim_preview_range,
+                                        trimFormatter.formatSeconds(previewRange.startSeconds),
+                                        trimFormatter.formatSeconds(previewRange.endSeconds)
+                                    ),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = SplitBody
+                                )
+                            }
                         }
                     }
                 }
-            } else {
-                VideoEmptyCard()
             }
 
             uiState.selectedVideo?.let { video ->
@@ -238,35 +254,43 @@ fun VideoSplitterScreen(
 
 @Composable
 private fun VideoSplitterHeader(onBack: () -> Unit) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .heightIn(min = 56.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalAlignment = Alignment.Top
-    ) {
-        IconButton(onClick = onBack) {
-            Icon(
-                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                contentDescription = stringResource(R.string.preview_action_back),
-                modifier = Modifier.size(24.dp),
-                tint = SplitText
-            )
+    Box(modifier = Modifier.fillMaxWidth()) {
+        Surface(
+            modifier = Modifier
+                .align(Alignment.CenterStart)
+                .size(48.dp),
+            shape = RoundedCornerShape(16.dp),
+            color = SplitSurfaceStrong,
+            border = BorderStroke(1.dp, SplitBorder)
+        ) {
+            IconButton(onClick = onBack) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription = stringResource(R.string.preview_action_back),
+                    modifier = Modifier.size(24.dp),
+                    tint = SplitText
+                )
+            }
         }
         Column(
-            modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(6.dp)
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 56.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(3.dp)
         ) {
             Text(
                 text = stringResource(R.string.video_splitter_title),
-                style = MaterialTheme.typography.headlineSmall,
+                style = MaterialTheme.typography.headlineMedium,
                 fontWeight = FontWeight.Bold,
-                color = SplitText
+                color = SplitText,
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center
             )
             Text(
                 text = stringResource(R.string.video_splitter_subtitle),
                 style = MaterialTheme.typography.bodyMedium,
-                color = SplitBody
+                color = SplitBody,
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center
             )
         }
     }
@@ -293,29 +317,108 @@ private fun GlassCard(
 
 @Composable
 private fun VideoNoticeCard() {
-    GlassCard(contentPadding = PaddingValues(horizontal = 14.dp, vertical = 10.dp)) {
-        Text(
-            text = stringResource(R.string.video_splitter_original_unchanged),
-            style = MaterialTheme.typography.bodySmall,
-            color = SplitBody
-        )
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(18.dp),
+        color = SplitGreenSoft,
+        border = BorderStroke(1.dp, SplitGreen.copy(alpha = 0.58f))
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 13.dp),
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Surface(modifier = Modifier.size(28.dp), shape = CircleShape, color = SplitGreen.copy(alpha = 0.16f)) {
+                Box(contentAlignment = Alignment.Center) {
+                    Text("i", fontWeight = FontWeight.Bold, color = SplitGreen)
+                }
+            }
+            Text(
+                text = stringResource(R.string.video_splitter_original_unchanged),
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.SemiBold,
+                color = SplitGreen
+            )
+        }
     }
 }
 
 @Composable
-private fun VideoEmptyCard() {
-    GlassCard {
-        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+private fun VideoEmptyCard(
+    onPickVideo: () -> Unit,
+    enabled: Boolean
+) {
+    GlassCard(contentPadding = PaddingValues(horizontal = 22.dp, vertical = 24.dp)) {
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(82.dp)
+                    .background(SplitGradient, CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Filled.VideoLibrary,
+                    contentDescription = null,
+                    modifier = Modifier.size(42.dp),
+                    tint = Color.White
+                )
+                Surface(
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .size(34.dp),
+                    shape = CircleShape,
+                    color = SplitSurfaceStrong,
+                    border = BorderStroke(1.dp, SplitBorder)
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            imageVector = Icons.Filled.ContentCut,
+                            contentDescription = null,
+                            modifier = Modifier.size(19.dp),
+                            tint = SplitGreen
+                        )
+                    }
+                }
+            }
             Text(
                 text = stringResource(R.string.video_splitter_empty_title),
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold,
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.Bold,
                 color = SplitText
             )
             Text(
                 text = stringResource(R.string.video_splitter_empty_body),
                 style = MaterialTheme.typography.bodyMedium,
-                color = SplitBody
+                color = SplitBody,
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+            )
+            Surface(
+                shape = RoundedCornerShape(999.dp),
+                color = SplitGreenSoft,
+                border = BorderStroke(1.dp, SplitBorder)
+            ) {
+                Text(
+                    text = stringResource(R.string.video_splitter_original_unchanged),
+                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 7.dp),
+                    style = MaterialTheme.typography.labelLarge,
+                    color = SplitGreen
+                )
+            }
+            SplitPrimaryButton(
+                text = stringResource(R.string.video_splitter_action_pick),
+                onClick = onPickVideo,
+                enabled = enabled,
+                modifier = Modifier.fillMaxWidth()
+            )
+            Text(
+                text = stringResource(R.string.video_splitter_empty_modes),
+                style = MaterialTheme.typography.bodySmall,
+                color = SplitBody,
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center
             )
         }
     }
@@ -406,20 +509,63 @@ private fun VideoModeSelector(
             fontWeight = FontWeight.SemiBold,
             color = SplitText
         )
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            VideoFilterChip(
+        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            VideoModeCard(
                 selected = activeMode == VideoSplitterMode.Split,
                 text = stringResource(R.string.video_splitter_mode_split),
+                supportingText = stringResource(R.string.video_splitter_mode_split_body),
                 processing = processing,
                 onClick = { onModeSelected(VideoSplitterMode.Split) }
             )
-            VideoFilterChip(
+            VideoModeCard(
                 selected = activeMode == VideoSplitterMode.Trim,
                 text = stringResource(R.string.video_splitter_mode_trim),
+                supportingText = stringResource(R.string.video_splitter_mode_trim_body),
                 processing = processing,
                 onClick = { onModeSelected(VideoSplitterMode.Trim) }
             )
         }
+    }
+}
+
+@Composable
+private fun VideoModeCard(
+    selected: Boolean,
+    text: String,
+    supportingText: String,
+    processing: Boolean,
+    onClick: () -> Unit
+) {
+    val shape = RoundedCornerShape(16.dp)
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(shape)
+            .background(if (selected) SplitGreenSoft else SplitSurfaceStrong)
+            .border(1.dp, if (selected) SplitGreen else SplitBorder, shape)
+            .clickable(enabled = !processing, role = Role.RadioButton, onClick = onClick)
+            .padding(14.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(
+            modifier = Modifier
+                .size(22.dp)
+                .border(2.dp, if (selected) SplitGreen else SplitBody, CircleShape),
+            contentAlignment = Alignment.Center
+        ) {
+            if (selected) Box(Modifier.size(10.dp).background(SplitGreen, CircleShape))
+        }
+        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Text(text, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = SplitText)
+            Text(supportingText, style = MaterialTheme.typography.bodySmall, color = SplitBody)
+        }
+        Icon(
+            imageVector = if (selected) Icons.Filled.ContentCut else Icons.Filled.VideoLibrary,
+            contentDescription = null,
+            modifier = Modifier.size(24.dp),
+            tint = if (selected) SplitGreen else SplitBody
+        )
     }
 }
 
@@ -442,12 +588,13 @@ private fun SplitPartsControls(
             fontWeight = FontWeight.SemiBold,
             color = SplitText
         )
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             listOf(15, 30, 60).forEach { seconds ->
-                VideoFilterChip(
+                DurationOption(
                     selected = selectedPartSeconds == seconds,
                     text = stringResource(R.string.video_splitter_seconds_option, seconds),
                     processing = processing,
+                    modifier = Modifier.weight(1f),
                     onClick = { onPartDurationSelected(seconds) }
                 )
             }
@@ -471,6 +618,33 @@ private fun SplitPartsControls(
             text = stringResource(if (processing) R.string.video_splitter_action_cancel else R.string.video_splitter_action_create),
             onClick = if (processing) onCancelProcessing else onCreateParts,
             modifier = Modifier.fillMaxWidth()
+        )
+    }
+}
+
+@Composable
+private fun DurationOption(
+    selected: Boolean,
+    text: String,
+    processing: Boolean,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit
+) {
+    val shape = RoundedCornerShape(14.dp)
+    Box(
+        modifier = modifier
+            .heightIn(min = 52.dp)
+            .clip(shape)
+            .background(if (selected) SplitGradient else Brush.horizontalGradient(listOf(SplitSurfaceStrong, SplitSurfaceStrong)))
+            .border(1.dp, if (selected) SplitGreen else SplitBorder, shape)
+            .clickable(enabled = !processing, role = Role.RadioButton, onClick = onClick),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = text,
+            style = MaterialTheme.typography.titleSmall,
+            fontWeight = FontWeight.Bold,
+            color = if (selected) Color.White else SplitText
         )
     }
 }
@@ -526,7 +700,15 @@ private fun TrimVideoControls(
     val canIncreaseStart = !processing && trimRange.startSeconds < trimRange.endSeconds - 1
     val canDecreaseEnd = !processing && trimRange.endSeconds > trimRange.startSeconds + 1
     val canIncreaseEnd = !processing && trimRange.endSeconds < totalSeconds
-    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(16.dp))
+            .background(SplitSurfaceStrong)
+            .border(1.dp, SplitBorder, RoundedCornerShape(16.dp))
+            .padding(14.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
         VideoDetailRow(label = stringResource(R.string.video_splitter_output_location), value = stringResource(R.string.video_trim_output_path))
         Text(
             text = stringResource(R.string.video_trim_range_title),
@@ -535,6 +717,10 @@ private fun TrimVideoControls(
             color = SplitText
         )
         if (totalSeconds > 0) {
+            VideoTimeline(
+                startLabel = planner.formatSeconds(trimRange.startSeconds),
+                endLabel = planner.formatSeconds(trimRange.endSeconds)
+            )
             RangeSlider(
                 value = trimRange.startSeconds.toFloat()..trimRange.endSeconds.toFloat(),
                 onValueChange = { range ->
@@ -605,6 +791,39 @@ private fun TrimVideoControls(
                     onClick = onCreateTrim,
                     modifier = Modifier.weight(1f)
                 )
+            }
+        }
+    }
+}
+
+@Composable
+private fun VideoTimeline(startLabel: String, endLabel: String) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+            Text(startLabel, style = MaterialTheme.typography.labelLarge, color = SplitBody)
+            Text(endLabel, style = MaterialTheme.typography.labelLarge, color = SplitBody)
+        }
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(48.dp)
+                .clip(RoundedCornerShape(12.dp))
+                .background(SplitGradient)
+                .padding(horizontal = 8.dp, vertical = 7.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxSize(),
+                horizontalArrangement = Arrangement.spacedBy(5.dp)
+            ) {
+                repeat(8) { index ->
+                    Spacer(
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxHeight()
+                            .clip(RoundedCornerShape(5.dp))
+                            .background(Color.White.copy(alpha = if (index % 2 == 0) 0.24f else 0.14f))
+                    )
+                }
             }
         }
     }
@@ -838,7 +1057,7 @@ private fun SplitPrimaryButton(
             text = text,
             style = MaterialTheme.typography.labelLarge,
             fontWeight = FontWeight.Bold,
-            color = SplitText,
+            color = Color.White,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis
         )
