@@ -1,5 +1,6 @@
 package com.guardaestados.ui.screens
 
+import androidx.annotation.DrawableRes
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -17,7 +18,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
-import androidx.compose.material.icons.filled.Bookmark
 import androidx.compose.material.icons.filled.ContentCut
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Share
@@ -32,6 +32,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
@@ -77,8 +78,8 @@ fun HomeScreen(
                 }
                 Text(stringResource(R.string.home_quick_access_title), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = colors.title)
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    HomeQuickCard(stringResource(R.string.nav_saved), stringResource(R.string.home_quick_saved_body), Icons.Filled.Bookmark, onOpenSaved, Modifier.weight(1f))
-                    HomeQuickCard(stringResource(R.string.video_splitter_title), stringResource(R.string.home_quick_split_body), Icons.Filled.ContentCut, onOpenVideoSplitter, Modifier.weight(1f))
+                    HomeQuickCard(stringResource(R.string.nav_saved), stringResource(R.string.home_quick_saved_body), R.drawable.ic_app_guardados, onOpenSaved, Modifier.weight(1f))
+                    HomeQuickCard(stringResource(R.string.video_splitter_title), stringResource(R.string.home_quick_split_body), R.drawable.ic_app_dividir, onOpenVideoSplitter, Modifier.weight(1f))
                 }
                 Text(stringResource(R.string.home_tools_title), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = colors.title)
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -92,11 +93,11 @@ fun HomeScreen(
 }
 
 @Composable
-private fun HomeQuickCard(title: String, body: String, icon: ImageVector, onClick: () -> Unit, modifier: Modifier) {
+private fun HomeQuickCard(title: String, body: String, @DrawableRes icon: Int, onClick: () -> Unit, modifier: Modifier) {
     val colors = LocalGuardaEstadosColors.current
     BrandGlassCard(modifier.clickable(role = Role.Button, onClick = onClick), PaddingValues(16.dp), RoundedCornerShape(22.dp)) {
         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Icon(icon, null, tint = colors.activeAlt, modifier = Modifier.size(32.dp))
+            Icon(painterResource(icon), null, tint = colors.activeAlt, modifier = Modifier.size(32.dp))
             Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = colors.title)
             Text(body, style = MaterialTheme.typography.bodySmall, color = colors.body)
             Icon(Icons.AutoMirrored.Filled.ArrowForward, null, tint = colors.active)
