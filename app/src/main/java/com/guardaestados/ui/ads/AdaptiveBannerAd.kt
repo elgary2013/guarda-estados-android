@@ -5,7 +5,9 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Surface
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -85,24 +87,31 @@ fun AdaptiveBannerAd(
             }
         }
 
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = 6.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(4.dp)
+        Surface(
+            modifier = Modifier.fillMaxWidth(),
+            color = LocalGuardaEstadosColors.current.surfaceStrong
         ) {
-            Text(
-                text = stringResource(R.string.ad_label),
-                style = MaterialTheme.typography.labelSmall,
-                fontWeight = FontWeight.Medium,
-                color = LocalGuardaEstadosColors.current.body
-            )
-            key(resolvedAdUnitId, adWidth) {
-                AndroidView(
-                    factory = { adView },
-                    modifier = Modifier.fillMaxWidth()
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 4.dp, bottom = 6.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(3.dp)
+            ) {
+                Text(
+                    text = stringResource(R.string.ad_label),
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.Medium,
+                    color = LocalGuardaEstadosColors.current.body
                 )
+                key(resolvedAdUnitId, adWidth) {
+                    AndroidView(
+                        factory = { adView },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(adSize.height.dp)
+                    )
+                }
             }
         }
     }
