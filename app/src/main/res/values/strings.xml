@@ -321,7 +321,7 @@
     <string name="settings_theme_summary_system">Usar tema del sistema</string>
     <string name="settings_theme_summary_light">Claro</string>
     <string name="settings_theme_summary_dark">Oscuro</string>
-    <string name="settings_theme_system">Según el sistema</string>
+    <string name="settings_theme_system">Sistema</string>
     <string name="settings_theme_light">Claro</string>
     <string name="settings_theme_dark">Oscuro</string>
     <string name="settings_privacy_title">Privacidad y aviso legal</string>
