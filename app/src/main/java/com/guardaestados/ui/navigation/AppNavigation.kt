@@ -625,8 +625,8 @@ private fun RowScope.BottomBarItem(
                     Icon(
                         painter = painterResource(iconRes),
                         contentDescription = null,
-                        modifier = Modifier.size(28.dp),
-                        tint = Color.White
+                        modifier = Modifier.size(32.dp),
+                        tint = Color(0xFFFFFFFF)
                     )
                 }
             }
@@ -636,8 +636,11 @@ private fun RowScope.BottomBarItem(
                     painter = painterResource(iconRes),
                     contentDescription = null,
                     modifier = Modifier.size(
-                        if (route == AppRoute.Home || route == AppRoute.States) 25.dp
-                        else 22.dp
+                        when (route) {
+                            AppRoute.Home, AppRoute.States -> 25.dp
+                            AppRoute.Settings -> 26.dp
+                            else -> 22.dp
+                        }
                     ),
                     tint = itemContentColor
                 )
