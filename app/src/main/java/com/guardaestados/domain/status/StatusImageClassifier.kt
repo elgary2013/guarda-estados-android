@@ -5,7 +5,7 @@ class StatusImageClassifier {
         if (candidate.isDirectory) return false
         if (candidate.name.isNullOrBlank()) return false
         if (candidate.isTemporaryFile()) return false
-        if (candidate.sizeBytes != null && candidate.sizeBytes <= 0L) return false
+        if (candidate.sizeBytes != null && candidate.sizeBytes < 0L) return false
         return resolveMimeType(candidate.mimeType, candidate.name) != null
     }
 
@@ -23,6 +23,16 @@ class StatusImageClassifier {
 
     fun resolveMimeType(mimeType: String?, name: String?): String? {
         return normalizeMimeType(mimeType) ?: normalizeMimeTypeFromExtension(name)
+    }
+
+    fun resolveMimeType(
+        documentMimeType: String?,
+        resolverMimeType: String?,
+        name: String?
+    ): String? {
+        return normalizeMimeType(documentMimeType)
+            ?: normalizeMimeType(resolverMimeType)
+            ?: normalizeMimeTypeFromExtension(name)
     }
 
     private fun normalizeMimeTypeFromExtension(name: String?): String? {
