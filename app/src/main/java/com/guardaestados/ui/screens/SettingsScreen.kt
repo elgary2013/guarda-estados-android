@@ -6,6 +6,7 @@ import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -21,11 +22,13 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.ContentCut
+import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.AlertDialog
@@ -35,8 +38,6 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.RadioButton
-import androidx.compose.material3.RadioButtonDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -125,7 +126,7 @@ fun SettingsScreen(
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
                 .statusBarsPadding()
-                .padding(start = 20.dp, top = 30.dp, end = 20.dp, bottom = 18.dp)
+                .padding(start = 18.dp, top = 20.dp, end = 18.dp, bottom = 16.dp)
                 .navigationBarsPadding(),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
@@ -168,16 +169,14 @@ fun SettingsScreen(
                 onClick = onOpenPrivacyInfo
             )
 
-            BrandGlassCard(modifier = Modifier.fillMaxWidth()) {
-                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            BrandGlassCard(modifier = Modifier.fillMaxWidth(), contentPadding = androidx.compose.foundation.layout.PaddingValues(14.dp)) {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     Text(stringResource(R.string.settings_theme_title), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold, color = SettingsTitle)
-                    ThemeOption(stringResource(R.string.settings_theme_system), themePreference == AppThemePreference.System) { onThemePreferenceSelected(AppThemePreference.System) }
-                    ThemeOption(stringResource(R.string.settings_theme_dark), themePreference == AppThemePreference.Dark) { onThemePreferenceSelected(AppThemePreference.Dark) }
-                    ThemeOption(stringResource(R.string.settings_theme_light), themePreference == AppThemePreference.Light) { onThemePreferenceSelected(AppThemePreference.Light) }
+                    ThemeSegmentedSelector(themePreference, onThemePreferenceSelected)
                 }
             }
 
-            BrandGlassCard(modifier = Modifier.fillMaxWidth()) {
+            BrandGlassCard(modifier = Modifier.fillMaxWidth(), contentPadding = androidx.compose.foundation.layout.PaddingValues(14.dp)) {
                 Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     Text(stringResource(R.string.settings_how_to_title), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold, color = SettingsTitle)
                     Text(stringResource(R.string.settings_how_to_body), style = MaterialTheme.typography.bodyMedium, color = SettingsBody)
@@ -291,7 +290,7 @@ private fun ExpandableSettingsSection(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 14.dp),
+                .padding(horizontal = 14.dp, vertical = 10.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Row(
@@ -350,7 +349,7 @@ private fun SettingsLinkSection(
             modifier = Modifier
                 .fillMaxWidth()
                 .clickable(role = Role.Button, onClick = onClick)
-                .padding(horizontal = 16.dp, vertical = 14.dp),
+                .padding(horizontal = 14.dp, vertical = 10.dp),
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -371,6 +370,12 @@ private fun SettingsLinkSection(
                     color = SettingsBody
                 )
             }
+            Icon(
+                imageVector = Icons.Filled.ChevronRight,
+                contentDescription = null,
+                modifier = Modifier.size(22.dp),
+                tint = SettingsBody
+            )
         }
     }
 }
@@ -393,7 +398,7 @@ private fun SensitiveSettingsLinkSection(
             modifier = Modifier
                 .fillMaxWidth()
                 .clickable(role = Role.Button, onClick = onClick)
-                .padding(horizontal = 16.dp, vertical = 14.dp),
+                .padding(horizontal = 14.dp, vertical = 10.dp),
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -419,6 +424,12 @@ private fun SensitiveSettingsLinkSection(
                     color = SettingsBody
                 )
             }
+            Icon(
+                imageVector = Icons.Filled.ChevronRight,
+                contentDescription = null,
+                modifier = Modifier.size(22.dp),
+                tint = SettingsDanger
+            )
         }
     }
 }
@@ -441,7 +452,7 @@ private fun SettingsSectionIcon(
     borderColor: Color
 ) {
     Surface(
-        modifier = Modifier.size(44.dp),
+        modifier = Modifier.size(38.dp),
         shape = CircleShape,
         color = backgroundColor,
         contentColor = tint,
@@ -455,7 +466,7 @@ private fun SettingsSectionIcon(
             Icon(
                 imageVector = icon,
                 contentDescription = null,
-                modifier = Modifier.size(22.dp),
+                modifier = Modifier.size(20.dp),
                 tint = tint
             )
         }
@@ -681,36 +692,45 @@ private fun themeSummaryText(themePreference: AppThemePreference): String {
 }
 
 @Composable
-private fun ThemeOption(
-    text: String,
-    selected: Boolean,
-    onClick: () -> Unit
+private fun ThemeSegmentedSelector(
+    selectedTheme: AppThemePreference,
+    onThemeSelected: (AppThemePreference) -> Unit
 ) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .selectable(
-                selected = selected,
-                onClick = onClick,
-                role = Role.RadioButton
-            )
-            .padding(vertical = 6.dp),
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-        verticalAlignment = Alignment.CenterVertically
+            .background(SettingsSurfaceStrong, RoundedCornerShape(14.dp))
+            .padding(3.dp),
+        horizontalArrangement = Arrangement.spacedBy(3.dp)
     ) {
-        RadioButton(
-            selected = selected,
-            onClick = null,
-            colors = RadioButtonDefaults.colors(
-                selectedColor = SettingsIconTint,
-                unselectedColor = SettingsBody
-            )
-        )
-        Text(
-            text = text,
-            style = MaterialTheme.typography.bodyLarge,
-            color = SettingsTitle
-        )
+        listOf(
+            AppThemePreference.System to R.string.settings_theme_system,
+            AppThemePreference.Dark to R.string.settings_theme_dark,
+            AppThemePreference.Light to R.string.settings_theme_light
+        ).forEach { (theme, labelRes) ->
+            val selected = selectedTheme == theme
+            Surface(
+                modifier = Modifier
+                    .weight(1f)
+                    .selectable(
+                        selected = selected,
+                        onClick = { onThemeSelected(theme) },
+                        role = Role.RadioButton
+                    ),
+                shape = RoundedCornerShape(11.dp),
+                color = if (selected) SettingsIconBackground else Color.Transparent,
+                border = if (selected) BorderStroke(1.dp, SettingsIconBorder) else null
+            ) {
+                Text(
+                    text = stringResource(labelRes),
+                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 9.dp),
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium,
+                    color = if (selected) SettingsIconTint else SettingsBody,
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                )
+            }
+        }
     }
 }
 
