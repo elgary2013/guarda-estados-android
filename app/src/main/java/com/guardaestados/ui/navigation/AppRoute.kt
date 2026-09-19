@@ -11,10 +11,10 @@ sealed class AppRoute(
     @param:DrawableRes val iconRes: Int? = null
 ) {
     data object Home : AppRoute("inicio", R.string.nav_home, R.drawable.ic_nav_home)
-    data object States : AppRoute("estados", R.string.nav_states, R.drawable.ic_nav_states)
-    data object VideoSplitter : AppRoute("dividir-video", R.string.nav_split, R.drawable.ic_nav_split)
-    data object Saved : AppRoute("guardados", R.string.nav_saved, R.drawable.ic_nav_saved)
-    data object Settings : AppRoute("configuracion", R.string.nav_settings, R.drawable.ic_nav_settings)
+    data object States : AppRoute("estados", R.string.nav_states, R.drawable.ic_app_estados)
+    data object VideoSplitter : AppRoute("dividir-video", R.string.nav_split, R.drawable.ic_app_dividir)
+    data object Saved : AppRoute("guardados", R.string.nav_saved, R.drawable.ic_app_guardados)
+    data object Settings : AppRoute("configuracion", R.string.nav_settings, R.drawable.ic_app_ajustes)
     data object FolderSettings : AppRoute("configuracion/carpeta-seleccionada", R.string.settings_folder_title)
     data object SaveDestinationSettings : AppRoute("configuracion/carpeta-destino", R.string.settings_save_destination_title)
     data object PrivacyInfoSettings : AppRoute("configuracion/privacidad-informacion", R.string.settings_privacy_info_title)

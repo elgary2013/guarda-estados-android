@@ -185,7 +185,6 @@ fun VideoPlayerPreview(
                 PlayerView(viewContext).apply {
                     this.player = player
                     useController = !immersiveControls
-                    setOnTouchListener { _, _ -> false }
                     setShowBuffering(PlayerView.SHOW_BUFFERING_WHEN_PLAYING)
                     setShutterBackgroundColor(android.graphics.Color.BLACK)
                 }
@@ -193,7 +192,6 @@ fun VideoPlayerPreview(
             update = { playerView ->
                 playerView.player = player
                 playerView.useController = !immersiveControls
-                playerView.setOnTouchListener { _, _ -> false }
             }
         )
 

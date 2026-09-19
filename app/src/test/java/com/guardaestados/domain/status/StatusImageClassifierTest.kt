@@ -44,8 +44,12 @@ class StatusImageClassifierTest {
     fun `rejects temporary and invalid files`() {
         assertFalse(classifier.isAccepted(candidate(name = ".pending.jpg", mimeType = "image/jpeg")))
         assertFalse(classifier.isAccepted(candidate(name = "photo.tmp", mimeType = "image/png")))
-        assertFalse(classifier.isAccepted(candidate(name = "clip.mp4", mimeType = "video/mp4", sizeBytes = 0L)))
         assertFalse(classifier.isAccepted(candidate(name = "", mimeType = "image/jpeg")))
+    }
+
+    @Test
+    fun `accepts compatible file when saf reports zero size`() {
+        assertTrue(classifier.isAccepted(candidate(name = "clip.mp4", mimeType = "video/mp4", sizeBytes = 0L)))
     }
 
     @Test
@@ -65,6 +69,26 @@ class StatusImageClassifierTest {
         assertEquals("video/mp4", classifier.resolveMimeType("application/octet-stream", "status.mp4"))
         assertEquals("video/3gpp", classifier.resolveMimeType("application/octet-stream", "status.3gp"))
         assertEquals("video/webm", classifier.resolveMimeType("application/octet-stream", "status.webm"))
+    }
+
+    @Test
+    fun `content resolver mime rescues null or generic document mime`() {
+        assertEquals(
+            "image/webp",
+            classifier.resolveMimeType(null, "image/webp", "status")
+        )
+        assertEquals(
+            "video/mp4",
+            classifier.resolveMimeType("application/octet-stream", "video/mp4", "status.bin")
+        )
+    }
+
+    @Test
+    fun `unsupported document and resolver mime remain rejected`() {
+        assertEquals(
+            null,
+            classifier.resolveMimeType("application/octet-stream", "video/quicktime", "status.mov")
+        )
     }
     private fun candidate(
         name: String?,

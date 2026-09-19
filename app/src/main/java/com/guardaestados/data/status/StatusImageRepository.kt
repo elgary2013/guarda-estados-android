@@ -28,30 +28,30 @@ class StatusImageRepository(
                 throw IllegalStateException("Selected URI is not an available folder")
             }
 
-            folder.listFiles()
+            mapDocumentsSafely(folder.listFiles().asSequence()) { document ->
+                document.toStatusImage()
+            }
                 .asSequence()
-                .filter { document -> document.isAcceptedStatusMedia() }
-                .mapNotNull { document -> document.toStatusImage() }
                 .sortedWith(compareByDescending<StatusImage> { it.lastModifiedMillis ?: 0L }.thenBy { it.name })
                 .toList()
         }
     }
 
-    private fun DocumentFile.isAcceptedStatusMedia(): Boolean {
-        val candidate = StatusImageCandidate(
-            name = name,
-            mimeType = type,
-            isDirectory = isDirectory,
-            sizeBytes = length().takeIf { it >= 0L }
-        )
-        return classifier.isAccepted(candidate)
-    }
-
     private fun DocumentFile.toStatusImage(): StatusImage? {
         val fileName = name.orEmpty()
-        val documentMimeType = classifier.resolveMimeType(type, fileName)
-        val resolvedMimeType = classifier.resolveMimeType(contentResolver.getType(uri), fileName)
-        val mimeType = resolvedMimeType ?: documentMimeType ?: return null
+        val sizeBytes = length().takeIf { it > 0L }
+        val mimeType = classifier.resolveMimeType(
+            documentMimeType = type,
+            resolverMimeType = contentResolver.getType(uri),
+            name = fileName
+        ) ?: return null
+        val candidate = StatusImageCandidate(
+            name = fileName,
+            mimeType = mimeType,
+            isDirectory = isDirectory,
+            sizeBytes = sizeBytes
+        )
+        if (!classifier.isAccepted(candidate)) return null
         val mediaType = StatusMediaType.fromMimeType(mimeType)
         val dimensions = if (mediaType == StatusMediaType.Image) contentResolver.readImageDimensions(uri) else null
         val durationMillis = if (mediaType == StatusMediaType.Video) readVideoDurationMillis(uri) else null
@@ -60,7 +60,7 @@ class StatusImageRepository(
             name = fileName,
             mimeType = mimeType,
             lastModifiedMillis = lastModified().takeIf { it > 0L },
-            sizeBytes = length().takeIf { it > 0L },
+            sizeBytes = sizeBytes,
             widthPixels = dimensions?.widthPixels,
             heightPixels = dimensions?.heightPixels,
             durationMillis = durationMillis,
@@ -103,4 +103,13 @@ class StatusImageRepository(
         val widthPixels: Int?,
         val heightPixels: Int?
     )
+}
+
+internal fun <T, R : Any> mapDocumentsSafely(
+    documents: Sequence<T>,
+    transform: (T) -> R?
+): List<R> {
+    return documents.mapNotNull { document ->
+        runCatching { transform(document) }.getOrNull()
+    }.toList()
 }

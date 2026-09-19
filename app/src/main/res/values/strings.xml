@@ -321,7 +321,7 @@
     <string name="settings_theme_summary_system">Usar tema del sistema</string>
     <string name="settings_theme_summary_light">Claro</string>
     <string name="settings_theme_summary_dark">Oscuro</string>
-    <string name="settings_theme_system">Según el sistema</string>
+    <string name="settings_theme_system">Sistema</string>
     <string name="settings_theme_light">Claro</string>
     <string name="settings_theme_dark">Oscuro</string>
     <string name="settings_privacy_title">Privacidad y aviso legal</string>
@@ -406,12 +406,13 @@
     <string name="home_video_splitter_body">Prepará clips para compartir</string>
     <string name="home_video_splitter_action">Dividir</string>
     <string name="video_splitter_title">Dividir video</string>
-    <string name="video_splitter_subtitle">Elegí un video con el selector oficial de Android, creá partes y compartilas manualmente.</string>
+    <string name="video_splitter_subtitle">Dejalo listo para compartir</string>
     <string name="video_splitter_privacy_notice">La app no publica estados automáticamente, no accede a WhatsApp, chats, contactos ni datos internos de otras apps. El usuario decide dónde compartir cada parte.</string>
     <string name="video_splitter_original_unchanged">El original no se modifica</string>
     <string name="video_splitter_action_pick">Elegir video</string>
-    <string name="video_splitter_empty_title">Sin video seleccionado</string>
-    <string name="video_splitter_empty_body">Seleccioná un único video desde el teléfono para ver la vista previa y preparar las partes.</string>
+    <string name="video_splitter_empty_title">Dividí tus videos fácilmente</string>
+    <string name="video_splitter_empty_body">Elegí un video del teléfono para preparar partes o recortar el fragmento que necesitás.</string>
+    <string name="video_splitter_empty_modes">Dividí en partes de 15, 30 o 60 segundos, o recortá un fragmento.</string>
     <string name="video_splitter_selected_title">Video seleccionado</string>
     <string name="video_splitter_file_name">Nombre del archivo</string>
     <string name="video_splitter_total_duration">Duración total</string>
@@ -420,7 +421,9 @@
     <string name="video_splitter_output_path">Movies &gt; EstadoGo &gt; Videos &gt; Partes</string>
     <string name="video_splitter_mode_title">Modo</string>
     <string name="video_splitter_mode_split">Dividir en partes</string>
+    <string name="video_splitter_mode_split_body">Creá clips de igual duración</string>
     <string name="video_splitter_mode_trim">Recortar video</string>
+    <string name="video_splitter_mode_trim_body">Seleccioná el inicio y el final del fragmento</string>
     <string name="video_splitter_part_duration_title">Duración por parte</string>
     <string name="video_splitter_seconds_option">%1$d s</string>
     <string name="video_splitter_action_create">Crear partes</string>
