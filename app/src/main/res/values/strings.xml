@@ -90,7 +90,6 @@
     <string name="status_image_open_action">Abrir imagen %1$s</string>
     <string name="status_image_open_action_simple">Abrir imagen de estado</string>
     <string name="status_video_open_action_simple">Abrir video de estado</string>
-    <string name="saved_image_open_action">Abrir copia guardada %1$s</string>
     <string name="saved_image_open_action_simple">Abrir imagen guardada</string>
     <string name="saved_video_open_action_simple">Abrir video guardado</string>
     <string name="preview_title">Vista previa</string>
@@ -193,7 +192,6 @@
     <string name="saved_delete_status_invalid">No se eliminó porque no es una copia válida de EstadoGo.</string>
     <string name="saved_delete_status_error">No se pudo eliminar la copia del teléfono. Probá de nuevo.</string>
     <string name="saved_delete_system_confirmation">Android necesita confirmar esta eliminación.</string>
-    <string name="saved_action_share_image">Compartir imagen</string>
     <string name="saved_action_share_media">Compartir copia</string>
     <string name="saved_share_status_opening">Abriendo opciones para compartir la copia guardada...</string>
     <string name="saved_share_status_chooser_opened">Elegí una aplicación para compartir la copia guardada.</string>
