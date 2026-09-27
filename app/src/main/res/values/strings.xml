@@ -339,9 +339,6 @@
     <string name="settings_legal_user_responsibility">El usuario debe guardar o compartir contenido únicamente con autorización de su creador.</string>
     <string name="settings_reset_title">Restablecer configuración</string>
     <string name="settings_reset_summary">Volver a los valores iniciales</string>
-    <string name="settings_reset_keeps_copies">No borra las copias ya guardadas.</string>
-    <string name="settings_reset_body">Eliminá la carpeta autorizada, la carpeta de destino personalizada y volvé al tema del sistema sin borrar tus copias guardadas.</string>
-    <string name="settings_reset_action">Restablecer configuración</string>
     <string name="settings_reset_dialog_title">Restablecer configuración</string>
     <string name="settings_reset_dialog_body">Se eliminarán la carpeta seleccionada, la carpeta de destino personalizada y la preferencia de tema.</string>
     <string name="settings_reset_dialog_keep_copies">No se borrarán las copias guardadas por EstadoGo.</string>
