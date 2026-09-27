@@ -67,9 +67,6 @@
     <string name="states_error_title">No se pudo leer la carpeta</string>
     <string name="states_error_body">El acceso falló de forma recuperable. Probá actualizar o seleccionar la carpeta nuevamente.</string>
     <string name="states_found_title">Imágenes encontradas</string>
-    <string name="status_image_mime_type">Tipo: %1$s</string>
-    <string name="status_image_size">Tamaño: %1$s bytes</string>
-    <string name="status_image_date">Fecha: %1$s</string>
     <string name="status_file_details_title">Detalles del archivo</string>
     <string name="status_file_details_body">Datos locales entregados por Android para esta imagen.</string>
     <string name="status_file_name_label">Nombre</string>
@@ -93,7 +90,6 @@
     <string name="status_image_open_action">Abrir imagen %1$s</string>
     <string name="status_image_open_action_simple">Abrir imagen de estado</string>
     <string name="status_video_open_action_simple">Abrir video de estado</string>
-    <string name="saved_image_open_action">Abrir copia guardada %1$s</string>
     <string name="saved_image_open_action_simple">Abrir imagen guardada</string>
     <string name="saved_video_open_action_simple">Abrir video guardado</string>
     <string name="preview_title">Vista previa</string>
@@ -196,7 +192,6 @@
     <string name="saved_delete_status_invalid">No se eliminó porque no es una copia válida de EstadoGo.</string>
     <string name="saved_delete_status_error">No se pudo eliminar la copia del teléfono. Probá de nuevo.</string>
     <string name="saved_delete_system_confirmation">Android necesita confirmar esta eliminación.</string>
-    <string name="saved_action_share_image">Compartir imagen</string>
     <string name="saved_action_share_media">Compartir copia</string>
     <string name="saved_share_status_opening">Abriendo opciones para compartir la copia guardada...</string>
     <string name="saved_share_status_chooser_opened">Elegí una aplicación para compartir la copia guardada.</string>
@@ -339,9 +334,6 @@
     <string name="settings_legal_user_responsibility">El usuario debe guardar o compartir contenido únicamente con autorización de su creador.</string>
     <string name="settings_reset_title">Restablecer configuración</string>
     <string name="settings_reset_summary">Volver a los valores iniciales</string>
-    <string name="settings_reset_keeps_copies">No borra las copias ya guardadas.</string>
-    <string name="settings_reset_body">Eliminá la carpeta autorizada, la carpeta de destino personalizada y volvé al tema del sistema sin borrar tus copias guardadas.</string>
-    <string name="settings_reset_action">Restablecer configuración</string>
     <string name="settings_reset_dialog_title">Restablecer configuración</string>
     <string name="settings_reset_dialog_body">Se eliminarán la carpeta seleccionada, la carpeta de destino personalizada y la preferencia de tema.</string>
     <string name="settings_reset_dialog_keep_copies">No se borrarán las copias guardadas por EstadoGo.</string>
@@ -380,9 +372,6 @@
     <string name="home_background_choose">Elegir imagen de galería</string>
     <string name="home_background_remove">Quitar fondo</string>
     <string name="home_background_permission_lost">No se pudo acceder a tu foto de fondo. Se restauró el fondo predeterminado.</string>
-    <string name="home_video_splitter_title">Dividir video</string>
-    <string name="home_video_splitter_body">Prepará clips para compartir</string>
-    <string name="home_video_splitter_action">Dividir</string>
     <string name="video_splitter_title">Dividir video</string>
     <string name="video_splitter_subtitle">Dejalo listo para compartir</string>
     <string name="video_splitter_privacy_notice">La app no publica estados automáticamente, no accede a WhatsApp, chats, contactos ni datos internos de otras apps. El usuario decide dónde compartir cada parte.</string>
