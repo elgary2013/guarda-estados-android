@@ -12,7 +12,6 @@ import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 import com.guardaestados.data.settings.AppThemeMode
@@ -190,17 +189,7 @@ fun GuardaEstadosTheme(
     if (!view.isInEditMode) {
         SideEffect {
             val window = (view.context as? Activity)?.window ?: return@SideEffect
-            val systemBarColor = if (drawHomePhotoBehindSystemBars) {
-                Color.Transparent
-            } else {
-                colorScheme.background
-            }
-
-            window.statusBarColor = systemBarColor.toArgb()
-            window.navigationBarColor = systemBarColor.toArgb()
-
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                window.isStatusBarContrastEnforced = !drawHomePhotoBehindSystemBars
                 window.isNavigationBarContrastEnforced = !drawHomePhotoBehindSystemBars
             }
 
