@@ -14,7 +14,6 @@
     <string name="home_quick_saved_body">Abrí tus copias guardadas</string>
     <string name="home_quick_split_body">Creá partes o recortá un fragmento</string>
     <string name="home_tools_title">Herramientas</string>
-    <string name="share_action_short">Compartir</string>
     <string name="home_available_statuses_title">Estados disponibles</string>
     <string name="home_device_states_title">Estados en tu dispositivo</string>
     <string name="home_device_states_body">Elegí Estados en la barra inferior para ver imágenes y videos disponibles.</string>
@@ -385,9 +384,7 @@
     <string name="folder_media_selection_rejected">Abrí .Statuses y tocá “Usar esta carpeta”. No se conecta la carpeta Media completa.</string>
     <string name="folder_permission_persist_error">Android no permitió conservar el acceso de lectura a la carpeta. Probá seleccionarla nuevamente.</string>
     <string name="folder_action_select">Seleccionar carpeta</string>
-    <string name="folder_action_select_again">Volver a seleccionar carpeta</string>
     <string name="folder_action_change">Cambiar carpeta</string>
-    <string name="folder_selected_uri">URI: %1$s</string>
     <string name="home_background_change">Cambiar fondo</string>
     <string name="home_background_choose">Elegir imagen de galería</string>
     <string name="home_background_remove">Quitar fondo</string>
