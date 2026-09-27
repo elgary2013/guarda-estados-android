@@ -67,9 +67,6 @@
     <string name="states_error_title">No se pudo leer la carpeta</string>
     <string name="states_error_body">El acceso falló de forma recuperable. Probá actualizar o seleccionar la carpeta nuevamente.</string>
     <string name="states_found_title">Imágenes encontradas</string>
-    <string name="status_image_mime_type">Tipo: %1$s</string>
-    <string name="status_image_size">Tamaño: %1$s bytes</string>
-    <string name="status_image_date">Fecha: %1$s</string>
     <string name="status_file_details_title">Detalles del archivo</string>
     <string name="status_file_details_body">Datos locales entregados por Android para esta imagen.</string>
     <string name="status_file_name_label">Nombre</string>
