@@ -38,12 +38,9 @@
     <string name="home_placeholder_note">La app solo lee imágenes dentro de la carpeta autorizada por Android. Para dividir videos usa el selector oficial de Android.</string>
     <string name="states_title">Estados</string>
     <string name="states_subtitle">Galería temporal de imágenes y videos detectados en la carpeta autorizada.</string>
-    <string name="states_header_badge">Acceso local seguro</string>
-    <string name="states_header_note">Tocá una imagen o video para ver la vista previa.</string>
     <string name="states_count_badge">%1$d archivos</string>
     <string name="states_action_refresh">Actualizar</string>
     <string name="states_refresh_footer">Actualizar para buscar nuevos estados</string>
-    <string name="states_video_badge">Video</string>
     <string name="states_selection_cancel">Cancelar selección</string>
     <string name="states_selection_start">Seleccionar elemento</string>
     <string name="states_selection_select_item">Marcar elemento</string>
@@ -77,11 +74,9 @@
     <string name="states_no_folder_body">Para ver estados, primero autorizá la carpeta .Statuses desde Ajustes.</string>
     <string name="states_permission_lost_title">Permiso perdido</string>
     <string name="states_permission_lost_body">Se perdió el permiso de la carpeta de estados. Volvé a conectar la carpeta desde Ajustes.</string>
-    <string name="states_ready_body">La carpeta está autorizada. Todavía no se leen ni se muestran archivos.</string>
     <string name="states_error_title">No se pudo leer la carpeta</string>
     <string name="states_error_body">El acceso falló de forma recuperable. Probá actualizar o seleccionar la carpeta nuevamente.</string>
     <string name="states_found_title">Imágenes encontradas</string>
-    <string name="states_found_body">Cantidad: %1$d</string>
     <string name="status_image_mime_type">Tipo: %1$s</string>
     <string name="status_image_size">Tamaño: %1$s bytes</string>
     <string name="status_image_date">Fecha: %1$s</string>
