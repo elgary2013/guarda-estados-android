@@ -1,12 +1,12 @@
 <resources>
-    <string name="app_name">EstadoGo</string>
+    <string name="app_name" translatable="false">EstadoGo</string>
     <string name="nav_home">Inicio</string>
     <string name="nav_states">Estados</string>
     <string name="nav_split">Dividir</string>
     <string name="nav_saved">Guardados</string>
     <string name="nav_settings">Ajustes</string>
-    <string name="home_title">EstadoGo</string>
-    <string name="home_title_visible">EstadoGo</string>
+    <string name="home_title" translatable="false">EstadoGo</string>
+    <string name="home_title_visible" translatable="false">EstadoGo</string>
     <string name="home_subtitle">Tus estados, siempre a mano.</string>
     <string name="home_modern_tagline">Guardá, dividí y compartí tus estados</string>
     <string name="home_status_ready_real">Tus estados están listos para ver, guardar o compartir.</string>
@@ -249,9 +249,9 @@
     <string name="settings_folder_authorized_name">Carpeta autorizada: %1$s</string>
     <string name="settings_folder_recommended_label">Carpeta recomendada</string>
     <string name="settings_folder_recommended_path_title">Ruta recomendada</string>
-    <string name="settings_folder_recommended_path">Android &gt; media &gt; com.whatsapp &gt; WhatsApp &gt; Media &gt; .Statuses</string>
+    <string name="settings_folder_recommended_path" translatable="false">Android &gt; media &gt; com.whatsapp &gt; WhatsApp &gt; Media &gt; .Statuses</string>
     <string name="settings_folder_manual_authorized">Carpeta manual autorizada</string>
-    <string name="settings_folder_statuses_name">.Statuses</string>
+    <string name="settings_folder_statuses_name" translatable="false">.Statuses</string>
     <string name="settings_folder_unknown_name">Carpeta seleccionada</string>
     <string name="settings_save_destination_title">Carpeta de destino</string>
     <string name="settings_save_destination_current_title">Destino actual</string>
@@ -305,7 +305,7 @@
     <string name="settings_privacy_local">El contenido de estados permanece en el teléfono.</string>
     <string name="settings_privacy_folder_access">Solo accede a la carpeta que el usuario autoriza.</string>
     <string name="settings_privacy_policy">Política de privacidad</string>
-    <string name="settings_privacy_policy_url">https://programarpara.com/estadogo-privacidad</string>
+    <string name="settings_privacy_policy_url" translatable="false">https://programarpara.com/estadogo-privacidad</string>
     <string name="privacy_info_data_title">Tus datos</string>
     <string name="privacy_info_data_body">EstadoGo funciona en el teléfono y no requiere cuenta.</string>
     <string name="privacy_info_folder_title">Carpeta autorizada</string>
@@ -342,7 +342,7 @@
     <string name="settings_reset_success">Configuración restablecida. No hay carpeta seleccionada, se usa la ubicación predeterminada y se usa el tema del sistema.</string>
     <string name="settings_reset_success_dismiss">Entendido</string>
     <string name="settings_about_title">Acerca de</string>
-    <string name="settings_about_app_name">EstadoGo</string>
+    <string name="settings_about_app_name" translatable="false">EstadoGo</string>
     <string name="settings_about_version">Versión instalada: %1$s</string>
     <string name="folder_status_loading">Revisando carpeta seleccionada...</string>
     <string name="folder_status_not_selected">Todavía no conectaste una carpeta de estados.</string>
@@ -383,9 +383,10 @@
     <string name="video_splitter_selected_title">Video seleccionado</string>
     <string name="video_splitter_file_name">Nombre del archivo</string>
     <string name="video_splitter_total_duration">Duración total</string>
+    <string name="video_duration_unavailable">No disponible</string>
     <string name="video_splitter_estimated_parts">Partes estimadas</string>
     <string name="video_splitter_output_location">Ubicación de salida</string>
-    <string name="video_splitter_output_path">Movies &gt; EstadoGo &gt; Videos &gt; Partes</string>
+    <string name="video_splitter_output_path" translatable="false">Movies &gt; EstadoGo &gt; Videos &gt; Partes</string>
     <string name="video_splitter_mode_title">Modo</string>
     <string name="video_splitter_mode_split">Dividir en partes</string>
     <string name="video_splitter_mode_split_body">Creá clips de igual duración</string>

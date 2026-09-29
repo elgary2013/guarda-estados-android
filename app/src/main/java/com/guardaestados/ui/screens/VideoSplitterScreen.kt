@@ -454,7 +454,10 @@ private fun SelectedVideoCard(
                 fontWeight = FontWeight.SemiBold,
                 color = SplitText
             )
-            VideoDetailRow(label = stringResource(R.string.video_splitter_total_duration), value = formatter.format(video.durationMs))
+            VideoDetailRow(
+                label = stringResource(R.string.video_splitter_total_duration),
+                value = formatter.format(video.durationMs) ?: stringResource(R.string.video_duration_unavailable)
+            )
             VideoModeSelector(
                 activeMode = activeMode,
                 processing = processing,
@@ -944,7 +947,10 @@ private fun GeneratedPartsCard(
                             color = SplitText
                         )
                         Text(
-                            text = stringResource(R.string.video_splitter_part_duration, formatter.format(part.durationMs)),
+                            text = stringResource(
+                                R.string.video_splitter_part_duration,
+                                formatter.format(part.durationMs) ?: stringResource(R.string.video_duration_unavailable)
+                            ),
                             style = MaterialTheme.typography.bodyMedium,
                             color = SplitBody
                         )
@@ -991,7 +997,10 @@ private fun GeneratedTrimCard(
                 color = SplitBody
             )
             Text(
-                text = stringResource(R.string.video_splitter_part_duration, formatter.format(trim.durationMs)),
+                text = stringResource(
+                    R.string.video_splitter_part_duration,
+                    formatter.format(trim.durationMs) ?: stringResource(R.string.video_duration_unavailable)
+                ),
                 style = MaterialTheme.typography.bodyMedium,
                 color = SplitBody
             )

@@ -1,6 +1,7 @@
 ﻿package com.guardaestados.domain.video
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -65,8 +66,9 @@ class ReadableVideoDurationFormatterTest {
     }
 
     @Test
-    fun `formats unknown duration`() {
-        assertEquals("No disponible", formatter.format(null))
-        assertEquals("No disponible", formatter.format(0L))
+    fun `returns null for unavailable duration`() {
+        assertNull(formatter.format(null))
+        assertNull(formatter.format(0L))
+        assertNull(formatter.format(-1L))
     }
 }
