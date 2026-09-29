@@ -3,7 +3,7 @@
     <string name="nav_states">Status</string>
     <string name="nav_split">Dividir</string>
     <string name="nav_saved">Salvos</string>
-    <string name="nav_settings">Configurações</string>
+    <string name="nav_settings">Ajustes</string>
     <string name="home_subtitle">Seus status, sempre à mão.</string>
     <string name="home_modern_tagline">Salve, divida e compartilhe seus status</string>
     <string name="home_status_ready_real">Seus status estão prontos para visualizar, salvar ou compartilhar.</string>
