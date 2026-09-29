@@ -291,6 +291,12 @@
     <string name="appearance_background_aura_green">Aura verde</string>
     <string name="appearance_background_emerald_waves">Ondas esmeralda</string>
     <string name="appearance_background_luminous_night">Noche luminosa</string>
+    <string name="settings_language_title">Idioma de la aplicación</string>
+    <string name="settings_language_system">Según el sistema</string>
+    <string name="settings_language_spanish">Español</string>
+    <string name="settings_language_english">English</string>
+    <string name="settings_language_portuguese">Português</string>
+    <string name="settings_language_cancel">Cancelar</string>
     <string name="settings_theme_title">Tema</string>
     <string name="appearance_theme_selected">Tema seleccionado: %1$s</string>
     <string name="settings_theme_summary_system">Usar tema del sistema</string>
