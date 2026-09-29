@@ -21,6 +21,7 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -31,6 +32,7 @@ import androidx.compose.material.icons.filled.ContentCut
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Language
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -38,6 +40,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -59,10 +62,14 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
 import com.guardaestados.ui.theme.LocalGuardaEstadosColors
 import com.guardaestados.R
 import com.guardaestados.data.folder.FolderSelectionState
 import com.guardaestados.data.settings.AppThemePreference
+import com.guardaestados.data.settings.AppLanguage
+import com.guardaestados.data.settings.AppLanguageManager
 import com.guardaestados.data.settings.SaveDestinationState
 import com.guardaestados.ui.settings.SettingsResetState
 import com.guardaestados.ui.theme.BrandGradientButton
@@ -108,9 +115,15 @@ fun SettingsScreen(
     modifier: Modifier = Modifier
 ) {
     var showResetDialog by remember { mutableStateOf(false) }
+    var showLanguageDialog by remember { mutableStateOf(false) }
+    var language by remember { mutableStateOf(AppLanguageManager.currentLanguage()) }
 
-    LaunchedEffect(showResetDialog) {
-        onDialogVisibilityChanged(showResetDialog)
+    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
+        language = AppLanguageManager.currentLanguage()
+    }
+
+    LaunchedEffect(showResetDialog, showLanguageDialog) {
+        onDialogVisibilityChanged(showResetDialog || showLanguageDialog)
     }
 
     DisposableEffect(Unit) {
@@ -169,6 +182,16 @@ fun SettingsScreen(
                 onClick = onOpenPrivacyInfo
             )
 
+            SettingsLinkSection(
+                title = stringResource(R.string.settings_language_title),
+                summary = languageLabel(language),
+                icon = Icons.Filled.Language,
+                onClick = {
+                    language = AppLanguageManager.currentLanguage()
+                    showLanguageDialog = true
+                }
+            )
+
             BrandGlassCard(modifier = Modifier.fillMaxWidth(), contentPadding = androidx.compose.foundation.layout.PaddingValues(14.dp)) {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     Text(stringResource(R.string.settings_theme_title), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold, color = SettingsTitle)
@@ -197,6 +220,18 @@ fun SettingsScreen(
         }
     }
 
+    if (showLanguageDialog) {
+        LanguageSettingsDialog(
+            selectedLanguage = language,
+            onDismiss = { showLanguageDialog = false },
+            onSelected = { selected ->
+                showLanguageDialog = false
+                language = selected
+                AppLanguageManager.applyLanguage(selected)
+            }
+        )
+    }
+
     if (showResetDialog) {
         ResetSettingsDialog(
             isResetting = resetState == SettingsResetState.Resetting,
@@ -207,6 +242,58 @@ fun SettingsScreen(
             }
         )
     }
+}
+
+@Composable
+private fun languageLabel(language: AppLanguage): String = stringResource(
+    when (language) {
+        AppLanguage.System -> R.string.settings_language_system
+        AppLanguage.Spanish -> R.string.settings_language_spanish
+        AppLanguage.English -> R.string.settings_language_english
+        AppLanguage.Portuguese -> R.string.settings_language_portuguese
+    }
+)
+
+@Composable
+private fun LanguageSettingsDialog(
+    selectedLanguage: AppLanguage,
+    onDismiss: () -> Unit,
+    onSelected: (AppLanguage) -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        containerColor = SettingsSurfaceStrong,
+        titleContentColor = SettingsTitle,
+        textContentColor = SettingsBody,
+        title = { Text(stringResource(R.string.settings_language_title)) },
+        text = {
+            Column(Modifier.selectableGroup()) {
+                AppLanguage.entries.forEach { language ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .selectable(
+                                selected = language == selectedLanguage,
+                                role = Role.RadioButton,
+                                onClick = { onSelected(language) }
+                            )
+                            .padding(vertical = 12.dp),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        RadioButton(selected = language == selectedLanguage, onClick = null)
+                        Text(languageLabel(language))
+                    }
+                }
+            }
+        },
+        confirmButton = {},
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(stringResource(R.string.settings_language_cancel), color = SettingsIconTint)
+            }
+        }
+    )
 }
 
 @Composable
