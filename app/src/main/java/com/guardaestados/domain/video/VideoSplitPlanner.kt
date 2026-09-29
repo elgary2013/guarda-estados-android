@@ -77,8 +77,8 @@ class SafeVideoTrimNameGenerator {
 }
 
 class ReadableVideoDurationFormatter {
-    fun format(durationMs: Long?): String {
-        val totalSeconds = durationMs?.takeIf { it > 0L }?.div(1000L) ?: return UNKNOWN
+    fun format(durationMs: Long?): String? {
+        val totalSeconds = durationMs?.takeIf { it > 0L }?.div(1000L) ?: return null
         val hours = totalSeconds / SECONDS_PER_HOUR
         val minutes = (totalSeconds % SECONDS_PER_HOUR) / SECONDS_PER_MINUTE
         val seconds = totalSeconds % SECONDS_PER_MINUTE
@@ -90,7 +90,6 @@ class ReadableVideoDurationFormatter {
     }
 
     private companion object {
-        const val UNKNOWN = "No disponible"
         const val SECONDS_PER_MINUTE = 60L
         const val SECONDS_PER_HOUR = 3600L
     }

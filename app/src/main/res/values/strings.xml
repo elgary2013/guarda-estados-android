@@ -383,6 +383,7 @@
     <string name="video_splitter_selected_title">Video seleccionado</string>
     <string name="video_splitter_file_name">Nombre del archivo</string>
     <string name="video_splitter_total_duration">Duración total</string>
+    <string name="video_duration_unavailable">No disponible</string>
     <string name="video_splitter_estimated_parts">Partes estimadas</string>
     <string name="video_splitter_output_location">Ubicación de salida</string>
     <string name="video_splitter_output_path">Movies &gt; EstadoGo &gt; Videos &gt; Partes</string>
