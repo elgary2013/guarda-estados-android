@@ -265,7 +265,6 @@
     <string name="settings_language_portuguese">Português</string>
     <string name="settings_language_cancel">Cancelar</string>
     <string name="settings_theme_title">Tema</string>
-    <string name="appearance_theme_selected">Tema seleccionado: %1$s</string>
     <string name="settings_theme_summary_system">Usar tema del sistema</string>
     <string name="settings_theme_summary_light">Claro</string>
     <string name="settings_theme_summary_dark">Oscuro</string>
