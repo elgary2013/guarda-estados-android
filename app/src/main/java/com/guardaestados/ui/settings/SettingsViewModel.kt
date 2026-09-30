@@ -8,7 +8,6 @@ import androidx.lifecycle.viewModelScope
 import com.guardaestados.data.folder.FolderSelectionRepository
 import com.guardaestados.data.settings.AppSettingsRepository
 import com.guardaestados.data.settings.AppThemePreference
-import com.guardaestados.data.settings.IncludedHomeBackground
 import com.guardaestados.data.settings.SaveDestinationState
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -28,18 +27,6 @@ class SettingsViewModel(
         initialValue = AppThemePreference.System
     )
 
-    val homeBackgroundUri: StateFlow<String?> = appSettingsRepository.homeBackgroundUri.stateIn(
-        scope = viewModelScope,
-        started = SharingStarted.WhileSubscribed(5_000),
-        initialValue = null
-    )
-
-    val includedHomeBackground: StateFlow<IncludedHomeBackground?> = appSettingsRepository.includedHomeBackground.stateIn(
-        scope = viewModelScope,
-        started = SharingStarted.WhileSubscribed(5_000),
-        initialValue = null
-    )
-
     val saveDestinationState: StateFlow<SaveDestinationState> = appSettingsRepository.saveDestinationState.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5_000),
@@ -48,42 +35,6 @@ class SettingsViewModel(
 
     private val _resetState = MutableStateFlow<SettingsResetState>(SettingsResetState.Idle)
     val resetState: StateFlow<SettingsResetState> = _resetState.asStateFlow()
-
-    private val _homeBackgroundNotice = MutableStateFlow<HomeBackgroundNotice?>(null)
-    val homeBackgroundNotice: StateFlow<HomeBackgroundNotice?> = _homeBackgroundNotice.asStateFlow()
-
-    fun selectHomeBackground(uri: Uri) {
-        viewModelScope.launch(Dispatchers.IO) {
-            appSettingsRepository.saveHomeBackground(uri)
-        }
-    }
-
-    fun clearHomeBackground() {
-        viewModelScope.launch(Dispatchers.IO) {
-            appSettingsRepository.clearHomeBackground()
-        }
-    }
-
-    fun selectIncludedHomeBackground(background: IncludedHomeBackground) {
-        viewModelScope.launch(Dispatchers.IO) {
-            appSettingsRepository.saveIncludedHomeBackground(background)
-        }
-    }
-
-    fun validateHomeBackground() {
-        if (homeBackgroundUri.value == null) return
-
-        viewModelScope.launch(Dispatchers.IO) {
-            val restoredDefault = appSettingsRepository.clearUnreadableHomeBackground()
-            if (restoredDefault && _homeBackgroundNotice.value == null) {
-                _homeBackgroundNotice.value = HomeBackgroundNotice.PermissionLost
-            }
-        }
-    }
-
-    fun clearHomeBackgroundNotice() {
-        _homeBackgroundNotice.value = null
-    }
 
     fun selectTheme(themePreference: AppThemePreference) {
         viewModelScope.launch {
@@ -124,10 +75,6 @@ sealed interface SettingsResetState {
     data object Idle : SettingsResetState
     data object Resetting : SettingsResetState
     data object Success : SettingsResetState
-}
-
-sealed interface HomeBackgroundNotice {
-    data object PermissionLost : HomeBackgroundNotice
 }
 
 class SettingsViewModelFactory(
