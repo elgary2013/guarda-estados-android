@@ -5,27 +5,19 @@
     <string name="nav_split">Dividir</string>
     <string name="nav_saved">Guardados</string>
     <string name="nav_settings">Ajustes</string>
-    <string name="home_title" translatable="false">EstadoGo</string>
     <string name="home_title_visible" translatable="false">EstadoGo</string>
-    <string name="home_subtitle">Tus estados, siempre a mano.</string>
     <string name="home_modern_tagline">Guardá, dividí y compartí tus estados</string>
     <string name="home_status_ready_real">Tus estados están listos para ver, guardar o compartir.</string>
     <string name="home_quick_access_title">Accesos rápidos</string>
     <string name="home_quick_saved_body">Abrí tus copias guardadas</string>
     <string name="home_quick_split_body">Creá partes o recortá un fragmento</string>
-    <string name="home_tools_title">Herramientas</string>
     <string name="home_available_statuses_title">Estados disponibles</string>
-    <string name="home_device_states_title">Estados en tu dispositivo</string>
-    <string name="home_device_states_body">Elegí Estados en la barra inferior para ver imágenes y videos disponibles.</string>
     <string name="home_connect_states_folder_title">Conectá la carpeta de estados</string>
     <string name="home_connect_states_folder_body">Autorizá la carpeta de estados para ver imágenes y videos disponibles.</string>
     <string name="home_status_loading">Consultando estados disponibles...</string>
     <string name="home_status_empty">No hay estados disponibles por ahora.</string>
     <string name="home_status_read_error">No se pudo leer la carpeta. Revisá el acceso desde Estados.</string>
-    <string name="home_summary_title">Carpeta de trabajo</string>
-    <string name="home_summary_empty">Todavía no hay estados listados.</string>
     <string name="home_primary_action">Ver estados</string>
-    <string name="home_placeholder_note">La app solo lee imágenes dentro de la carpeta autorizada por Android. Para dividir videos usa el selector oficial de Android.</string>
     <string name="states_title">Estados</string>
     <string name="states_subtitle">Galería temporal de imágenes y videos detectados en la carpeta autorizada.</string>
     <string name="states_count_badge">%1$d archivos</string>
