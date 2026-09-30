@@ -57,14 +57,7 @@
     <string name="states_error_title">Não foi possível ler a pasta</string>
     <string name="states_error_body">Não foi possível acessar a pasta. Tente atualizar ou selecionar a pasta novamente.</string>
     <string name="states_found_title">Imagens encontradas</string>
-    <string name="status_file_details_title">Detalhes do arquivo</string>
-    <string name="status_file_details_body">Informações locais fornecidas pelo Android sobre esta imagem.</string>
-    <string name="status_file_name_label">Nome</string>
-    <string name="status_file_date_label">Data e hora</string>
-    <string name="status_file_size_label">Tamanho</string>
     <string name="status_file_format_label">Formato</string>
-    <string name="status_file_dimensions_label">Dimensões</string>
-    <string name="status_file_unknown">Indisponível</string>
     <string name="status_privacy_notice">O Android não fornece informações sobre quem publicou este status. O app não tenta obter contas, contatos, conversas nem a identidade de usuários de outros apps.</string>
     <string name="status_image_card_date">Data: %1$s</string>
     <string name="status_image_uri">URI: %1$s</string>
@@ -442,7 +435,6 @@
     <string name="states_empty_videos_title">Nenhum vídeo</string>
     <string name="states_empty_videos_body">Nenhum vídeo compatível foi encontrado na pasta selecionada.</string>
     <string name="status_video_open_action">Abrir vídeo %1$s</string>
-    <string name="status_video_file_details_body">Informações locais fornecidas pelo Android sobre este vídeo.</string>
     <string name="save_status_duplicate_video">Este vídeo já foi salvo em Movies &gt; EstadoGo &gt; Videos.</string>
     <string name="saved_media_origin">Origem: %1$s</string>
     <string name="saved_origin_status_copy">Cópia salva</string>

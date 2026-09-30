@@ -57,14 +57,7 @@
     <string name="states_error_title">Could not read the folder</string>
     <string name="states_error_body">The folder could not be accessed. Try refreshing or selecting the folder again.</string>
     <string name="states_found_title">Images found</string>
-    <string name="status_file_details_title">File details</string>
-    <string name="status_file_details_body">Local information provided by Android for this image.</string>
-    <string name="status_file_name_label">Name</string>
-    <string name="status_file_date_label">Date and time</string>
-    <string name="status_file_size_label">Size</string>
     <string name="status_file_format_label">Format</string>
-    <string name="status_file_dimensions_label">Dimensions</string>
-    <string name="status_file_unknown">Unavailable</string>
     <string name="status_privacy_notice">Android does not provide information about who posted this status. The app does not attempt to obtain accounts, contacts, conversations or identities from other apps.</string>
     <string name="status_image_card_date">Date: %1$s</string>
     <string name="status_image_uri">URI: %1$s</string>
@@ -442,7 +435,6 @@
     <string name="states_empty_videos_title">No videos</string>
     <string name="states_empty_videos_body">No supported videos were found in the selected folder.</string>
     <string name="status_video_open_action">Open video %1$s</string>
-    <string name="status_video_file_details_body">Local information provided by Android for this video.</string>
     <string name="save_status_duplicate_video">This video has already been saved in Movies &gt; EstadoGo &gt; Videos.</string>
     <string name="saved_media_origin">Source: %1$s</string>
     <string name="saved_origin_status_copy">Saved copy</string>
