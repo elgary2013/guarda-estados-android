@@ -220,8 +220,6 @@
     <string name="settings_how_to_body">Connect the status folder, open a preview and choose to save or share. For long videos, use Split.</string>
     <string name="settings_folder_title">Selected folder</string>
     <string name="settings_states_folder_title">Status folder</string>
-    <string name="settings_folder_summary_selected">Status folder connected</string>
-    <string name="settings_folder_summary_empty">No folder selected</string>
     <string name="settings_states_folder_connected_recommended">Connected: %1$s</string>
     <string name="settings_states_folder_connected_manual">Folder connected</string>
     <string name="settings_states_folder_not_connected">No folder connected</string>
@@ -234,9 +232,7 @@
     <string name="settings_folder_unknown_name">Selected folder</string>
     <string name="settings_save_destination_title">Destination folder</string>
     <string name="settings_save_destination_current_title">Current destination</string>
-    <string name="settings_save_destination_summary_default">Default location</string>
     <string name="settings_save_destination_estadogo_default">Default EstadoGo destination</string>
-    <string name="settings_save_destination_summary_attention">Needs attention</string>
     <string name="settings_save_destination_default">Using the default location: Pictures &gt; EstadoGo &gt; Imágenes for images and Movies &gt; EstadoGo &gt; Videos for videos.</string>
     <string name="settings_save_destination_default_title">Default destination</string>
     <string name="settings_save_destination_default_images">Images: Pictures &gt; EstadoGo &gt; Imágenes</string>
@@ -247,18 +243,6 @@
     <string name="settings_save_destination_change">Change destination folder</string>
     <string name="settings_save_destination_default_action">Use default destination</string>
     <string name="settings_save_destination_new_copies_note">New copies will be saved in the folder you choose. Existing copies will not be moved.</string>
-    <string name="settings_appearance_title">Appearance</string>
-    <string name="settings_appearance_summary">%1$s. %2$s</string>
-    <string name="settings_home_background_title">Home background</string>
-    <string name="settings_home_background_body">Choose a photo to use as the Home screen background.</string>
-    <string name="settings_home_background_status_default">Default background</string>
-    <string name="settings_home_background_status_custom">Custom background photo</string>
-    <string name="settings_home_background_status_included">EstadoGo background</string>
-    <string name="settings_home_background_load">Load background photo</string>
-    <string name="settings_home_background_change">Change background photo</string>
-    <string name="settings_home_background_remove">Remove background photo</string>
-    <string name="settings_home_background_use_default">Use default background</string>
-    <string name="settings_home_background_note">The background photo is only shown on Home.</string>
     <string name="appearance_home_background_status_default">Default background active</string>
     <string name="appearance_home_background_status_custom">Custom photo active</string>
     <string name="appearance_home_background_status_included">Active EstadoGo background: %1$s</string>
@@ -325,8 +309,6 @@
     <string name="settings_reset_dialog_confirm">Reset settings</string>
     <string name="settings_reset_success">Settings reset. No folder is selected, the default location is used and the theme follows the system.</string>
     <string name="settings_reset_success_dismiss">Got it</string>
-    <string name="settings_about_title">About</string>
-    <string name="settings_about_version">Installed version: %1$s</string>
     <string name="folder_status_loading">Checking selected folder...</string>
     <string name="folder_status_not_selected">You have not connected a status folder yet.</string>
     <string name="folder_status_permission_lost">Permission to access the saved folder was lost. Reconnect it.</string>
