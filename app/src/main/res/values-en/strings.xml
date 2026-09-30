@@ -146,7 +146,6 @@
     <string name="saved_empty_body">No copies have been saved by the app yet.</string>
     <string name="saved_error_title">Could not read saved files</string>
     <string name="saved_error_body">The saved files could not be accessed. Try refreshing.</string>
-    <string name="saved_found_title">Saved copies</string>
     <string name="saved_found_body">Count: %1$d</string>
     <string name="saved_tab_images">Images (%1$d)</string>
     <string name="saved_tab_videos">Videos (%1$d)</string>
@@ -154,7 +153,6 @@
     <string name="saved_empty_images_body">No images have been saved by the app.</string>
     <string name="saved_empty_videos_title">No saved videos</string>
     <string name="saved_empty_videos_body">No videos have been saved by the app.</string>
-    <string name="saved_image_date">Saved: %1$s</string>
     <string name="saved_thumbnail_description">Saved thumbnail of %1$s</string>
     <string name="saved_media_thumbnail_description">Thumbnail of %1$s</string>
     <string name="saved_image_thumbnail_fallback">image</string>
@@ -436,7 +434,6 @@
     <string name="states_empty_videos_body">No supported videos were found in the selected folder.</string>
     <string name="status_video_open_action">Open video %1$s</string>
     <string name="save_status_duplicate_video">This video has already been saved in Movies &gt; EstadoGo &gt; Videos.</string>
-    <string name="saved_media_origin">Source: %1$s</string>
     <string name="saved_origin_status_copy">Saved copy</string>
     <string name="saved_origin_video_part">Generated part</string>
     <string name="saved_action_open_with">Open with another app</string>

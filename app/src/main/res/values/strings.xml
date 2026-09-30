@@ -148,7 +148,6 @@
     <string name="saved_empty_body">Todavía no hay copias guardadas por la app.</string>
     <string name="saved_error_title">No se pudieron leer los guardados</string>
     <string name="saved_error_body">El acceso falló de forma recuperable. Probá actualizar.</string>
-    <string name="saved_found_title">Copias guardadas</string>
     <string name="saved_found_body">Cantidad: %1$d</string>
     <string name="saved_tab_images">Imágenes (%1$d)</string>
     <string name="saved_tab_videos">Videos (%1$d)</string>
@@ -156,7 +155,6 @@
     <string name="saved_empty_images_body">No hay imágenes guardadas por la app.</string>
     <string name="saved_empty_videos_title">Sin videos guardados</string>
     <string name="saved_empty_videos_body">No hay videos guardados por la app.</string>
-    <string name="saved_image_date">Guardada: %1$s</string>
     <string name="saved_thumbnail_description">Miniatura guardada de %1$s</string>
     <string name="saved_media_thumbnail_description">Miniatura de %1$s</string>
     <string name="saved_image_thumbnail_fallback">imagen</string>
@@ -443,7 +441,6 @@
     <string name="states_empty_videos_body">No se encontraron videos compatibles en la carpeta seleccionada.</string>
     <string name="status_video_open_action">Abrir video %1$s</string>
     <string name="save_status_duplicate_video">Este video ya fue guardado en Movies &gt; EstadoGo &gt; Videos.</string>
-    <string name="saved_media_origin">Origen: %1$s</string>
     <string name="saved_origin_status_copy">Copia guardada</string>
     <string name="saved_origin_video_part">Parte generada</string>
     <string name="saved_action_open_with">Abrir con otra app</string>
